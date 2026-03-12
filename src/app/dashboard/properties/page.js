@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
-import { Badge, SectionLabel, SearchBox, EmptyState, ConfirmDialog, Modal, AuthInput, SortButton, toast, InlineLoader } from "../../../components/shared";
+import { Badge, SectionLabel, SearchBox, EmptyState, ConfirmDialog, Modal, AuthInput, SortButton, toast } from "../../../components/shared";
 import { C, STATUS_MAP, COLORS, daysLeft } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 
@@ -86,7 +86,7 @@ export default function PropertiesPage() {
   const getEnd = (t) => t.end_date || t.end || "";
 
   return (
-    <div className="page-in page-padding" style={{ padding: "36px 40px", maxWidth: 920 }}>
+    <div className="page-in page-padding" style={{ maxWidth: 920 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>PROPERTY MANAGEMENT</SectionLabel>
@@ -135,8 +135,8 @@ export default function PropertiesPage() {
                         <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : C.indigo, background: t.pType === "상가" ? C.amber + "18" : C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{t.sub}</span>
                         <Badge label={t.status} map={STATUS_MAP} />
                       </div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: C.text }}>서울 {t.addr}</p>
-                      <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>👤 {t.name} · {t.phone}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>서울 {t.addr}</p>
+                      <p style={{ fontSize: 11, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>👤 {t.name} · {t.phone}</p>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
