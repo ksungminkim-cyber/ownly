@@ -62,6 +62,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ko">
       <head>
+        <meta name="naver-site-verification" content="841eaee5d6c77a899f34fa724e517995d65f3180" />
         <link
           href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
