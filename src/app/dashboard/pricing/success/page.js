@@ -1,15 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { C, PLANS } from "../../../../lib/constants";
-import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-export default function PricingSuccessPage() {
+function PricingSuccessContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [status, setStatus] = useState("processing"); // processing | done | error
@@ -67,5 +61,17 @@ export default function PricingSuccessPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PricingSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}>
+        <p style={{ color: C.muted }}>로딩 중...</p>
+      </div>
+    }>
+      <PricingSuccessContent />
+    </Suspense>
   );
 }
