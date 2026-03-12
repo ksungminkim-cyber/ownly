@@ -61,7 +61,7 @@
   .stagger > *:nth-child(5){animation-delay:.24s}
   .stagger > *:nth-child(6){animation-delay:.29s}
 
-  .main-content { margin-left: 206px; }
+  .main-content { margin-left: 206px; width: calc(100% - 206px); }
 
   .btn-primary { position:relative; overflow:hidden; transition:transform .15s, box-shadow .15s; }
   .btn-primary:hover { transform:translateY(-2px); }
@@ -98,9 +98,9 @@
   @media (max-width: 768px) {
     /* 레이아웃 */
     .desktop-sidebar { display: none !important; }
-    .main-content { margin-left: 0 !important; padding-top: 0 !important; padding-bottom: 32px; }
+    .main-content { margin-left: 0 !important; width: 100% !important; padding-top: 0 !important; padding-bottom: 32px; }
     .mobile-header + .main-content { padding-top: 0; }
-    .mobile-header { display: flex !important; }
+    .mobile-header { display: flex !important; width: 100%; }
 
     /* 페이지 패딩 */
     .page-padding { padding: 18px 16px 32px !important; }
