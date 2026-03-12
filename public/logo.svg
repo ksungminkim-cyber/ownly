@@ -1,0 +1,16 @@
+<svg width="160" height="48" viewBox="0 0 160 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- 지붕 -->
+  <polygon points="20,26 32,12 44,26" fill="url(#logoGrad)"/>
+  <!-- 건물 몸체 -->
+  <rect x="24" y="26" width="16" height="13" rx="1.5" fill="url(#logoGrad)"/>
+  <!-- 문 (네거티브 스페이스) -->
+  <rect x="29" y="29" width="6" height="10" rx="1" fill="#07070e"/>
+  <!-- Ownly 텍스트 -->
+  <text x="54" y="33" font-family="'Outfit', sans-serif" font-weight="800" font-size="22" fill="white" letter-spacing="-0.8">Ownly</text>
+</svg>
