@@ -54,7 +54,7 @@ export const metadata = {
   },
   verification: {
     google: "추후-구글서치콘솔-코드-입력",
-    naver: "추후-네이버서치어드바이저-코드-입력",
+    naver: "841eaee5d6c77a899f34fa724e517995d65f3180",
   },
 };
 
