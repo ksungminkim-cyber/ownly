@@ -64,7 +64,7 @@ export default function ContractsPage() {
   };
 
   return (
-    <div className="page-in page-padding" style={{ padding: "36px 40px", maxWidth: 960 }}>
+    <div className="page-in page-padding" style={{ maxWidth: 960 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>CONTRACT MANAGEMENT</SectionLabel>

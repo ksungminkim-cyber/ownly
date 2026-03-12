@@ -30,8 +30,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="page-in page-padding" style={{ padding: "36px 40px", maxWidth: 1120 }}>
-      <div style={{ marginBottom: 28 }}>
+    <div className="page-in page-padding" style={{ maxWidth: 1120 }}>
+      <div className="page-header" style={{ marginBottom: 28 }}>
         <SectionLabel>OVERVIEW</SectionLabel>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-.4px" }}>대시보드</h1>
         <p style={{ fontSize: 13, color: C.muted, marginTop: 3 }}>2025년 3월 · 전체 물건 {tenants.length}개</p>

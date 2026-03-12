@@ -131,7 +131,7 @@ export default function TaxPage() {
 
       {/* ── 종합소득세 탭 ── */}
       {tab === "income" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="tax-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {/* 왼쪽: 입력 */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* 임대 수입 요약 */}
@@ -184,7 +184,7 @@ export default function TaxPage() {
 
           {/* 오른쪽: 결과 */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="tax-cards" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {card("과세표준", taxableIncome.toLocaleString() + "만원", C.text, "임대+기타소득 - 공제")}
               {card("적용 세율 구간", bracketLabel(taxableIncome), C.amber, "한계세율")}
               {card("종합소득세", incomeTax.toLocaleString() + "만원", C.rose, `실효세율 ${eRate}%`)}
@@ -264,7 +264,7 @@ export default function TaxPage() {
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div className="dash-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
             {card("공급가액", vatSupply.toLocaleString() + "만원", C.text, "6개월 임대료 합계")}
             {card("부가세율", "10%", C.amber, "일반과세자")}
             {card("납부 부가세", vatAmount.toLocaleString() + "만원", C.rose, "공급가액 × 10%")}

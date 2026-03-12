@@ -43,6 +43,7 @@
   .float { animation: float 5s ease-in-out infinite; }
   .pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
   .page-in { animation: page-in .35s cubic-bezier(.22,1,.36,1) both; }
+  .page-padding { padding: 36px 40px; }
   .card-in { animation: card-in .45s cubic-bezier(.22,1,.36,1) both; }
    
   .gradient-text {
@@ -91,20 +92,79 @@
   .trow { transition:background .12s; }
   .trow:hover { background:#11112a !important; }
 
-  /* Responsive */
+  /* ═══ RESPONSIVE SYSTEM ═══ */
   @media (max-width: 768px) {
+    /* 레이아웃 */
     .desktop-sidebar { display: none !important; }
-    .main-content { margin-left: 0 !important; }
+    .main-content { margin-left: 0 !important; padding-bottom: 16px; }
     .mobile-header { display: flex !important; }
-    .dash-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
-    .dash-grid-2 { grid-template-columns: 1fr !important; }
-    .page-padding { padding: 20px 16px !important; }
-    .tenant-split { flex-direction: column !important; }
-    .tenant-list-panel { width: 100% !important; border-right: none !important; border-bottom: 1px solid #1e1e38 !important; max-height: 300px !important; }
-    .detail-2col { grid-template-columns: 1fr !important; }
+
+    /* 페이지 패딩 */
+    .page-padding { padding: 18px 16px 32px !important; }
+
+    /* 그리드 */
+    .dash-grid-4    { grid-template-columns: repeat(2, 1fr) !important; }
+    .dash-grid-3    { grid-template-columns: repeat(2, 1fr) !important; }
+    .dash-grid-2    { grid-template-columns: 1fr !important; }
+    .grid-2col      { grid-template-columns: 1fr !important; }
+    .grid-3col      { grid-template-columns: 1fr !important; }
+    .grid-4col      { grid-template-columns: repeat(2,1fr) !important; }
+
+    /* 세입자 패널 */
+    .tenant-split       { flex-direction: column !important; }
+    .tenant-list-panel  { width: 100% !important; border-right: none !important; border-bottom: 1px solid #1e1e38 !important; max-height: 260px !important; overflow-y: auto; }
+    .detail-2col        { grid-template-columns: 1fr !important; }
+
+    /* 텍스트 */
+    .h1-page   { font-size: 20px !important; }
+    .hide-mobile { display: none !important; }
+    .show-mobile { display: block !important; }
+
+    /* 카드 패딩 축소 */
+    .card-pad  { padding: 14px 14px !important; }
+
+    /* 헤더 flex */
+    .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+
+    /* 탭 버튼 스크롤 */
+    .tab-scroll { overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 4px; }
+    .tab-scroll::-webkit-scrollbar { height: 3px; }
+
+    /* 테이블 → 카드 전환 */
+    .mobile-card-list { display: flex !important; flex-direction: column; gap: 10px; }
+    .desktop-table    { display: none !important; }
+
+    /* 모달 */
+    .modal-inner { width: 95vw !important; max-height: 90vh !important; overflow-y: auto; margin: 0 auto; }
+
+    /* 차트 높이 */
+    .chart-area { height: 180px !important; }
+
+    /* 세금 탭 그리드 */
+    .tax-grid    { grid-template-columns: 1fr !important; }
+    .tax-cards   { grid-template-columns: repeat(2,1fr) !important; }
+
+    /* 캘린더 */
+    .cal-grid { grid-template-columns: repeat(7,1fr) !important; font-size: 10px !important; }
+    .cal-sidebar { display: none !important; }
+
+    /* 버튼 그룹 */
+    .btn-group { flex-wrap: wrap !important; gap: 6px !important; }
+
+    /* 공실 그리드 */
+    .vacancy-grid { grid-template-columns: 1fr !important; }
+
+    /* 내용증명 */
+    .certified-split { flex-direction: column !important; }
   }
+
   @media (max-width: 480px) {
-    .dash-grid-4 { grid-template-columns: 1fr !important; }
+    .dash-grid-4  { grid-template-columns: 1fr !important; }
+    .dash-grid-3  { grid-template-columns: 1fr !important; }
+    .grid-4col    { grid-template-columns: 1fr !important; }
+    .tax-cards    { grid-template-columns: 1fr !important; }
+    .page-padding { padding: 14px 12px 28px !important; }
+    .modal-inner  { width: 98vw !important; padding: 18px 14px !important; }
   }
 
   .search-box { transition: border-color .2s, box-shadow .2s; }

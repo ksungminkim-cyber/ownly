@@ -14,7 +14,7 @@ export default function ReportsPage() {
   const net     = total - expense;
 
   return (
-    <div className="page-in page-padding" style={{ padding: "36px 40px", maxWidth: 960 }}>
+    <div className="page-in page-padding" style={{ maxWidth: 960 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 26, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>REVENUE REPORT</SectionLabel>
@@ -31,7 +31,7 @@ export default function ReportsPage() {
       </div>
 
       {/* 요약 카드 3개 */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 13, marginBottom: 22 }}>
+      <div className="dash-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 13, marginBottom: 22 }}>
         {[
           { l: "총 수입", v: total   + "만원", c: C.indigo,  sub: "6개월 합산" },
           { l: "총 지출", v: expense + "만원", c: C.rose,    sub: "수리·관리비 등" },

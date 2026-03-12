@@ -41,7 +41,7 @@ export default function PaymentsPage() {
   };
 
   return (
-    <div className="page-in page-padding" style={{ padding: "36px 40px", maxWidth: 960 }}>
+    <div className="page-in page-padding" style={{ maxWidth: 960 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 26, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>PAYMENT MANAGEMENT</SectionLabel>
@@ -85,7 +85,8 @@ export default function PaymentsPage() {
         <EmptyState icon="💰" title="세입자가 없습니다" desc="물건을 먼저 등록하면 수금 현황을 확인할 수 있습니다" />
       ) : (
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 17, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#0a0a10" }}>
                 {["세입자", "물건", "청구금액", "납부일", "상태", ""].map((h) => (
@@ -127,6 +128,7 @@ export default function PaymentsPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
