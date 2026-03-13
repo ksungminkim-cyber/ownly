@@ -1,28 +1,35 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-const ThemeContext = createContext({ theme: "light", toggleTheme: () => {} });
+const ThemeContext = createContext({
+  theme: "light",
+  toggleTheme: () => {},
+});
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState("light");
-  const [mounted, setMounted] = useState(false);
 
+  // 클라이언트 마운트 후에만 localStorage 읽기
   useEffect(() => {
-    const saved = localStorage.getItem("ownly-theme") || "light";
-    setTheme(saved);
-    document.documentElement.setAttribute("data-theme", saved);
-    setMounted(true);
+    try {
+      const saved = localStorage.getItem("ownly-theme") || "light";
+      setTheme(saved);
+      document.documentElement.setAttribute("data-theme", saved);
+    } catch {
+      // SSR/빌드 환경에서 localStorage 없을 때 무시
+    }
   }, []);
 
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    localStorage.setItem("ownly-theme", next);
-    document.documentElement.setAttribute("data-theme", next);
-  };
-
-  // 마운트 전에는 라이트모드 기본값으로 렌더
-  if (!mounted) return <>{children}</>;
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === "light" ? "dark" : "light";
+      try {
+        localStorage.setItem("ownly-theme", next);
+        document.documentElement.setAttribute("data-theme", next);
+      } catch {}
+      return next;
+    });
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
@@ -31,4 +38,6 @@ export function ThemeProvider({ children }) {
   );
 }
 
-export const useTheme = () => useContext(ThemeContext);
+export function useTheme() {
+  return useContext(ThemeContext);
+}
