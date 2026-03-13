@@ -136,15 +136,9 @@ export default function LandingPage() {
                 {/* 기능 목록 — flex: 1 로 늘여서 버튼을 항상 하단에 */}
                 <div style={{ marginBottom: 24, flex: 1 }}>
                   {plan.features.map((f, i) => (
-                    <div key={i} style={{ display:"flex", gap:8, marginBottom:7, opacity: f.ok ? 1 : 0.35 }}>
-                       <span style={{ color: f.ok ? "#0fa573" : "#8a8a9a" }}>{f.ok ? "✓" : "✗"}</span>
-                       <span style={{ fontSize:13, color: f.ok ? "#1a2744" : "#8a8a9a" }}>{f.t}</span>
-                     </div>
-                 ))}
-                  {map((f) => (
-                    <div key={f} style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "flex-start", opacity: 0.35 }}>
-                      <span style={{ fontSize: 13, flexShrink: 0 }}>✗</span>
-                      <span style={{ fontSize: 13, color: "#8a8a9a" }}>{f}</span>
+                    <div key={i} style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "flex-start", opacity: f.ok ? 1 : 0.35 }}>
+                      <span style={{ color: f.ok ? "#0fa573" : "#8a8a9a", fontSize: 13, marginTop: 1, flexShrink: 0 }}>{f.ok ? "✓" : "✗"}</span>
+                      <span style={{ fontSize: 13, color: f.ok ? "#1a2744" : "#8a8a9a" }}>{f.t}</span>
                     </div>
                   ))}
                 </div>
