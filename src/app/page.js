@@ -166,6 +166,57 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ─── 임대인 커뮤니티 ─── */}
+      <div style={{ width: "100%", background: "#ffffff", padding: "60px 20px", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8 }}>COMMUNITY</p>
+              <h2 style={{ fontSize: "clamp(22px,3vw,32px)", fontWeight: 900, color: "#1a2744", lineHeight: 1.2 }}>임대인들의 실제 이야기</h2>
+              <p style={{ fontSize: 15, color: "#8a8a9a", marginTop: 8 }}>Ownly를 사용하는 임대인들이 나누는 경험과 노하우</p>
+            </div>
+            <a href="/login" style={{ fontSize: 13, fontWeight: 700, color: "#5b4fcf", textDecoration: "none", background: "rgba(91,79,207,0.08)", padding: "9px 18px", borderRadius: 10, flexShrink: 0 }}>무료로 시작하기 →</a>
+          </div>
+
+          {/* 커뮤니티 피드 */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+            {[
+              { avatar: "🏢", name: "서울 강남 임대인", time: "방금 전", tag: "수금 관리", content: "월세 미납 알림이 바로 와서 세입자한테 문자 보내니까 다음날 바로 입금됐어요. 예전엔 수기로 체크하다 까먹었는데 이제 완전 편해졌습니다 👍", likes: 24 },
+              { avatar: "🏠", name: "인천 다세대 2채 운영", time: "1시간 전", tag: "세금 시뮬", content: "종합소득세 신고 전에 세금 시뮬레이터 돌려봤는데 세무사 견적이랑 거의 비슷하게 나왔어요. 사전에 준비할 수 있어서 너무 좋습니다", likes: 18 },
+              { avatar: "🏪", name: "부산 상가 임대", time: "3시간 전", tag: "내용증명", content: "퇴거 요청 내용증명을 앱에서 바로 뽑아서 등기로 보냈어요. 변호사 통하면 50만원인데 직접 하니까 딱 우편료만 들었습니다 💪", likes: 31 },
+              { avatar: "🏗️", name: "경기 빌라 3채", time: "어제", tag: "계약 관리", content: "계약 만료일 90일 전부터 알림이 오니까 미리미리 세입자한테 연락할 수 있어요. 공실 없이 계속 유지 중입니다!", likes: 15 },
+              { avatar: "🌱", name: "충남 토지 임대", time: "이틀 전", tag: "토지 관리", content: "토지 임대도 관리 가능해서 좋아요. 농지 임대료 수금 내역을 월별로 정리할 수 있고, 세금 계산도 따로 나와서 편하네요", likes: 9 },
+              { avatar: "💼", name: "서울 오피스텔 5채", time: "3일 전", tag: "리포트", content: "연말에 세무신고 자료 준비할 때 리포트 뽑으니까 1년치 수입·지출이 한눈에 보여요. 세무사 상담 시간도 절반으로 줄었어요", likes: 27 },
+            ].map((post, i) => (
+              <div key={i} style={{ background: "#f8f7f4", borderRadius: 16, padding: "18px 20px", border: "1px solid #ebe9e3" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#1a2744,#2d4270)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{post.avatar}</div>
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{post.name}</p>
+                      <p style={{ fontSize: 11, color: "#a0a0b0" }}>{post.time}</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#5b4fcf", background: "rgba(91,79,207,0.1)", padding: "3px 9px", borderRadius: 6 }}>{post.tag}</span>
+                </div>
+                <p style={{ fontSize: 14, color: "#3a3a4e", lineHeight: 1.7, marginBottom: 14 }}>{post.content}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 13 }}>❤️</span>
+                  <span style={{ fontSize: 12, color: "#a0a0b0", fontWeight: 600 }}>{post.likes}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div style={{ marginTop: 32, textAlign: "center", padding: "32px", background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(91,79,207,0.04))", borderRadius: 20, border: "1px solid rgba(91,79,207,0.1)" }}>
+            <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744", marginBottom: 8 }}>지금 바로 시작해보세요</p>
+            <p style={{ fontSize: 14, color: "#8a8a9a", marginBottom: 20 }}>무료 플랜으로 시작, 언제든 업그레이드 가능</p>
+            <a href="/login" style={{ display: "inline-block", padding: "14px 32px", borderRadius: 12, background: "linear-gradient(135deg,#1a2744,#2d4270)", color: "#fff", fontSize: 15, fontWeight: 800, textDecoration: "none" }}>무료로 Ownly 시작하기 →</a>
+          </div>
+        </div>
+      </div>
+
       {/* ─── 법적 푸터 ─── */}
       <footer style={{
         width: "100%", borderTop: "1px solid #e8e6e0",

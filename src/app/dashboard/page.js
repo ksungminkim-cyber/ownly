@@ -187,17 +187,150 @@ export default function DashboardPage() {
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", minHeight: "100%", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
+    <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
 
-      {/* ══ LEFT MAIN ══ */}
-      <div style={{ padding: "24px 20px 24px 28px", borderRight: "1px solid #ebe9e3", minHeight: "100vh" }}>
+      {/* ══ 메인 + 우측 패널 — 데스크탑은 나란히, 모바일은 세로 ══ */}
+      <style>{`
+        @media (max-width: 768px) {
+          .dash-grid { display: block !important; }
+          .dash-right { border-left: none !important; border-top: 1px solid #ebe9e3; }
+          .kpi-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .step-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .premium-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
 
-        {/* 헤더 */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <div>
-            <p style={{ fontSize: 10, fontWeight: 800, color: "#8a8a9a", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 4 }}>OVERVIEW</p>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a2744", letterSpacing: "-.5px" }}>대시보드</h1>
+      <div className="dash-grid" style={{ display: "grid", gridTemplateColumns: "1fr 320px", minHeight: "100%" }}>
+
+        {/* ══ LEFT MAIN ══ */}
+        <div style={{ padding: "24px 20px 24px 28px", borderRight: "1px solid #ebe9e3", minHeight: "100vh" }}>
+
+          {/* 헤더 */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 4 }}>OVERVIEW</p>
+              <h1 style={{ fontSize: 24, fontWeight: 900, color: "#1a2744", letterSpacing: "-.5px" }}>대시보드</h1>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13, color: "#8a8a9a", fontWeight: 600 }}>{year}년 {month}월</span>
+              <button onClick={() => router.push("/dashboard/properties")}
+                style={{ padding: "9px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: "#1a2744", color: "#fff", border: "none", cursor: "pointer" }}>
+                + 물건 추가
+              </button>
+            </div>
           </div>
+
+          {/* 이용 흐름 스텝 배너 — 물건 0개일 때만 표시 */}
+          {tenants.length === 0 && (
+            <div style={{ background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(15,165,115,0.04))", border: "1px solid #e0ede8", borderRadius: 14, padding: "18px 20px", marginBottom: 20 }}>
+              <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744", marginBottom: 14, letterSpacing: "0.5px" }}>🚀 시작하기 — 4단계로 임대 관리를 완성하세요</p>
+              <div className="step-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+                {[
+                  { step: 1, icon: "🏠", label: "부동산 등록", desc: "주거·상가·토지 유형별 물건 등록", page: "properties" },
+                  { step: 2, icon: "👤", label: "임차인 연결", desc: "세입자 정보·계약기간 입력", page: "tenants" },
+                  { step: 3, icon: "💰", label: "수금 관리",   desc: "월세 납부 현황 추적·미납 알림", page: "payments" },
+                  { step: 4, icon: "📊", label: "세금 시뮬",   desc: "예상 세금·순수익 사전 파악",   page: "tax" },
+                ].map(({ step, icon, label, desc, page }) => (
+                  <div key={step} onClick={() => router.push("/dashboard/" + page)}
+                    style={{ background: "#fff", borderRadius: 10, padding: "14px", cursor: "pointer", border: "1px solid #ebe9e3", transition: "all .15s" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1a2744"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26,39,68,0.08)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#ebe9e3"; e.currentTarget.style.boxShadow = "none"; }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <span style={{ width: 22, height: 22, borderRadius: 6, background: "#1a2744", color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>{step}</span>
+                      <span style={{ fontSize: 16 }}>{icon}</span>
+                    </div>
+                    <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744", marginBottom: 3 }}>{label}</p>
+                    <p style={{ fontSize: 11, color: "#8a8a9a", lineHeight: 1.5 }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* KPI 4칸 */}
+          <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 20 }}>
+            {[
+              { l: "이번 달 수입", v: totalRent.toLocaleString() + "만", sub: "전 물건 합산", a: "#0fa573", p: "payments" },
+              { l: "총 보증금",   v: (totalDep/10000).toFixed(1) + "억", sub: `물건 ${tenants.length}개`, a: "#1a2744", p: "properties" },
+              { l: "미납",       v: unpaid + "건",   sub: unpaid > 0 ? "즉시 확인" : "모두 정상", a: unpaid > 0 ? "#e8445a" : "#0fa573", p: "payments" },
+              { l: "만료 임박",  v: expiring + "건", sub: "60일 이내", a: "#e8960a", p: "tenants" },
+            ].map((k) => (
+              <div key={k.l} onClick={() => router.push("/dashboard/" + k.p)}
+                style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 18px", cursor: "pointer" }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 4px 20px rgba(26,39,68,0.1)"}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}>
+                <p style={{ fontSize: 11, color: "#a0a0b0", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8 }}>{k.l}</p>
+                <p style={{ fontSize: 24, fontWeight: 900, color: "#1a2744", letterSpacing: "-.5px", lineHeight: 1 }}>{k.v}</p>
+                <p style={{ fontSize: 12, color: k.a, fontWeight: 700, marginTop: 6 }}>{k.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* 차트 */}
+          <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "18px 20px", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div>
+                <p style={{ fontSize: 11, color: "#a0a0b0", fontWeight: 800, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 3 }}>TREND</p>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1a2744" }}>월별 수입 추이</h3>
+              </div>
+              <div style={{ display: "flex", gap: 12 }}>
+                {[["#1a2744","수입"],["#0fa573","순수익"]].map(([c,l]) => (
+                  <div key={l} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: 2, background: c }} />
+                    <span style={{ fontSize: 12, color: "#a0a0b0", fontWeight: 600 }}>{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={140}>
+              <AreaChart data={netData} margin={{ top: 0, right: 4, left: -20, bottom: 0 }}>
+                <defs>
+                  {[["ig","#1a2744"],["ng","#0fa573"]].map(([id,c]) => (
+                    <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor={c} stopOpacity={0.12} />
+                      <stop offset="95%" stopColor={c} stopOpacity={0} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f4f3f0" vertical={false} />
+                <XAxis dataKey="m" tick={{ fill: "#a0a0b0", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#a0a0b0", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="income" name="수입"   stroke="#1a2744" strokeWidth={2} fill="url(#ig)" dot={false} />
+                <Area type="monotone" dataKey="net"    name="순수익" stroke="#0fa573" strokeWidth={2} fill="url(#ng)" dot={{ fill: "#0fa573", r: 2.5, strokeWidth: 0 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 물건 테이블 */}
+          <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px 0", borderBottom: "1px solid #f0efe9" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1a2744" }}>물건 목록</h3>
+                <span onClick={() => router.push("/dashboard/properties")}
+                  style={{ fontSize: 13, color: "#8a8a9a", cursor: "pointer", fontWeight: 600 }}>전체 보기 →</span>
+              </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {FILTERS.map((f) => (
+                  <button key={f} onClick={() => { setFilter(f); setSelected(null); }}
+                    style={{ padding: "5px 12px", borderRadius: "8px 8px 0 0", fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none",
+                      background: filter === f ? "#1a2744" : "transparent",
+                      color: filter === f ? "#fff" : "#8a8a9a", transition: "all .15s" }}>
+                    {f}{f === "전체" ? ` (${tenants.length})` : ""}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 70px 60px 70px 60px", padding: "8px 18px", background: "#faf9f6", borderBottom: "1px solid #f0efe9" }}>
+              {["유형","주소 · 세입자","월세","보증금","잔여일","상태"].map((h) => (
+                <span key={h} style={{ fontSize: 11, color: "#a0a0b0", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.8px" }}>{h}</span>
+              ))}
+            </div>
+            {filtered.length === 0
+              ? <EmptyState icon="🏠" title="해당 물건이 없습니다" desc="다른 필터를 선택해보세요" />
+              : filtered.map((t) => {
+                  const dl = daysLeft(t.end);
+                  const isSel = selected === t.id;
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, color: "#8a8a9a", fontWeight: 600 }}>{year}년 {month}월</span>
             <button onClick={() => router.push("/dashboard/properties")}
@@ -353,13 +486,13 @@ export default function DashboardPage() {
       </div>
 
       {/* ══ RIGHT PANEL ══ */}
-      <div style={{ padding: "24px 20px", background: "#fff", display: "flex", flexDirection: "column", gap: 0, minHeight: "100vh", overflowY: "auto" }}>
+      <div className="dash-right" style={{ padding: "24px 20px", background: "#fff", display: "flex", flexDirection: "column", gap: 0, minHeight: "100vh", overflowY: "auto" }}>
 
         {activeFeature ? renderFeaturePanel(activeFeature) : sel ? (
           /* 물건 선택 시 상세 */
           <>
             <button onClick={() => setSelected(null)}
-              style={{ fontSize: 11, color: "#8a8a9a", background: "none", border: "none", cursor: "pointer", marginBottom: 14, padding: 0, fontWeight: 600, textAlign: "left" }}>
+              style={{ fontSize: 13, color: "#8a8a9a", background: "none", border: "none", cursor: "pointer", marginBottom: 14, padding: 0, fontWeight: 600, textAlign: "left" }}>
               ← 목록으로
             </button>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
@@ -367,8 +500,8 @@ export default function DashboardPage() {
                 {sel.name?.[0]}
               </div>
               <div>
-                <p style={{ fontSize: 15, fontWeight: 800, color: "#1a2744" }}>{sel.name}</p>
-                <p style={{ fontSize: 11, color: "#8a8a9a" }}>{sel.addr}</p>
+                <p style={{ fontSize: 16, fontWeight: 800, color: "#1a2744" }}>{sel.name}</p>
+                <p style={{ fontSize: 12, color: "#8a8a9a" }}>{sel.addr}</p>
               </div>
             </div>
             <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
@@ -378,9 +511,9 @@ export default function DashboardPage() {
                 ["만료일", sel.end || "-", daysLeft(sel.end) <= 90 ? "#e8960a" : undefined],
                 ["잔여일", "D-" + daysLeft(sel.end), daysLeft(sel.end) <= 60 ? "#e8445a" : "#0fa573"],
               ].map(([label, value, color]) => (
-                <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #ebe9e3" }}>
-                  <span style={{ fontSize: 12, color: "#8a8a9a", fontWeight: 600 }}>{label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: color || "#1a2744" }}>{value}</span>
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #ebe9e3" }}>
+                  <span style={{ fontSize: 13, color: "#8a8a9a", fontWeight: 600 }}>{label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: color || "#1a2744" }}>{value}</span>
                 </div>
               ))}
             </div>
@@ -390,7 +523,7 @@ export default function DashboardPage() {
                 ["📄","계약서 보기","contracts","rgba(15,165,115,0.07)","#0fa573"]
               ].map(([icon, label, page, bg, color]) => (
                 <button key={page} onClick={() => router.push("/dashboard/" + page)}
-                  style={{ padding: "10px", borderRadius: 10, background: bg, border: "none", color, fontWeight: 700, fontSize: 13, cursor: "pointer", textAlign: "left", paddingLeft: 14 }}>
+                  style={{ padding: "12px 16px", borderRadius: 10, background: bg, border: "none", color, fontWeight: 700, fontSize: 14, cursor: "pointer", textAlign: "left" }}>
                   {icon} {label}
                 </button>
               ))}
@@ -399,91 +532,125 @@ export default function DashboardPage() {
         ) : (
           /* 기본 상태 */
           <>
-            {/* 한 줄 요약 */}
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 10, fontWeight: 800, color: "#a0a0b0", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 10 }}>한 줄 요약</p>
-              <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "13px 15px" }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#1a2744", lineHeight: 1.75 }}>
-                  {tenants.length === 0
-                    ? "등록된 물건이 없습니다."
-                    : `총 ${tenants.length}개 물건 · 월 ${totalRent.toLocaleString()}만원 수입 중.${unpaid > 0 ? ` ⚠️ ${unpaid}건 미납.` : " 수금 정상."}${expiring > 0 ? ` 📅 ${expiring}건 만료 임박.` : ""}`}
+            {/* 한 줄 요약 — 크고 임팩트 있게 */}
+            <div style={{ marginBottom: 22, background: "linear-gradient(135deg,#1a2744,#2d4270)", borderRadius: 16, padding: "18px 20px" }}>
+              <p style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.5)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 10 }}>이달의 요약</p>
+              {tenants.length === 0 ? (
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.7 }}>
+                  아직 등록된 물건이 없어요.{"\n"}물건을 추가해 시작하세요 👇
                 </p>
-              </div>
+              ) : (
+                <>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 6 }}>
+                    월 {totalRent.toLocaleString()}만원
+                  </p>
+                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.7 }}>
+                    총 {tenants.length}개 물건 운영 중
+                    {unpaid > 0 && <span style={{ color: "#ff8a95" }}> · ⚠️ {unpaid}건 미납</span>}
+                    {expiring > 0 && <span style={{ color: "#ffd166" }}> · 📅 {expiring}건 만료 임박</span>}
+                    {unpaid === 0 && expiring === 0 && <span style={{ color: "#7eeec9" }}> · 수금 정상 ✓</span>}
+                  </p>
+                </>
+              )}
             </div>
 
             {/* 알림 */}
             {alerts.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 10, fontWeight: 800, color: "#a0a0b0", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 10 }}>알림</p>
+              <div style={{ marginBottom: 22 }}>
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#a0a0b0", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 10 }}>알림</p>
                 {alerts.map((a, i) => (
                   <div key={i} onClick={() => router.push("/dashboard/" + a.page)}
-                    style={{ display: "flex", gap: 10, padding: "10px 12px", borderRadius: 10, marginBottom: 7, cursor: "pointer",
+                    style={{ display: "flex", gap: 10, padding: "12px 14px", borderRadius: 10, marginBottom: 8, cursor: "pointer",
                       background: a.type === "danger" ? "rgba(232,68,90,0.05)" : "rgba(232,150,10,0.05)",
                       border: `1px solid ${a.type === "danger" ? "rgba(232,68,90,0.15)" : "rgba(232,150,10,0.15)"}` }}>
-                    <span style={{ fontSize: 14 }}>{a.icon}</span>
+                    <span style={{ fontSize: 16 }}>{a.icon}</span>
                     <div>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: "#1a2744" }}>{a.text}</p>
-                      <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 1 }}>{a.sub}</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{a.text}</p>
+                      <p style={{ fontSize: 12, color: "#8a8a9a", marginTop: 2 }}>{a.sub}</p>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* 프리미엄 기능 섹션 */}
+            {/* ★ 프리미엄 기능 — 2열 카드 그리드 */}
             <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                <p style={{ fontSize: 10, fontWeight: 800, color: "#a0a0b0", letterSpacing: "2px", textTransform: "uppercase" }}>프리미엄 기능</p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 800, color: "#a0a0b0", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 2 }}>프리미엄 기능</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>더 스마트하게 관리하세요</p>
+                </div>
                 <span onClick={() => router.push("/dashboard/pricing")}
-                  style={{ fontSize: 10, color: "#8a8a9a", cursor: "pointer", fontWeight: 700 }}>플랜 보기 →</span>
+                  style={{ fontSize: 12, color: "#5b4fcf", cursor: "pointer", fontWeight: 800, background: "rgba(91,79,207,0.08)", padding: "5px 12px", borderRadius: 8 }}>
+                  플랜 보기 →
+                </span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="premium-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {PREMIUM_FEATURES.map((f) => {
                   const locked = PLAN_ORDER[f.plan] > planLevel;
+                  const isPro = f.plan === "pro";
                   return (
                     <div key={f.id} onClick={() => setActiveFeature(f)}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, cursor: "pointer",
-                        border: `1px solid ${locked ? "#ebe9e3" : f.badgeColor + "25"}`,
-                        background: locked ? "#faf9f6" : f.badgeColor === "#c9920a" ? "rgba(201,146,10,0.04)" : "rgba(26,39,68,0.03)",
-                        transition: "all .15s", position: "relative" }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = "translateX(2px)"}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(0)"}>
+                      style={{
+                        borderRadius: 14, cursor: "pointer", overflow: "hidden",
+                        border: locked ? "1px solid #ebe9e3" : `1.5px solid ${f.badgeColor}30`,
+                        background: locked ? "#faf9f6" : isPro
+                          ? "linear-gradient(135deg,rgba(201,146,10,0.06),rgba(232,150,10,0.02))"
+                          : "linear-gradient(135deg,rgba(26,39,68,0.05),rgba(15,165,115,0.03))",
+                        transition: "all .2s", position: "relative",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${f.badgeColor}20`; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
 
-                      {/* 아이콘 */}
-                      <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                        background: locked ? "#f0efe9" : f.badgeColor + "15",
-                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
-                        {locked ? "🔒" : f.icon}
+                      {/* 상단 배지 바 */}
+                      <div style={{ padding: "10px 12px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ fontSize: 24 }}>{locked ? "🔒" : f.icon}</div>
+                        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                          {f.tag && (
+                            <span style={{ fontSize: 9, fontWeight: 800, color: f.tagColor, background: f.tagColor + "18", padding: "2px 6px", borderRadius: 4 }}>{f.tag}</span>
+                          )}
+                          <span style={{ fontSize: 9, fontWeight: 800,
+                            color: locked ? "#b0b0b8" : f.badgeColor,
+                            background: locked ? "#ebe9e3" : f.badgeColor + "18",
+                            padding: "2px 7px", borderRadius: 5, letterSpacing: "0.3px" }}>
+                            {f.badge}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* 텍스트 */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <p style={{ fontSize: 12, fontWeight: 800, color: locked ? "#a0a0b0" : "#1a2744" }}>{f.title}</p>
-                          {f.tag && (
-                            <span style={{ fontSize: 9, fontWeight: 800, color: f.tagColor, background: f.tagColor + "15",
-                              padding: "1px 6px", borderRadius: 4, letterSpacing: "0.5px" }}>{f.tag}</span>
-                          )}
-                        </div>
-                        <p style={{ fontSize: 10, color: "#a0a0b0", fontWeight: 600, lineHeight: 1.4 }}>
+                      {/* 타이틀 + 설명 */}
+                      <div style={{ padding: "8px 12px 12px" }}>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: locked ? "#b0b0b8" : "#1a2744", marginBottom: 4, lineHeight: 1.3 }}>{f.title}</p>
+                        <p style={{ fontSize: 11, color: locked ? "#c0c0c8" : "#8a8a9a", lineHeight: 1.5 }}>
                           {f.desc.replace(/\n/g, " ")}
                         </p>
                       </div>
 
-                      {/* 배지 */}
-                      <div style={{ flexShrink: 0 }}>
-                        <span style={{ fontSize: 9, fontWeight: 800,
-                          color: locked ? "#a0a0b0" : f.badgeColor,
-                          background: locked ? "#ebe9e3" : f.badgeColor + "15",
-                          padding: "2px 7px", borderRadius: 5, letterSpacing: "0.5px" }}>
-                          {f.badge}
+                      {/* 하단 CTA */}
+                      <div style={{ padding: "8px 12px 10px", borderTop: "1px solid " + (locked ? "#f0efe9" : f.badgeColor + "15") }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: locked ? "#c0c0c8" : f.badgeColor }}>
+                          {locked ? "업그레이드 필요 →" : "바로 사용하기 →"}
                         </span>
                       </div>
                     </div>
                   );
                 })}
               </div>
+
+              {/* 업그레이드 배너 */}
+              {planLevel < 3 && (
+                <div onClick={() => router.push("/dashboard/pricing")}
+                  style={{ marginTop: 14, borderRadius: 14, padding: "16px 18px", cursor: "pointer",
+                    background: "linear-gradient(135deg,#1a2744,#2d4270)",
+                    display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginBottom: 3 }}>더 많은 기능 잠금해제</p>
+                    <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>스타터+부터 월 19,900원</p>
+                  </div>
+                  <span style={{ fontSize: 20, color: "#fff" }}>→</span>
+                </div>
+              )}
             </div>
           </>
         )}
