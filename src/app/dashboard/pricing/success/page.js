@@ -2,11 +2,13 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { C, PLANS } from "../../../../lib/constants";
+import { useApp } from "../../../../context/AppContext";
 
 function PricingSuccessContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const [status, setStatus] = useState("processing"); // processing | done | error
+  const { refreshSubscription } = useApp();
+  const [status, setStatus] = useState("processing");
 
   useEffect(() => {
     const run = async () => {
@@ -16,13 +18,16 @@ function PricingSuccessContent() {
       if (!planId || !authKey || !customerKey) { setStatus("error"); return; }
 
       try {
-        // 서버 API 라우트에서 빌링키 발급 + Supabase 저장
         const res = await fetch("/api/billing/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ planId, authKey, customerKey }),
         });
         if (!res.ok) throw new Error("billing failed");
+
+        // 결제 성공 → 구독 정보 즉시 갱신
+        await refreshSubscription();
+
         setStatus("done");
         setTimeout(() => router.push("/dashboard"), 2500);
       } catch {

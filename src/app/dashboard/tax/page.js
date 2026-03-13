@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { SectionLabel } from "../../../components/shared";
 import { C } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
+import PlanGate from "../../../components/PlanGate";
 
 // 2024년 기준 소득세 세율 구간 (만원)
 const TAX_BRACKETS = [
@@ -39,6 +40,10 @@ function effectiveRate(tax, income) {
 }
 
 export default function TaxPage() {
+  return <PlanGate feature="tax"><TaxContent /></PlanGate>;
+}
+
+function TaxContent() {
   const { tenants } = useApp();
   const [tab, setTab]     = useState("income"); // income | vat | summary
   const [period, setPeriod] = useState("1h");

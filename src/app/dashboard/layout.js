@@ -3,12 +3,17 @@ import { useRouter } from "next/navigation";
 import { Sidebar, MobileHeader } from "../../components/navigation";
 import { Toast, PageLoader } from "../../components/shared";
 import { AppProvider, useApp } from "../../context/AppContext";
+import { supabase } from "../../lib/supabase";
 import { C } from "../../lib/constants";
 
 function DashboardShell({ children }) {
   const router = useRouter();
   const { loading } = useApp();
-  const handleLogout = () => router.push("/");
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Outfit','Noto Sans KR',sans-serif" }}>

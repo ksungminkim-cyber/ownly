@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { DEFAULT_TENANTS, DEFAULT_PAYMENTS } from "../lib/constants";
+import { DEFAULT_TENANTS, DEFAULT_PAYMENTS, PLANS } from "../lib/constants";
 
 const AppContext = createContext(null);
 
@@ -38,8 +38,6 @@ function appToDb(data) {
 }
 
 // ─── payments 변환 ────────────────────────────────────────
-// DB:  tenant_id, paid_date, amount, month, year
-// App: tid,       paid,      amt,    month  (year 별도)
 function payDbToApp(row) {
   if (!row) return row;
   return {
@@ -60,12 +58,91 @@ function payAppToDb(data) {
 }
 
 export function AppProvider({ children }) {
-  const [tenants,   setTenantsState]   = useState([]);
-  const [payments,  setPaymentsState]  = useState([]);
-  const [contracts, setContractsState] = useState([]);
-  const [vacancies, setVacanciesState] = useState([]);
-  const [loading,   setLoading]        = useState(true);
+  const [tenants,      setTenantsState]   = useState([]);
+  const [payments,     setPaymentsState]  = useState([]);
+  const [contracts,    setContractsState] = useState([]);
+  const [vacancies,    setVacanciesState] = useState([]);
+  const [loading,      setLoading]        = useState(true);
 
+  // ─── 구독/플랜 state ──────────────────────────────────
+  const [user,         setUser]           = useState(null);
+  const [userPlan,     setUserPlan]       = useState("free");
+  const [subscription, setSubscription]   = useState(null);
+  const [planLoading,  setPlanLoading]    = useState(true);
+
+  // ─── 구독 정보 로드 ───────────────────────────────────
+  const loadSubscription = useCallback(async (userId) => {
+    try {
+      setPlanLoading(true);
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      if (data) {
+        setSubscription(data);
+        const isActive =
+          data.status === "active" &&
+          (!data.current_period_end || new Date(data.current_period_end) > new Date());
+        setUserPlan(isActive ? (data.plan || "free") : "free");
+      } else {
+        setUserPlan("free");
+        setSubscription(null);
+      }
+    } catch (err) {
+      console.error("구독 정보 로딩 오류:", err);
+      setUserPlan("free");
+    } finally {
+      setPlanLoading(false);
+    }
+  }, []);
+
+  // ─── 유저 인증 감지 ───────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadSubscription(session.user.id);
+      } else {
+        setPlanLoading(false);
+      }
+    });
+
+    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          loadSubscription(session.user.id);
+        } else {
+          setUserPlan("free");
+          setSubscription(null);
+          setPlanLoading(false);
+        }
+      }
+    );
+    return () => authListener.unsubscribe();
+  }, [loadSubscription]);
+
+  // ─── 플랜 기능 체크 ───────────────────────────────────
+  // canUse("reports")              → true/false (기능 잠금 체크)
+  // canUse("properties", 현재개수) → 개수 제한 체크
+  const canUse = useCallback((feature, currentCount = null) => {
+    const plan = PLANS[userPlan] || PLANS.free;
+    const limit = plan.limits[feature];
+    if (limit === false) return false;
+    if (limit === true || limit === Infinity) return true;
+    if (typeof limit === "number" && currentCount !== null) {
+      return currentCount < limit;
+    }
+    return true;
+  }, [userPlan]);
+
+  const getPlanLimit = useCallback((feature) => {
+    const plan = PLANS[userPlan] || PLANS.free;
+    return plan.limits[feature];
+  }, [userPlan]);
+
+  // ─── 데이터 로드 ──────────────────────────────────────
   const loadAllData = useCallback(async () => {
     try {
       setLoading(true);
@@ -94,10 +171,10 @@ export function AppProvider({ children }) {
 
   useEffect(() => { loadAllData(); }, [loadAllData]);
 
-  // ─── 세입자 CRUD ─────────────────────────────────────────
+  // ─── 세입자 CRUD ─────────────────────────────────────
   const addTenant = async (data) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const dbData = { ...appToDb(data), user_id: user?.id };
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    const dbData = { ...appToDb(data), user_id: currentUser?.id };
     const { data: inserted, error } = await supabase
       .from("tenants").insert([dbData]).select().single();
     if (error) throw sbErr(error);
@@ -121,12 +198,12 @@ export function AppProvider({ children }) {
     setTenantsState((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // ─── 공실 CRUD ──────────────────────────────────────────
+  // ─── 공실 CRUD ──────────────────────────────────────
   const addVacancy = async (data) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
     const { data: inserted, error } = await supabase
       .from("vacancies")
-      .insert([{ ...data, user_id: user?.id }])
+      .insert([{ ...data, user_id: currentUser?.id }])
       .select().single();
     if (error) throw sbErr(error);
     setVacanciesState((prev) => [inserted, ...prev]);
@@ -139,9 +216,9 @@ export function AppProvider({ children }) {
     setVacanciesState((prev) => prev.filter((v) => v.id !== id));
   };
 
-  const setVacancies = setVacanciesState; // 하위 호환
+  const setVacancies = setVacanciesState;
 
-  // ─── 연락기록 CRUD (contacts 테이블) ────────────────────
+  // ─── 연락기록 CRUD ───────────────────────────────────
   const addContact = async (tenantId, data) => {
     const { data: inserted, error } = await supabase
       .from("contacts")
@@ -149,7 +226,6 @@ export function AppProvider({ children }) {
       .select()
       .single();
     if (error) throw sbErr(error);
-    // tenants 로컬 state의 contacts 배열도 업데이트
     setTenantsState((prev) => prev.map((t) =>
       t.id === tenantId
         ? { ...t, contacts: [inserted, ...(t.contacts || [])] }
@@ -181,14 +257,13 @@ export function AppProvider({ children }) {
     ));
   };
 
-  // 하위 호환용 (기존 코드에서 updateTenantContacts 쓰는 곳 대비)
   const updateTenantContacts = async (id, contacts) => {
     setTenantsState((prev) => prev.map((t) => t.id === id ? { ...t, contacts } : t));
   };
 
   const updateTenantIntent = async (id, intent) => updateTenant(id, { intent });
 
-  // ─── 수금 CRUD ───────────────────────────────────────────
+  // ─── 수금 CRUD ───────────────────────────────────────
   const upsertPayment = async (data) => {
     const dbData = payAppToDb(data);
     const { data: upserted, error } = await supabase
@@ -217,7 +292,7 @@ export function AppProvider({ children }) {
     setPaymentsState((prev) => prev.filter((p) => !(p.tid === tid && p.month === month)));
   };
 
-  // ─── 계약 CRUD ───────────────────────────────────────────
+  // ─── 계약 CRUD ───────────────────────────────────────
   const addContract = async (data) => {
     const { data: inserted, error } = await supabase
       .from("contracts").insert([data]).select().single();
@@ -234,7 +309,7 @@ export function AppProvider({ children }) {
     return updated;
   };
 
-  // ─── 전체 초기화 ──────────────────────────────────────────
+  // ─── 전체 초기화 ─────────────────────────────────────
   const resetAllData = async () => {
     const results = await Promise.all([
       supabase.from("payments").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
@@ -248,19 +323,33 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={{
+      // 데이터
       tenants, payments, contracts, vacancies, loading,
+      // 세입자 CRUD
       addTenant, updateTenant, deleteTenant,
       updateTenantContacts, updateTenantIntent,
       addContact, loadContacts, deleteContact,
-      vacancies, addVacancy, deleteVacancy, setVacancies,
+      // 공실 CRUD
+      addVacancy, deleteVacancy, setVacancies,
+      // 수금 CRUD
       upsertPayment, deletePayment,
+      // 계약 CRUD
       addContract, updateContract,
-      setVacancies,
+      // 초기화
       refreshData: loadAllData,
       resetAllData,
+      // 하위 호환 setter
       setTenants: setTenantsState,
       setPayments: setPaymentsState,
       setContracts: setContractsState,
+      // ─── 구독/플랜 ───────────────────────────────────
+      user,
+      userPlan,
+      subscription,
+      planLoading,
+      canUse,
+      getPlanLimit,
+      refreshSubscription: () => user && loadSubscription(user.id),
     }}>
       {children}
     </AppContext.Provider>

@@ -5,7 +5,7 @@ import { C, STATUS_MAP, COLORS, daysLeft } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 
 export default function PropertiesPage() {
-  const { tenants, addTenant, updateTenant, deleteTenant, loading } = useApp();
+  const { tenants, addTenant, updateTenant, deleteTenant, loading, canUse, getPlanLimit } = useApp();
   const [filter, setFilter]             = useState("전체");
   const [search, setSearch]             = useState("");
   const [sort, setSort]                 = useState({ key: "rent", dir: "desc" });
@@ -95,7 +95,15 @@ export default function PropertiesPage() {
             총 {tenants.length}개 · 주거 {tenants.filter((t) => t.pType === "주거").length} · 상가 {tenants.filter((t) => t.pType === "상가").length}
           </p>
         </div>
-        <button onClick={() => { resetForm(); setEditTarget(null); setShowModal(true); }} className="btn-primary"
+        <button onClick={() => {
+            const limit = getPlanLimit("properties");
+            if (limit !== Infinity && tenants.length >= limit) {
+              alert(`현재 플랜에서는 물건을 최대 ${limit}개까지 등록할 수 있어요.\n업그레이드하면 더 많이 등록할 수 있어요!`);
+              window.location.href = "/dashboard/pricing";
+              return;
+            }
+            resetForm(); setEditTarget(null); setShowModal(true);
+          }} className="btn-primary"
           style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           + 물건 추가
         </button>

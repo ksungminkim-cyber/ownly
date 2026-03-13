@@ -3,8 +3,13 @@ import { useState } from "react";
 import { SectionLabel, EmptyState, Modal, AuthInput, toast } from "../../../components/shared";
 import { C } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
+import PlanGate from "../../../components/PlanGate";
 
 export default function VacancyPage() {
+  return <PlanGate feature="vacancy"><VacancyContent /></PlanGate>;
+}
+
+function VacancyContent() {
   const { tenants, vacancies, setVacancies } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ addr: "", sub: "아파트", pType: "주거", vacantSince: "", expectedRent: "", note: "" });

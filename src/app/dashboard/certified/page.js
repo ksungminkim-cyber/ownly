@@ -3,8 +3,13 @@ import { useState } from "react";
 import { SectionLabel, EmptyState, Modal, AuthInput, toast } from "../../../components/shared";
 import { C } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
+import PlanGate from "../../../components/PlanGate";
 
 export default function CertifiedPage() {
+  return <PlanGate feature="certified"><CertifiedContent /></PlanGate>;
+}
+
+function CertifiedContent() {
   const { tenants } = useApp();
   const [showModal, setShowModal]     = useState(false);
   const [selectedTenant, setSelectedTenant] = useState("");

@@ -2,12 +2,18 @@
 import { useState } from "react";
 import { SectionLabel, CustomTooltip } from "../../../components/shared";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
-import { C, REVENUE } from "../../../lib/constants"; // ✅ 수정된 경로
+import { C, REVENUE } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
+import PlanGate from "../../../components/PlanGate";
 
 export default function ReportsPage() {
   const { tenants } = useApp();
   const [period, setPeriod] = useState("6m");
+
+  return <PlanGate feature="reports"><ReportsContent tenants={tenants} period={period} setPeriod={setPeriod} /></PlanGate>;
+}
+
+function ReportsContent({ tenants, period, setPeriod }) {
 
   const total   = REVENUE.reduce((s, m) => s + m.income,  0);
   const expense = REVENUE.reduce((s, m) => s + m.expense, 0);
