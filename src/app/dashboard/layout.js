@@ -55,7 +55,7 @@ function DashboardFooter() {
 
       {/* 면책 문구 */}
       <p style={{ fontSize: 10.5, color: "#b0b0be", marginTop: 6, lineHeight: 1.7 }}>
-        Ownly에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다.
+        Ownly(온리)에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다.
         정확한 세무·법률 상담은 전문가에게 문의하시기 바랍니다.
       </p>
       <p style={{ fontSize: 10, color: "#c0c0cc", marginTop: 4 }}>
@@ -82,7 +82,7 @@ function DashboardShell({ children }) {
       {/* 데스크탑: sidebar + main 가로 배치 */}
       <div style={{ display: "flex" }}>
         <Sidebar onLogout={handleLogout} />
-        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "#f5f4f0", minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "#f5f4f0", minWidth: 0, display: "flex", flexDirection: "column", overflowX: "hidden" }}>
           <div style={{ flex: 1 }}>{children}</div>
           <DashboardFooter />
         </main>
