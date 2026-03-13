@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CustomTooltip, EmptyState } from "../../components/shared";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -186,20 +186,17 @@ export default function DashboardPage() {
     );
   };
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   return (
     <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
-      <style>{`
-        .dash-grid { display: grid; grid-template-columns: 1fr 320px; min-height: 100%; }
-        .dash-right { padding: 24px 20px; background: #fff; display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
-        @media (max-width: 768px) {
-          .dash-grid { display: block !important; }
-          .dash-right { border-left: none !important; border-top: 1px solid #ebe9e3; min-height: unset; }
-          .kpi-grid { grid-template-columns: repeat(2,1fr) !important; }
-          .step-grid { grid-template-columns: repeat(2,1fr) !important; }
-          .premium-grid { grid-template-columns: 1fr 1fr !important; }
-        }
-      `}</style>
-    <div className="dash-grid">
+    <div style={{ display: isMobile ? "block" : "grid", gridTemplateColumns: "1fr 320px", minHeight: "100%" }}>
 
       {/* ══ LEFT MAIN ══ */}
       <div style={{ padding: "24px 20px 24px 28px", borderRight: "1px solid #ebe9e3", minHeight: "100vh" }}>
@@ -247,7 +244,7 @@ export default function DashboardPage() {
         )}
 
         {/* KPI 4칸 */}
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10, marginBottom: 20 }}>
           {[
             { l: "이번 달 수입", v: totalRent.toLocaleString() + "만", sub: "전 물건 합산", a: "#0fa573", p: "payments" },
             { l: "총 보증금",   v: (totalDep/10000).toFixed(1) + "억", sub: `물건 ${tenants.length}개`, a: "#1a2744", p: "properties" },
@@ -365,7 +362,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ══ RIGHT PANEL ══ */}
-      <div className="dash-right">
+      <div style={{ padding: "24px 20px", background: "#fff", display: "flex", flexDirection: "column", minHeight: isMobile ? "unset" : "100vh", overflowY: "auto", borderTop: isMobile ? "1px solid #ebe9e3" : "none" }}>
 
         {activeFeature ? renderFeaturePanel(activeFeature) : sel ? (
           /* 물건 선택 시 상세 */
@@ -461,7 +458,7 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              <div className="premium-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {PREMIUM_FEATURES.map((f) => {
                   const locked = PLAN_ORDER[f.plan] > planLevel;
                   const isPro = f.plan === "pro";
