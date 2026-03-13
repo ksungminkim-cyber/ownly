@@ -6,6 +6,72 @@ import { AppProvider, useApp } from "../../context/AppContext";
 import { supabase } from "../../lib/supabase";
 import { C } from "../../lib/constants";
 
+function DashboardFooter() {
+  return (
+    <footer style={{
+      borderTop: "1px solid #e8e6e0",
+      padding: "20px 28px",
+      background: "#f5f4f0",
+      fontFamily: "'Pretendard','DM Sans',sans-serif",
+    }}>
+      {/* 상단 링크 바 */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", gap: "0 4px",
+        alignItems: "center", marginBottom: 10,
+      }}>
+        {[
+          "개인정보 처리방침",
+          "서비스 이용약관",
+          "공지사항",
+          "자주 묻는 질문",
+          "이용자권리 및 유의사항",
+        ].map((item, i, arr) => (
+          <span key={item} style={{ display: "flex", alignItems: "center" }}>
+            <span style={{
+              fontSize: 11, fontWeight: 600, color: "#6b6b80",
+              cursor: "pointer", padding: "0 8px",
+              transition: "color .15s",
+            }}
+              onMouseEnter={e => e.currentTarget.style.color = "#1a2744"}
+              onMouseLeave={e => e.currentTarget.style.color = "#6b6b80"}
+            >{item}</span>
+            {i < arr.length - 1 && (
+              <span style={{ color: "#d0d0d8", fontSize: 10 }}>|</span>
+            )}
+          </span>
+        ))}
+        <span style={{ color: "#d0d0d8", fontSize: 10 }}>|</span>
+        <a href="mailto:inquiry@mclean21.com"
+          style={{ fontSize: 11, fontWeight: 600, color: "#6b6b80", padding: "0 8px", textDecoration: "none" }}
+          onMouseEnter={e => e.currentTarget.style.color = "#1a2744"}
+          onMouseLeave={e => e.currentTarget.style.color = "#6b6b80"}
+        >고객센터 inquiry@mclean21.com</a>
+      </div>
+
+      {/* 사업자 정보 */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", gap: "0 20px",
+        fontSize: 11, color: "#9a9aaa", lineHeight: 2,
+      }}>
+        <span>상호명: (주)맥클린</span>
+        <span>대표: 김성민</span>
+        <span>사업자등록번호: 137-81-52231</span>
+        <span>통신판매업신고: 제0000-서울00-0000호</span>
+        <span>이메일: inquiry@mclean21.com</span>
+      </div>
+
+      {/* 면책 문구 */}
+      <p style={{ fontSize: 10.5, color: "#b0b0be", marginTop: 6, lineHeight: 1.7 }}>
+        Ownly에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다.
+        정확한 세무·법률 상담은 전문가에게 문의하시기 바랍니다.
+      </p>
+      <p style={{ fontSize: 10, color: "#c0c0cc", marginTop: 4 }}>
+        © 2025 McLean Inc. All rights reserved.
+      </p>
+    </footer>
+  );
+}
+
 function DashboardShell({ children }) {
   const router = useRouter();
   const { loading } = useApp();
@@ -23,8 +89,9 @@ function DashboardShell({ children }) {
       {/* 데스크탑: sidebar + main 가로 배치 */}
       <div style={{ display: "flex" }}>
         <Sidebar onLogout={handleLogout} />
-        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "#f5f4f0", minWidth: 0 }}>
-          {children}
+        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "#f5f4f0", minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <div style={{ flex: 1 }}>{children}</div>
+          <DashboardFooter />
         </main>
       </div>
 
