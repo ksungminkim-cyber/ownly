@@ -81,7 +81,7 @@ export default function TenantsPage() {
             return (
               <div key={t.id} onClick={() => setSelected(t)}
                 style={{ padding: "13px 16px", borderBottom: "1px solid #ebe9e3", cursor: "pointer", borderLeft: "3px solid " + (isSelected ? C.indigo : "transparent"), background: isSelected ? "#f8f7f4" : "transparent", transition: "all .15s" }}
-                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "#ffffff"Hover; }}
+                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "#f5f4f0"; }}
                 onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}>
                 <div style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
                   <div style={{ width: 34, height: 34, borderRadius: 10, background: (t.color || C.indigo) + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: t.color || C.indigo, flexShrink: 0 }}>{t.name?.[0]}</div>
