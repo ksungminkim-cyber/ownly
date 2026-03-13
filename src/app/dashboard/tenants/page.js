@@ -68,13 +68,27 @@ export default function TenantsPage() {
           <div style={{ marginTop: 10 }}><SearchBox value={search} onChange={setSearch} placeholder="이름, 주소 검색..." /></div>
         </div>
         <div style={{ padding: "10px 12px", borderBottom: "1px solid #ebe9e3", display: "flex", gap: 5, flexWrap: "wrap" }}>
-          {["전체", "주거", "상가", "만료임박", "미납"].map((f) => (
+          {["전체", "주거", "상가", "토지", "만료임박", "미납"].map((f) => (
             <button key={f} onClick={() => setFilter(f)} style={{ padding: "4px 10px", borderRadius: 13, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${filter === f ? C.indigo : "#ebe9e3"}`, background: filter === f ? C.indigo + "20" : "transparent", color: filter === f ? C.indigo : C.muted }}>{f}</button>
           ))}
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>
           {filtered.length === 0 ? (
-            <EmptyState icon="👤" title={search ? "검색 결과 없음" : "세입자가 없습니다"} desc={search ? "다른 키워드로 검색해보세요" : ""} />
+            <div style={{ padding: 24, textAlign: "center" }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>{search ? "🔍" : tenants.length === 0 ? "🏠" : "👤"}</div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", marginBottom: 6 }}>
+                {search ? "검색 결과 없음" : tenants.length === 0 ? "등록된 물건이 없습니다" : "해당 조건의 세입자 없음"}
+              </p>
+              <p style={{ fontSize: 11, color: "#8a8a9a", marginBottom: tenants.length === 0 ? 16 : 0 }}>
+                {search ? "다른 키워드로 검색해보세요" : tenants.length === 0 ? "먼저 물건을 등록하고\n세입자를 연결해보세요" : ""}
+              </p>
+              {tenants.length === 0 && (
+                <button onClick={() => router.push("/dashboard/properties")}
+                  style={{ padding: "8px 18px", borderRadius: 10, background: "#1a2744", color: "#fff", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  물건 등록하러 가기 →
+                </button>
+              )}
+            </div>
           ) : filtered.map((t) => {
             const isSelected = sel?.id === t.id;
             const dl = daysLeft(getEnd(t));
@@ -134,6 +148,29 @@ export default function TenantsPage() {
               )}
             </div>
           </div>
+
+          {/* 미납/만료임박 흐름 안내 배너 */}
+          {sel.status === "미납" && (
+            <div style={{ background: "rgba(232,68,90,0.06)", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 800, color: "#e8445a", marginBottom: 2 }}>⚠️ 미납 세입자</p>
+                <p style={{ fontSize: 11, color: "#8a8a9a" }}>수금 현황 확인 후 내용증명 발송을 권장합니다</p>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <button onClick={() => router.push("/dashboard/payments")} style={{ padding: "6px 11px", borderRadius: 8, background: "transparent", border: "1px solid #e8445a50", color: "#e8445a", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>수금확인</button>
+                <button onClick={() => router.push("/dashboard/certified")} style={{ padding: "6px 11px", borderRadius: 8, background: "#e8445a", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>내용증명 →</button>
+              </div>
+            </div>
+          )}
+          {sel.status !== "미납" && daysLeft(getEnd(sel)) <= 90 && (
+            <div style={{ background: "rgba(232,150,10,0.06)", border: "1px solid rgba(232,150,10,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 800, color: "#e8960a", marginBottom: 2 }}>📅 계약 만료 {daysLeft(getEnd(sel))}일 전</p>
+                <p style={{ fontSize: 11, color: "#8a8a9a" }}>갱신 또는 퇴거 여부를 조속히 확인하세요</p>
+              </div>
+              <button onClick={() => router.push("/dashboard/contracts")} style={{ padding: "6px 11px", borderRadius: 8, background: "#e8960a", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>계약서 확인 →</button>
+            </div>
+          )}
 
           <div className="detail-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 13, padding: "18px" }}>

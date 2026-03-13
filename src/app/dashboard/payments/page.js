@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge, SectionLabel, EmptyState, Modal, AuthInput, toast } from "../../../components/shared";
 import { C, PAY_MAP } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 
 export default function PaymentsPage() {
+  const router = useRouter();
   const { tenants, payments, upsertPayment, deletePayment } = useApp();
   const [month, setMonth]       = useState(new Date().getMonth() + 1);
   const [payModal, setPayModal] = useState(null);
@@ -110,7 +112,10 @@ export default function PaymentsPage() {
                       </div>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : C.indigo, background: t.pType === "상가" ? C.amber + "18" : C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{t.sub}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700,
+                        color: t.pType === "상가" ? C.amber : t.pType === "토지" ? "#0d9488" : C.indigo,
+                        background: t.pType === "상가" ? C.amber + "18" : t.pType === "토지" ? "#0d948818" : C.indigo + "18",
+                        padding: "2px 7px", borderRadius: 5 }}>{t.sub}</span>
                       <p style={{ fontSize: 10, color: "#8a8a9a", marginTop: 2 }}>{t.addr}</p>
                     </td>
                     <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{t.rent}만원</td>
@@ -118,7 +123,10 @@ export default function PaymentsPage() {
                     <td style={{ padding: "12px 16px" }}><Badge label={s.label} map={{ [s.label]: { c: s.c, bg: s.bg } }} /></td>
                     <td style={{ padding: "12px 16px" }}>
                       {st === "unpaid" ? (
-                        <button onClick={() => setPayModal(t.id)} style={{ padding: "5px 11px", borderRadius: 8, background: C.indigo + "20", border: `1px solid ${C.indigo}40`, color: "#1a2744", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>납부처리</button>
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                          <button onClick={() => setPayModal(t.id)} style={{ padding: "5px 11px", borderRadius: 8, background: C.indigo + "20", border: `1px solid ${C.indigo}40`, color: "#1a2744", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>납부처리</button>
+                          <button onClick={() => router.push("/dashboard/certified")} style={{ padding: "5px 9px", borderRadius: 8, background: C.rose + "12", border: `1px solid ${C.rose}30`, color: "#e8445a", fontSize: 10, fontWeight: 700, cursor: "pointer" }} title="내용증명 발송">📨</button>
+                        </div>
                       ) : (
                         <button onClick={() => markUnpaid(t.id)} style={{ padding: "5px 11px", borderRadius: 8, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>취소</button>
                       )}

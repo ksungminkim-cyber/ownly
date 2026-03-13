@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { SectionLabel } from "../../../components/shared";
 import { C } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
@@ -45,6 +46,7 @@ export default function TaxPage() {
 
 function TaxContent() {
   const { tenants } = useApp();
+  const router = useRouter();
   const [tab, setTab]     = useState("income"); // income | vat | summary
   const [period, setPeriod] = useState("1h");
   const [deductions, setDeductions] = useState({
@@ -123,6 +125,51 @@ function TaxContent() {
         <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744" }}>세금 시뮬레이터</h1>
         <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>2025년 신고 기준 (2024 귀속) · 참고용 추정치 (실제 세무사 상담 권장)</p>
       </div>
+
+      {/* 임대 유형별 세목 안내 */}
+      {tenants.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 22 }}>
+          {[
+            {
+              icon: "🏠", label: "주거 임대",
+              count: tenants.filter((t) => (t.p_type || t.pType) === "주거").length,
+              color: "#1a2744", bg: "rgba(26,39,68,0.05)",
+              tags: ["종합소득세", "주택임대소득세", "건보료 추가부과"],
+              tip: "연 2천만원 이하 분리과세 선택 가능",
+            },
+            {
+              icon: "🏪", label: "상가 임대",
+              count: tenants.filter((t) => (t.p_type || t.pType) === "상가").length,
+              color: "#e8960a", bg: "rgba(232,150,10,0.06)",
+              tags: ["종합소득세", "부가가치세(10%)", "사업자 등록 필수"],
+              tip: "간이과세 vs 일반과세 선택에 따라 세부담 차이",
+            },
+            {
+              icon: "🌱", label: "토지 임대",
+              count: tenants.filter((t) => (t.p_type || t.pType) === "토지").length,
+              color: "#0d9488", bg: "rgba(13,148,136,0.05)",
+              tags: ["종합소득세", "종합부동산세 검토", "농지/임야 감면 확인"],
+              tip: "토지 용도·지목에 따라 감면 혜택 다름",
+            },
+          ].map(({ icon, label, count, color, bg, tags, tip }) => (
+            <div key={label} style={{ background: bg, border: `1px solid ${color}20`, borderRadius: 13, padding: "14px 16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>{icon}</span>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 800, color }}>{label}</p>
+                  <p style={{ fontSize: 10, color: "#8a8a9a" }}>{count}건 등록</p>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+                {tags.map((t) => (
+                  <span key={t} style={{ fontSize: 10, fontWeight: 700, color, background: `${color}15`, padding: "2px 8px", borderRadius: 5, display: "inline-block", width: "fit-content" }}>{t}</span>
+                ))}
+              </div>
+              <p style={{ fontSize: 10, color: "#8a8a9a", lineHeight: 1.5, borderTop: `1px solid ${color}15`, paddingTop: 8 }}>💡 {tip}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 탭 */}
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
@@ -316,6 +363,30 @@ function TaxContent() {
               ⚠️ 본 요약은 <strong style={{ color: "#1a2744" }}>단순 추정치</strong>이며 실제 세액과 다를 수 있습니다.<br />
               종합소득세 신고: 매년 5월 / 부가세 신고: 1월·7월
             </p>
+          </div>
+
+          {/* 다음 단계 안내 */}
+          <div style={{ background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(15,165,115,0.04))", border: "1px solid #e0ede8", borderRadius: 14, padding: "18px 20px" }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 12 }}>📌 세금 신고 전 체크리스트</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                { icon: "💰", text: "수금 현황 확인", sub: "미납 세입자 없는지 최종 점검", page: "/dashboard/payments" },
+                { icon: "📋", text: "리포트 출력", sub: "연간 수입·지출 내역 PDF 저장", page: "/dashboard/reports" },
+                { icon: "📨", text: "내용증명 발송", sub: "미납 세입자 법적 대응 준비", page: "/dashboard/certified" },
+              ].map(({ icon, text, sub, page }) => (
+                <div key={text} onClick={() => router.push(page)}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#fff", borderRadius: 10, border: "1px solid #ebe9e3", cursor: "pointer", transition: "all .15s" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1a2744"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#ebe9e3"; }}>
+                  <span style={{ fontSize: 18 }}>{icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#1a2744" }}>{text}</p>
+                    <p style={{ fontSize: 10, color: "#8a8a9a" }}>{sub}</p>
+                  </div>
+                  <span style={{ fontSize: 12, color: "#a0a0b0" }}>→</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
