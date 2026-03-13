@@ -44,10 +44,22 @@ const NAV_ICONS = {
   reports:    "📊", tax: "🧾", settings: "⚙️", pricing: "💎",
 };
 
+const PLAN_ORDER = { free: 0, starter: 1, starter_plus: 2, pro: 3 };
+
+const PREMIUM_NAV = [
+  { key: "premium/roi",         icon: "💰", label: "수익률 계산기",    plan: "starter_plus" },
+  { key: "premium/vacancy",     icon: "📉", label: "공실 손실 계산기", plan: "starter_plus" },
+  { key: "premium/lease-check", icon: "⚖️",  label: "임대차 3법",       plan: "starter_plus" },
+  { key: "premium/map-search",  icon: "🗺️",  label: "주변 매물 조회",   plan: "pro" },
+  { key: "premium/ai-report",   icon: "🤖", label: "AI 입지 분석",     plan: "pro" },
+  { key: "premium/kakao-alert", icon: "💬", label: "카카오 수금 알림", plan: "pro" },
+];
+
 export function MobileHeader({ onLogout }) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { userPlan } = useApp();
 
   return (
     <>
@@ -81,6 +93,24 @@ export function MobileHeader({ onLogout }) {
               >
                 <span style={{ fontSize: 17 }}>{NAV_ICONS[n.key] || n.icon}</span>
                 <span style={{ fontSize: 15, fontWeight: isActive ? 700 : 500, color: isActive ? "#1a2744" : "#6a6a7a" }}>{n.label}</span>
+              </div>
+            );
+          })}
+          <div style={{ height: 1, background: "#f0efe9", margin: "8px 0" }} />
+          <p style={{ fontSize: 10, color: "#b0aead", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "8px 14px 4px" }}>프리미엄</p>
+          {PREMIUM_NAV.map((item) => {
+            const isActive = pathname.includes(item.key);
+            const unlocked = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER[item.plan];
+            return (
+              <div key={item.key}
+                onClick={() => { unlocked ? router.push("/dashboard/" + item.key) : router.push("/dashboard/pricing"); setOpen(false); }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", borderRadius: 12, marginBottom: 3, cursor: "pointer", background: isActive ? "rgba(91,79,207,0.07)" : "transparent", opacity: unlocked ? 1 : 0.55 }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 16 }}>{item.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? "#5b4fcf" : "#6a6a7a" }}>{item.label}</span>
+                </div>
+                {!unlocked && <span style={{ fontSize: 10 }}>🔒</span>}
               </div>
             );
           })}
@@ -178,6 +208,36 @@ export function Sidebar({ onLogout }) {
                   padding: "2px 7px", borderRadius: 20
                 }}>{badge}</span>
               )}
+            </div>
+          );
+        })}
+
+        <div style={{ height: 1, background: "#f0efe9", margin: "10px 4px 10px" }} />
+
+        {/* 프리미엄 기능 섹션 */}
+        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 9px" }}>프리미엄</p>
+        {PREMIUM_NAV.map((item) => {
+          const isActive = pathname.includes(item.key);
+          const unlocked = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER[item.plan];
+          return (
+            <div key={item.key}
+              onClick={() => unlocked ? router.push("/dashboard/" + item.key) : router.push("/dashboard/pricing")}
+              className={"nav-item" + (isActive ? " active" : "")}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "8px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
+                borderLeft: "2.5px solid " + (isActive ? "#5b4fcf" : "transparent"),
+                opacity: unlocked ? 1 : 0.5,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>{item.icon}</span>
+                <span style={{
+                  fontSize: 13, fontWeight: isActive ? 700 : 500,
+                  color: isActive ? "#5b4fcf" : "#7a7a8a",
+                }}>{item.label}</span>
+              </div>
+              {!unlocked && <span style={{ fontSize: 9 }}>🔒</span>}
             </div>
           );
         })}
