@@ -101,7 +101,8 @@ export default function AuthPage() {
                 <polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.9"/>
               </svg>
             </div>
-            <span style={{ color: "#fff", fontWeight: 800, fontSize: 20, letterSpacing: "-.3px" }}>Ownly</span>
+            <span style={{ fontFamily: "'Pretendard',sans-serif", color: "#fff", fontWeight: 900, fontSize: 22, letterSpacing: "-0.5px" }}>온리</span>
+            <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 500, fontSize: 12, marginLeft: 6, letterSpacing: "0.5px" }}>Ownly</span>
           </div>
           <h2 style={{ fontSize: 36, fontWeight: 800, color: "#fff", lineHeight: 1.2, marginBottom: 16, letterSpacing: "-.5px" }}>
             임대 관리,<br/>더 스마트하게
@@ -138,7 +139,8 @@ export default function AuthPage() {
                   <rect x="7.5" y="12" width="5" height="6" rx="1" fill="rgba(255,255,255,0.4)"/>
                 </svg>
               </div>
-              <span style={{ fontSize: 22, fontWeight: 800, color: "#1a2744", letterSpacing: "-.3px" }}>Ownly</span>
+              <span style={{ fontFamily: "'Pretendard',sans-serif", fontSize: 24, fontWeight: 900, color: "#1a2744", letterSpacing: "-0.5px" }}>온리</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "#a0a0b0", marginLeft: 6, letterSpacing: "0.5px" }}>Ownly</span>
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 800, color: "#1a2744" }}>{tab === "login" ? "로그인" : "회원가입"}</h2>
             <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 4 }}>

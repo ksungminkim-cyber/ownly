@@ -29,14 +29,9 @@ function OwnlyLogo({ size = "md", onClick }) {
           fontFamily: "'DM Sans','Pretendard',sans-serif",
           fontWeight: 800, fontSize: s.fontSize,
           color: "#1a2744", letterSpacing: "-0.5px", lineHeight: 1
-        }}>Ownly</span>
-        <span style={{
-          fontFamily: "'Pretendard',sans-serif",
-          fontWeight: 600, fontSize: s.fontSize * 0.65,
-          color: "#8a8a9a", letterSpacing: "0px", lineHeight: 1, marginLeft: 3
         }}>온리</span>
         {size === "md" && (
-          <div style={{ fontSize: 9, color: "#8a8a9a", letterSpacing: "1.5px", fontWeight: 500, marginTop: 1 }}>by McLean</div>
+          <div style={{ fontSize: 9, color: "#a0a0b0", letterSpacing: "1.5px", fontWeight: 500, marginTop: 2 }}>Ownly by McLean</div>
         )}
       </div>
     </div>

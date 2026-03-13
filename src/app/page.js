@@ -43,8 +43,8 @@ export default function LandingPage() {
             </svg>
           </div>
           <div>
-            <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 22, fontWeight: 800, color: "#1a2744" }}>Ownly</span>
-            <span style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 500, marginLeft: 8 }}>by McLean</span>
+            <span style={{ fontFamily: "'Pretendard',sans-serif", fontSize: 24, fontWeight: 900, color: "#1a2744", letterSpacing: "-0.5px" }}>온리</span>
+            <span style={{ fontSize: 11, color: "#a0a0b0", fontWeight: 500, marginLeft: 6, letterSpacing: "0.5px" }}>Ownly</span>
           </div>
         </div>
 
@@ -173,7 +173,7 @@ export default function LandingPage() {
             <div>
               <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8 }}>COMMUNITY</p>
               <h2 style={{ fontSize: "clamp(22px,3vw,32px)", fontWeight: 900, color: "#1a2744", lineHeight: 1.2 }}>임대인들의 실제 이야기</h2>
-              <p style={{ fontSize: 15, color: "#8a8a9a", marginTop: 8 }}>Ownly를 사용하는 임대인들이 나누는 경험과 노하우</p>
+              <p style={{ fontSize: 15, color: "#8a8a9a", marginTop: 8 }}>온리를 사용하는 임대인들이 나누는 경험과 노하우</p>
             </div>
             <a href="/login" style={{ fontSize: 13, fontWeight: 700, color: "#5b4fcf", textDecoration: "none", background: "rgba(91,79,207,0.08)", padding: "9px 18px", borderRadius: 10, flexShrink: 0 }}>무료로 시작하기 →</a>
           </div>
@@ -212,7 +212,7 @@ export default function LandingPage() {
           <div style={{ marginTop: 32, textAlign: "center", padding: "32px", background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(91,79,207,0.04))", borderRadius: 20, border: "1px solid rgba(91,79,207,0.1)" }}>
             <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744", marginBottom: 8 }}>지금 바로 시작해보세요</p>
             <p style={{ fontSize: 14, color: "#8a8a9a", marginBottom: 20 }}>무료 플랜으로 시작, 언제든 업그레이드 가능</p>
-            <a href="/login" style={{ display: "inline-block", padding: "14px 32px", borderRadius: 12, background: "linear-gradient(135deg,#1a2744,#2d4270)", color: "#fff", fontSize: 15, fontWeight: 800, textDecoration: "none" }}>무료로 Ownly 시작하기 →</a>
+            <a href="/login" style={{ display: "inline-block", padding: "14px 32px", borderRadius: 12, background: "linear-gradient(135deg,#1a2744,#2d4270)", color: "#fff", fontSize: 15, fontWeight: 800, textDecoration: "none" }}>무료로 온리 시작하기 →</a>
           </div>
         </div>
       </div>
@@ -234,7 +234,7 @@ export default function LandingPage() {
                 <polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.9"/>
               </svg>
             </div>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#1a2744" }}>Ownly</span>
+            <span style={{ fontFamily: "'Pretendard',sans-serif", fontSize: 16, fontWeight: 900, color: "#1a2744", letterSpacing: "-0.3px" }}>온리</span>
           </div>
           <div style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 2, display: "flex", flexWrap: "wrap", gap: "0 24px" }}>
             <span>상호명: (주)맥클린</span>
