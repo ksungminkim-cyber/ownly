@@ -63,7 +63,10 @@ export default function RootLayout({ children }) {
         })}} />
       </head>
       <body>
-        <ThemeProvider>{children}</body>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
