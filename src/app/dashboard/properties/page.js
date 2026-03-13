@@ -92,7 +92,7 @@ export default function PropertiesPage() {
           <SectionLabel>PROPERTY MANAGEMENT</SectionLabel>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744", letterSpacing: "-.4px" }}>물건 관리</h1>
           <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>
-            총 {tenants.length}개 · 주거 {tenants.filter((t) => t.pType === "주거").length} · 상가 {tenants.filter((t) => t.pType === "상가").length}
+            총 {tenants.length}개 · 주거 {tenants.filter((t) => t.pType === "주거").length} · 상가 {tenants.filter((t) => t.pType === "상가").length} · 토지 {tenants.filter((t) => t.pType === "토지").length}
           </p>
         </div>
         <button onClick={() => {
@@ -111,7 +111,7 @@ export default function PropertiesPage() {
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 7 }}>
-          {["전체", "주거", "상가"].map((f) => (
+          {["전체", "주거", "상가", "토지"].map((f) => (
             <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 16px", borderRadius: 18, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${filter === f ? C.indigo : "#ebe9e3"}`, background: filter === f ? C.indigo + "20" : "transparent", color: filter === f ? C.indigo : C.muted }}>{f}</button>
           ))}
         </div>
@@ -136,11 +136,11 @@ export default function PropertiesPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
                   <div style={{ display: "flex", gap: 13, alignItems: "center", flex: 1, minWidth: 0 }}>
                     <div style={{ width: 42, height: 42, borderRadius: 12, background: (t.color || t.c || C.indigo) + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>
-                      {t.pType === "상가" ? "🏪" : "🏠"}
+                      {t.pType === "상가" ? "🏪" : t.pType === "토지" ? "🌱" : "🏠"}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : C.indigo, background: t.pType === "상가" ? C.amber + "18" : C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{t.sub}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : t.pType === "토지" ? "#0d9488" : C.indigo, background: t.pType === "상가" ? C.amber + "18" : t.pType === "토지" ? "#0d948818" : C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{t.sub}</span>
                         <Badge label={t.status} map={STATUS_MAP} />
                       </div>
                       <p style={{ fontSize: 14, fontWeight: 700, color: "#1a2744", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>서울 {t.addr}</p>
@@ -172,21 +172,52 @@ export default function PropertiesPage() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", gap: 10 }}>
-            {["주거", "상가"].map((t) => (
-              <button key={t} onClick={() => setForm((f) => ({ ...f, pType: t, sub: t === "주거" ? "아파트" : "1층 상가" }))}
-                style={{ flex: 1, padding: "11px", borderRadius: 10, border: `2px solid ${form.pType === t ? C.indigo : "#ebe9e3"}`, background: form.pType === t ? C.indigo + "18" : "transparent", color: form.pType === t ? C.indigo : C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                {t === "주거" ? "🏠 주거" : "🏪 상가"}
+            {[
+              { type: "주거", icon: "🏠", defaultSub: "아파트" },
+              { type: "상가", icon: "🏪", defaultSub: "1층 상가" },
+              { type: "토지", icon: "🌱", defaultSub: "전·답" },
+            ].map(({ type, icon, defaultSub }) => (
+              <button key={type} onClick={() => setForm((f) => ({ ...f, pType: type, sub: defaultSub }))}
+                style={{ flex: 1, padding: "11px", borderRadius: 10,
+                  border: `2px solid ${form.pType === type ? (type === "상가" ? C.amber : type === "토지" ? "#0d9488" : C.indigo) : "#ebe9e3"}`,
+                  background: form.pType === type ? (type === "상가" ? C.amber : type === "토지" ? "#0d9488" : C.indigo) + "18" : "transparent",
+                  color: form.pType === type ? (type === "상가" ? C.amber : type === "토지" ? "#0d9488" : C.indigo) : C.muted,
+                  fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                {icon} {type}
               </button>
             ))}
           </div>
+
+          {/* 세부 유형 선택 */}
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>세부 유형</p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(form.pType === "주거"
+                ? ["아파트", "빌라", "오피스텔", "단독주택", "다세대"]
+                : form.pType === "상가"
+                ? ["1층 상가", "2층 이상", "지하", "사무실", "창고·물류"]
+                : ["전·답", "임야", "대지", "잡종지", "기타 토지"]
+              ).map((s) => (
+                <button key={s} onClick={() => setForm((f) => ({ ...f, sub: s }))}
+                  style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none",
+                    background: form.sub === s
+                      ? (form.pType === "상가" ? C.amber : form.pType === "토지" ? "#0d9488" : C.indigo)
+                      : "#f0efe9",
+                    color: form.sub === s ? "#fff" : "#8a8a9a", transition: "all .15s" }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <AuthInput label="세입자 이름 *" placeholder="홍길동"       value={form.name}  onChange={(e) => setForm((f) => ({ ...f, name:  e.target.value }))} icon="👤" />
             <AuthInput label="연락처"         placeholder="010-0000-0000" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} icon="📞" />
           </div>
           <AuthInput label="주소 *" placeholder="마포구 합정동 123" value={form.addr} onChange={(e) => setForm((f) => ({ ...f, addr: e.target.value }))} icon="📍" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <AuthInput label="보증금 (만원)" placeholder="50000" value={form.dep}  onChange={(e) => setForm((f) => ({ ...f, dep:  e.target.value }))} icon="💵" />
-            <AuthInput label="월세 (만원) *" placeholder="120"   value={form.rent} onChange={(e) => setForm((f) => ({ ...f, rent: e.target.value }))} icon="💰" />
+            <AuthInput label={form.pType === "토지" ? "토지 가액 (만원)" : "보증금 (만원)"} placeholder={form.pType === "토지" ? "100000" : "50000"} value={form.dep}  onChange={(e) => setForm((f) => ({ ...f, dep:  e.target.value }))} icon="💵" />
+            <AuthInput label={form.pType === "토지" ? "월 임대료 (만원)" : "월세 (만원) *"} placeholder={form.pType === "토지" ? "50" : "120"}   value={form.rent} onChange={(e) => setForm((f) => ({ ...f, rent: e.target.value }))} icon="💰" />
           </div>
           <AuthInput label="계약 만료일" type="date" value={form.end} onChange={(e) => setForm((f) => ({ ...f, end: e.target.value }))} />
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>

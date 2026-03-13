@@ -24,7 +24,7 @@ export default function PricingPage() {
       return;
     }
     if (!process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY) {
-      toast("결제 서비스 준비 중입니다. 곧 오픈 예정이에요! 문의: support@ownly.kr", "info");
+      toast("결제 서비스 준비 중입니다. 곧 오픈 예정이에요! 문의: inquiry@mclean21.com", "info");
       return;
     }
     setLoading(planId);

@@ -12,7 +12,7 @@ const ST = {
   "만료임박":{ c: "#e8960a", bg: "rgba(232,150,10,0.08)" },
 };
 
-const FILTERS = ["전체", "주거", "상가", "만료임박", "미납"];
+const FILTERS = ["전체", "주거", "상가", "토지", "만료임박", "미납"];
 
 // 프리미엄 기능 정의
 const PREMIUM_FEATURES = [
@@ -106,6 +106,7 @@ export default function DashboardPage() {
     if (filter === "전체")    return true;
     if (filter === "주거")    return t.pType === "주거";
     if (filter === "상가")    return t.pType === "상가";
+    if (filter === "토지")    return t.pType === "토지";
     if (filter === "미납")    return t.status === "미납";
     if (filter === "만료임박") return daysLeft(t.end) <= 90;
     return true;
@@ -206,6 +207,33 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* 이용 흐름 스텝 배너 — 물건 0개일 때만 표시 */}
+        {tenants.length === 0 && (
+          <div style={{ background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(15,165,115,0.04))", border: "1px solid #e0ede8", borderRadius: 14, padding: "18px 20px", marginBottom: 20 }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: "#1a2744", marginBottom: 14, letterSpacing: "0.5px" }}>🚀 시작하기 — 4단계로 임대 관리를 완성하세요</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+              {[
+                { step: 1, icon: "🏠", label: "부동산 등록", desc: "주거·상가·토지 유형별 물건 등록", page: "properties", done: false },
+                { step: 2, icon: "👤", label: "임차인 연결", desc: "세입자 정보·계약기간 입력", page: "tenants", done: false },
+                { step: 3, icon: "💰", label: "수금 관리",   desc: "월세 납부 현황 추적·미납 알림", page: "payments", done: false },
+                { step: 4, icon: "📊", label: "세금 시뮬",   desc: "예상 세금·순수익 사전 파악",   page: "tax",        done: false },
+              ].map(({ step, icon, label, desc, page }) => (
+                <div key={step} onClick={() => router.push("/dashboard/" + page)}
+                  style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", cursor: "pointer", border: "1px solid #ebe9e3", transition: "all .15s" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1a2744"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26,39,68,0.08)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#ebe9e3"; e.currentTarget.style.boxShadow = "none"; }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <span style={{ width: 20, height: 20, borderRadius: 6, background: "#1a2744", color: "#fff", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>{step}</span>
+                    <span style={{ fontSize: 14 }}>{icon}</span>
+                  </div>
+                  <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 3 }}>{label}</p>
+                  <p style={{ fontSize: 10, color: "#8a8a9a", lineHeight: 1.5 }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* KPI 4칸 */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 20 }}>
           {[
@@ -300,8 +328,8 @@ export default function DashboardPage() {
                     onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}>
                     <div>
                       <span style={{ fontSize: 10, fontWeight: 800,
-                        color: t.pType === "상가" ? "#e8960a" : "#1a2744",
-                        background: t.pType === "상가" ? "rgba(232,150,10,0.1)" : "rgba(26,39,68,0.07)",
+                        color: t.pType === "상가" ? "#e8960a" : t.pType === "토지" ? "#0d9488" : "#1a2744",
+                        background: t.pType === "상가" ? "rgba(232,150,10,0.1)" : t.pType === "토지" ? "rgba(13,148,136,0.1)" : "rgba(26,39,68,0.07)",
                         padding: "3px 7px", borderRadius: 5 }}>{t.sub || t.pType}</span>
                     </div>
                     <div>
