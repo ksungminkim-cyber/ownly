@@ -41,7 +41,7 @@ function OwnlyLogo({ size = "md", onClick }) {
 const NAV_ICONS = {
   dashboard:  "⊞", properties: "🏠", tenants: "👤", payments: "💰",
   contracts:  "📝", calendar: "📅", vacancy: "🚪", certified: "📨",
-  reports:    "📊", tax: "🧾", settings: "⚙️", pricing: "💎",
+  reports:    "📊", tax: "🧾", settings: "⚙️", pricing: "💎", community: "💬",
 };
 
 const PLAN_ORDER = { free: 0, starter: 1, starter_plus: 2, pro: 3 };
@@ -52,7 +52,8 @@ const PREMIUM_NAV = [
   { key: "premium/lease-check", icon: "⚖️",  label: "임대차 3법",       plan: "starter_plus" },
   { key: "premium/map-search",  icon: "🗺️",  label: "주변 매물 조회",   plan: "pro" },
   { key: "premium/ai-report",   icon: "🤖", label: "AI 입지 분석",     plan: "pro" },
-  { key: "premium/kakao-alert", icon: "💬", label: "카카오 수금 알림", plan: "pro" },
+  { key: "premium/kakao-alert",    icon: "💬", label: "카카오 수금 알림",  plan: "pro" },
+  { key: "premium/global-reports",  icon: "🌐", label: "글로벌 리포트",      plan: "starter_plus" },
 ];
 
 export function MobileHeader({ onLogout }) {
@@ -96,6 +97,12 @@ export function MobileHeader({ onLogout }) {
               </div>
             );
           })}
+          <div style={{ height: 1, background: "#f0efe9", margin: "8px 0" }} />
+          <div onClick={() => { router.push("/dashboard/community"); setOpen(false); }}
+            style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", borderRadius:12, marginBottom:3, cursor:"pointer", background: pathname.includes("community") ? "rgba(15,165,115,0.07)" : "transparent" }}>
+            <span style={{ fontSize:16 }}>💬</span>
+            <span style={{ fontSize:14, fontWeight: pathname.includes("community") ? 700 : 500, color: pathname.includes("community") ? "#0fa573" : "#6a6a7a" }}>커뮤니티</span>
+          </div>
           <div style={{ height: 1, background: "#f0efe9", margin: "8px 0" }} />
           <p style={{ fontSize: 10, color: "#b0aead", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "8px 14px 4px" }}>프리미엄</p>
           {PREMIUM_NAV.map((item) => {
@@ -241,6 +248,21 @@ export function Sidebar({ onLogout }) {
             </div>
           );
         })}
+
+        <div style={{ height: 1, background: "#f0efe9", margin: "10px 4px 10px" }} />
+
+        {/* 커뮤니티 */}
+        {(() => {
+          const isActive = pathname.includes("community");
+          return (
+            <div onClick={() => router.push("/dashboard/community")}
+              className={"nav-item" + (isActive ? " active" : "")}
+              style={{ display:"flex", alignItems:"center", gap:9, padding:"9px 10px", borderRadius:10, marginBottom:1, cursor:"pointer", borderLeft:"2.5px solid "+(isActive?"#0fa573":"transparent") }}>
+              <span style={{ fontSize:15 }}>💬</span>
+              <span style={{ fontSize:13.5, fontWeight:isActive?700:500, color:isActive?"#0fa573":"#7a7a8a" }}>커뮤니티</span>
+            </div>
+          );
+        })()}
 
         <div style={{ height: 1, background: "#f0efe9", margin: "10px 4px 10px" }} />
 

@@ -3,11 +3,12 @@ import { useApp } from "../context/AppContext";
 import { C } from "../lib/constants";
 
 const FEATURE_LABELS = {
-  reports:   "수익 리포트",
-  tax:       "세금 시뮬레이터",
-  certified: "내용증명",
-  vacancy:   "공실 관리",
-  export:    "PDF 내보내기",
+  reports:       "수익 리포트",
+  tax:           "세금 시뮬레이터",
+  certified:     "내용증명",
+  vacancy:       "공실 관리",
+  export:        "PDF 내보내기",
+  globalReports: "글로벌 부동산 리포트",
 };
 
 // 사용법: <PlanGate feature="reports"> ... 콘텐츠 ... </PlanGate>

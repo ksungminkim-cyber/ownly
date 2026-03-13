@@ -463,6 +463,36 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            {/* 커뮤니티 + 글로벌 리포트 배너 */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:14 }}>
+              <div onClick={() => router.push("/dashboard/community")}
+                style={{ borderRadius:14, padding:"16px 18px", cursor:"pointer",
+                  background:"linear-gradient(135deg,#0fa57308,#0fa57302)",
+                  border:"1.5px solid #0fa57330", transition:"all .2s" }}
+                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 20px #0fa57320";}}
+                onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}>
+                <div style={{ fontSize:26, marginBottom:8 }}>💬</div>
+                <p style={{ fontSize:13, fontWeight:800, color:"#1a2744", marginBottom:4 }}>임대인 커뮤니티</p>
+                <p style={{ fontSize:11, color:"#8a8a9a", lineHeight:1.5 }}>팁·정보·질문 공유 가입자 전용 게시판</p>
+                <div style={{ marginTop:10, borderTop:"1px solid #0fa57320", paddingTop:8 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:"#0fa573" }}>바로가기 →</span>
+                </div>
+              </div>
+              <div onClick={() => router.push("/dashboard/premium/global-reports")}
+                style={{ borderRadius:14, padding:"16px 18px", cursor:"pointer",
+                  background:"linear-gradient(135deg,rgba(26,39,68,0.05),rgba(91,79,207,0.03))",
+                  border:"1.5px solid rgba(26,39,68,0.15)", transition:"all .2s" }}
+                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 20px rgba(26,39,68,0.12)";}}
+                onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}>
+                <div style={{ fontSize:26, marginBottom:8 }}>🌐</div>
+                <p style={{ fontSize:13, fontWeight:800, color:"#1a2744", marginBottom:4 }}>글로벌 부동산 리포트</p>
+                <p style={{ fontSize:11, color:"#8a8a9a", lineHeight:1.5 }}>JLL·CBRE·Cushman 공식 리포트 열람</p>
+                <div style={{ marginTop:10, borderTop:"1px solid rgba(26,39,68,0.08)", paddingTop:8 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:"#1a2744" }}>바로가기 →</span>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>

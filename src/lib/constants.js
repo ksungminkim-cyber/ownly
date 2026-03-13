@@ -55,6 +55,7 @@ export const PLANS = {
       mapSearch: false,
       aiReport: false,
       kakaoAlert: false,
+      globalReports: false,
     },
     features: [
       { t: "물건 최대 2개", ok: true },
@@ -92,6 +93,7 @@ export const PLANS = {
       mapSearch: false,
       aiReport: false,
       kakaoAlert: false,
+      globalReports: true,
     },
     features: [
       { t: "물건 최대 5개", ok: true },
@@ -131,6 +133,7 @@ export const PLANS = {
       mapSearch: false,
       aiReport: false,
       kakaoAlert: false,
+      globalReports: true,
     },
     features: [
       { t: "물건 최대 15개", ok: true },
@@ -170,6 +173,7 @@ export const PLANS = {
       mapSearch: true,
       aiReport: true,
       kakaoAlert: true,
+      globalReports: true,
     },
     features: [
       { t: "물건·세입자 무제한", ok: true },
