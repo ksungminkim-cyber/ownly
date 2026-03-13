@@ -125,6 +125,14 @@ export default function DashboardPage() {
     })),
   ];
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
       <p style={{ color: "#8a8a9a", fontSize: 14 }}>불러오는 중...</p>
@@ -186,17 +194,8 @@ export default function DashboardPage() {
     );
   };
 
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
   return (
-    <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
-    <div style={{ display: isMobile ? "block" : "grid", gridTemplateColumns: "1fr 320px", minHeight: "100%" }}>
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 320px", minHeight: "100%", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
 
       {/* ══ LEFT MAIN ══ */}
       <div style={{ padding: "24px 20px 24px 28px", borderRight: "1px solid #ebe9e3", minHeight: "100vh" }}>
@@ -362,7 +361,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ══ RIGHT PANEL ══ */}
-      <div style={{ padding: "24px 20px", background: "#fff", display: "flex", flexDirection: "column", minHeight: isMobile ? "unset" : "100vh", overflowY: "auto", borderTop: isMobile ? "1px solid #ebe9e3" : "none" }}>
+      <div style={{ padding: "24px 20px", background: "#fff", display: "flex", flexDirection: "column", gap: 0, minHeight: isMobile ? "unset" : "100vh", overflowY: "auto", borderTop: isMobile ? "1px solid #ebe9e3" : "none" }}>
 
         {activeFeature ? renderFeaturePanel(activeFeature) : sel ? (
           /* 물건 선택 시 상세 */
@@ -408,13 +407,13 @@ export default function DashboardPage() {
         ) : (
           /* 기본 상태 */
           <>
-            {/* 이달의 요약 — 임팩트 카드 */}
+            {/* 이달의 요약 */}
             <div style={{ marginBottom: 22, background: "linear-gradient(135deg,#1a2744,#2d4270)", borderRadius: 16, padding: "20px" }}>
               <p style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.45)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 10 }}>이달의 요약</p>
               {tenants.length === 0 ? (
-                <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.7 }}>아직 등록된 물건이 없어요.{"\n"}물건을 추가해 시작하세요 👇</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.7 }}>아직 등록된 물건이 없어요.</p>
               ) : (
-                <>
+                <div>
                   <p style={{ fontSize: 26, fontWeight: 900, color: "#fff", marginBottom: 6, letterSpacing: "-.5px" }}>월 {totalRent.toLocaleString()}만원</p>
                   <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", lineHeight: 1.8 }}>
                     물건 {tenants.length}개 운영 중
@@ -422,7 +421,7 @@ export default function DashboardPage() {
                     {expiring > 0 && <span style={{ color: "#ffd166" }}> · 📅 {expiring}건 만료 임박</span>}
                     {unpaid === 0 && expiring === 0 && <span style={{ color: "#7eeec9" }}> · 수금 정상 ✓</span>}
                   </p>
-                </>
+                </div>
               )}
             </div>
 
@@ -432,10 +431,10 @@ export default function DashboardPage() {
                 <p style={{ fontSize: 11, fontWeight: 800, color: "#a0a0b0", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 10 }}>알림</p>
                 {alerts.map((a, i) => (
                   <div key={i} onClick={() => router.push("/dashboard/" + a.page)}
-                    style={{ display: "flex", gap: 10, padding: "12px 14px", borderRadius: 10, marginBottom: 7, cursor: "pointer",
+                    style={{ display: "flex", gap: 10, padding: "10px 12px", borderRadius: 10, marginBottom: 7, cursor: "pointer",
                       background: a.type === "danger" ? "rgba(232,68,90,0.05)" : "rgba(232,150,10,0.05)",
                       border: `1px solid ${a.type === "danger" ? "rgba(232,68,90,0.15)" : "rgba(232,150,10,0.15)"}` }}>
-                    <span style={{ fontSize: 16 }}>{a.icon}</span>
+                    <span style={{ fontSize: 14 }}>{a.icon}</span>
                     <div>
                       <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{a.text}</p>
                       <p style={{ fontSize: 12, color: "#8a8a9a", marginTop: 2 }}>{a.sub}</p>
@@ -445,7 +444,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* 프리미엄 기능 섹션 — 2열 카드 */}
+            {/* 프리미엄 기능 섹션 */}
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <div>
@@ -453,7 +452,7 @@ export default function DashboardPage() {
                   <p style={{ fontSize: 14, fontWeight: 800, color: "#1a2744" }}>더 스마트하게 관리하세요</p>
                 </div>
                 <span onClick={() => router.push("/dashboard/pricing")}
-                  style={{ fontSize: 11, color: "#5b4fcf", cursor: "pointer", fontWeight: 800, background: "rgba(91,79,207,0.08)", padding: "5px 12px", borderRadius: 8 }}>
+                  style={{ fontSize: 11, color: "#5b4fcf", cursor: "pointer", fontWeight: 800, background: "rgba(91,79,207,0.08)", padding: "5px 12px", borderRadius: 8, flexShrink: 0 }}>
                   플랜 보기 →
                 </span>
               </div>
@@ -466,16 +465,15 @@ export default function DashboardPage() {
                     <div key={f.id} onClick={() => setActiveFeature(f)}
                       style={{
                         borderRadius: 14, cursor: "pointer", overflow: "hidden",
-                        border: locked ? "1px solid #ebe9e3" : `1.5px solid ${f.badgeColor}30`,
+                        border: locked ? "1px solid #ebe9e3" : "1.5px solid " + f.badgeColor + "30",
                         background: locked ? "#faf9f6" : isPro
                           ? "linear-gradient(135deg,rgba(201,146,10,0.07),rgba(232,150,10,0.02))"
                           : "linear-gradient(135deg,rgba(26,39,68,0.05),rgba(15,165,115,0.03))",
                         transition: "all .2s",
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 20px ${f.badgeColor}20`; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 20px " + f.badgeColor + "20"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
 
-                      {/* 상단: 아이콘 + 배지 */}
                       <div style={{ padding: "12px 12px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div style={{ fontSize: 26 }}>{locked ? "🔒" : f.icon}</div>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
@@ -485,13 +483,12 @@ export default function DashboardPage() {
                           <span style={{ fontSize: 9, fontWeight: 800,
                             color: locked ? "#b0b0c0" : f.badgeColor,
                             background: locked ? "#eeeef0" : f.badgeColor + "18",
-                            padding: "2px 7px", borderRadius: 5, letterSpacing: "0.3px" }}>
+                            padding: "2px 7px", borderRadius: 5 }}>
                             {f.badge}
                           </span>
                         </div>
                       </div>
 
-                      {/* 타이틀 + 설명 */}
                       <div style={{ padding: "8px 12px 10px" }}>
                         <p style={{ fontSize: 13, fontWeight: 800, color: locked ? "#b0b0c0" : "#1a2744", marginBottom: 4, lineHeight: 1.3 }}>{f.title}</p>
                         <p style={{ fontSize: 11, color: locked ? "#c8c8d0" : "#8a8a9a", lineHeight: 1.5 }}>
@@ -499,8 +496,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
 
-                      {/* 하단 CTA */}
-                      <div style={{ padding: "8px 12px 11px", borderTop: `1px solid ${locked ? "#f0efe9" : f.badgeColor + "15"}` }}>
+                      <div style={{ padding: "8px 12px 11px", borderTop: "1px solid " + (locked ? "#f0efe9" : f.badgeColor + "15") }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: locked ? "#c0c0cc" : f.badgeColor }}>
                           {locked ? "업그레이드 필요 →" : "바로 사용하기 →"}
                         </span>
@@ -510,7 +506,6 @@ export default function DashboardPage() {
                 })}
               </div>
 
-              {/* 업그레이드 유도 배너 */}
               {planLevel < 3 && (
                 <div onClick={() => router.push("/dashboard/pricing")}
                   style={{ marginTop: 14, borderRadius: 14, padding: "16px 18px", cursor: "pointer",
@@ -527,8 +522,6 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-    </div>
-    </div>
     </div>
   );
 }
