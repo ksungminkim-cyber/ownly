@@ -55,6 +55,11 @@ export default function AIReportPage() {
         body: JSON.stringify({ address: addr, propertyType: propType }),
       });
       const data = await res.json();
+      if (res.status === 402) {
+        setError("API 크레딧이 부족합니다. console.anthropic.com에서 충전 후 이용해주세요.");
+        setLoading(false);
+        return;
+      }
       if (data.error) throw new Error(data.error);
       setReport(data);
     } catch (e) {
