@@ -1,4 +1,5 @@
 import "./globals.css";
+import { ThemeProvider } from "../context/ThemeContext";
 
 export const viewport = {
   width: "device-width",
@@ -48,7 +49,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
       <head>
         <meta name="naver-site-verification" content="841eaee5d6c77a899f34fa724e517995d65f3180" />
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -61,7 +62,8 @@ export default function RootLayout({ children }) {
           publisher: { "@type": "Organization", name: "McLean", url: "https://www.ownly.kr" },
         })}} />
       </head>
-      <body>{children}</body>
+      <body>
+        <ThemeProvider>{children}</body>
     </html>
   );
 }

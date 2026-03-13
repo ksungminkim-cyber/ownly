@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { C, NAV, daysLeft } from "../lib/constants";
 import { useApp } from "../context/AppContext";
+import { useTheme } from "../context/ThemeContext";
 
 function OwnlyLogo({ size = "md", onClick }) {
   const sizes = {
@@ -66,20 +67,25 @@ export function MobileHeader({ onLogout }) {
     <>
       <div className="mobile-header" style={{
         display: "none", position: "sticky", top: 0, zIndex: 200,
-        background: "#ffffff", borderBottom: "1px solid #e8e6e0",
+        background: "var(--surface)", borderBottom: "1px solid var(--border)",
         padding: "10px 16px", alignItems: "center", justifyContent: "space-between",
         boxShadow: "0 1px 8px rgba(26,39,68,0.06)"
       }}>
         <OwnlyLogo size="sm" onClick={() => router.push("/dashboard")} />
-        <button onClick={() => setOpen(!open)} style={{ background: "none", border: "none", color: "#1a2744", fontSize: 22, cursor: "pointer", padding: 4 }}>
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          <button onClick={toggleTheme} className="theme-toggle" style={{ width:32,height:32 }} title={theme==="light"?"다크모드":"라이트모드"}>
+            {theme === "light" ? "🌙" : "☀️"}
+          </button>
+          <button onClick={() => setOpen(!open)} style={{ background: "none", border: "none", color: "var(--text)", fontSize: 22, cursor: "pointer", padding: 4 }}>
           {open ? "✕" : "☰"}
-        </button>
+          </button>
+        </div>
       </div>
 
       {open && (
         <div style={{
           position: "fixed", inset: 0, top: 52, zIndex: 199,
-          background: "#ffffff", padding: 16, animation: "fade-in .2s ease"
+          background: "var(--surface)", padding: 16, animation: "fade-in .2s ease"
         }}>
           {NAV.map((n) => {
             const isActive = pathname.includes(n.key);
@@ -93,18 +99,18 @@ export function MobileHeader({ onLogout }) {
                 }}
               >
                 <span style={{ fontSize: 17 }}>{NAV_ICONS[n.key] || n.icon}</span>
-                <span style={{ fontSize: 15, fontWeight: isActive ? 700 : 500, color: isActive ? "#1a2744" : "#6a6a7a" }}>{n.label}</span>
+                <span style={{ fontSize: 15, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--text)" : "var(--text-muted)" }}>{n.label}</span>
               </div>
             );
           })}
-          <div style={{ height: 1, background: "#f0efe9", margin: "8px 0" }} />
+          <div style={{ height: 1, background: "var(--border)", margin: "8px 0" }} />
           <div onClick={() => { router.push("/dashboard/community"); setOpen(false); }}
             style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", borderRadius:12, marginBottom:3, cursor:"pointer", background: pathname.includes("community") ? "rgba(15,165,115,0.07)" : "transparent" }}>
             <span style={{ fontSize:16 }}>💬</span>
             <span style={{ fontSize:14, fontWeight: pathname.includes("community") ? 700 : 500, color: pathname.includes("community") ? "#0fa573" : "#6a6a7a" }}>커뮤니티</span>
           </div>
-          <div style={{ height: 1, background: "#f0efe9", margin: "8px 0" }} />
-          <p style={{ fontSize: 10, color: "#b0aead", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "8px 14px 4px" }}>프리미엄</p>
+          <div style={{ height: 1, background: "var(--border)", margin: "8px 0" }} />
+          <p style={{ fontSize: 10, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "8px 14px 4px" }}>프리미엄</p>
           {PREMIUM_NAV.map((item) => {
             const isActive = pathname.includes(item.key);
             const unlocked = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER[item.plan];
@@ -136,6 +142,7 @@ export function Sidebar({ onLogout }) {
   const router = useRouter();
   const pathname = usePathname();
   const { tenants, user, userPlan } = useApp();
+  const { theme, toggleTheme } = useTheme();
 
   const unpaidCount   = tenants.filter((t) => t.status === "미납").length;
   const expiringCount = tenants.filter((t) => daysLeft(t.end) <= 90).length;
@@ -158,7 +165,7 @@ export function Sidebar({ onLogout }) {
       width: 220, height: "100vh", background: "#ffffff",
       borderRight: "1px solid #ebe9e3", position: "fixed", top: 0, left: 0,
       display: "flex", flexDirection: "column", zIndex: 100, overflow: "hidden",
-      boxShadow: "2px 0 20px rgba(26,39,68,0.05)"
+      boxShadow: "2px 0 20px var(--shadow)"
     }}>
       {/* 로고 */}
       <div style={{ padding: "16px 20px 12px" }}>
@@ -183,11 +190,11 @@ export function Sidebar({ onLogout }) {
         )}
       </div>
 
-      <div style={{ height: 1, background: "#f0efe9", margin: "8px 14px 14px" }} />
+      <div style={{ height: 1, background: "var(--border)", margin: "8px 14px 14px" }} />
 
       {/* 메인 메뉴 */}
       <nav style={{ padding: "0 10px", flex: 1, overflowY: "auto", paddingBottom: 4 }}>
-        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>메뉴</p>
+        <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>메뉴</p>
         {NAV.slice(0, 10).map((item) => {
           const isActive = pathname === "/dashboard/" + item.key || (item.key === "dashboard" && pathname === "/dashboard");
           const badge = alerts[item.key];
@@ -205,7 +212,7 @@ export function Sidebar({ onLogout }) {
                 <span style={{ fontSize: 14, lineHeight: 1 }}>{NAV_ICONS[item.key] || item.icon}</span>
                 <span style={{
                   fontSize: 13, fontWeight: isActive ? 700 : 500,
-                  color: isActive ? "#1a2744" : "#7a7a8a",
+                  color: isActive ? "var(--text)" : "var(--text-muted)",
                   letterSpacing: isActive ? "-.2px" : "0"
                 }}>{item.label}</span>
               </div>
@@ -222,7 +229,7 @@ export function Sidebar({ onLogout }) {
         <div style={{ height: 1, background: "#f0efe9", margin: "6px 4px 6px" }} />
 
         {/* 프리미엄 기능 섹션 */}
-        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>프리미엄</p>
+        <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>프리미엄</p>
         {PREMIUM_NAV.map((item) => {
           const isActive = pathname.includes(item.key);
           const unlocked = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER[item.plan];
@@ -266,7 +273,7 @@ export function Sidebar({ onLogout }) {
 
         <div style={{ height: 1, background: "#f0efe9", margin: "6px 4px 6px" }} />
 
-        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>계정</p>
+        <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>계정</p>
         {[NAV[10], NAV[11]].filter(Boolean).map((item) => {
           const isActive = pathname.includes(item.key);
           return (
@@ -280,17 +287,17 @@ export function Sidebar({ onLogout }) {
               }}
             >
               <span style={{ fontSize: 14 }}>{NAV_ICONS[item.key] || item.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "#1a2744" : "#7a7a8a" }}>{item.label}</span>
+              <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--text)" : "var(--text-muted)" }}>{item.label}</span>
             </div>
           );
         })}
       </nav>
 
       {/* 하단 유저 프로필 */}
-      <div style={{ padding: "10px 14px 12px", borderTop: "1px solid #f0efe9" }}>
+      <div style={{ padding: "10px 14px 12px", borderTop: "1px solid var(--border)" }}>
         <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "8px 10px", borderRadius: 12, background: "#f8f7f4", marginBottom: 8
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", marginBottom: 8
         }}>
           <div style={{
             width: 34, height: 34, borderRadius: "50%",
@@ -298,10 +305,13 @@ export function Sidebar({ onLogout }) {
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", fontSize: 14, fontWeight: 800, flexShrink: 0
           }}>{initial}</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
-            <div style={{ fontSize: 10, color: "#8a8a9a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
           </div>
+          <button onClick={toggleTheme} className="theme-toggle" title={theme === "light" ? "다크모드로 전환" : "라이트모드로 전환"}>
+            {theme === "light" ? "🌙" : "☀️"}
+          </button>
         </div>
 
         {/* 관리자 메뉴 — 어드민 이메일만 표시 */}
@@ -323,8 +333,8 @@ export function Sidebar({ onLogout }) {
 
         <button onClick={onLogout} style={{
           width: "100%", padding: "9px", borderRadius: 10,
-          background: "transparent", border: "1px solid #e8e6e0",
-          color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer",
+          background: "transparent", border: "1px solid var(--border)",
+          color: "var(--text-muted)", fontWeight: 600, fontSize: 13, cursor: "pointer",
           transition: "all .15s"
         }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(232,68,90,0.07)"; e.currentTarget.style.borderColor = "rgba(232,68,90,0.3)"; e.currentTarget.style.color = "#e8445a"; }}

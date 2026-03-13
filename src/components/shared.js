@@ -60,7 +60,7 @@ export const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
   return (
     <div style={{
-      background: "#ffffff", border: "1px solid #e8e6e0", borderRadius: 12,
+      background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12,
       padding: "10px 14px", boxShadow: "0 8px 30px rgba(26,39,68,0.12)"
     }}>
       <p style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>{label}</p>
@@ -76,7 +76,7 @@ export const CustomTooltip = ({ active, payload, label }) => {
 export const SearchBox = ({ value, onChange, placeholder }) => (
   <div className="search-box" style={{
     display: "flex", alignItems: "center", gap: 8, padding: "9px 14px",
-    borderRadius: 12, border: "1.5px solid #e8e6e0", background: "#ffffff",
+    borderRadius: 12, border: "1.5px solid var(--border)", background: "var(--surface)",
     boxShadow: "0 1px 4px rgba(26,39,68,0.04)"
   }}>
     <span style={{ fontSize: 14, opacity: 0.35 }}>🔍</span>
@@ -84,7 +84,7 @@ export const SearchBox = ({ value, onChange, placeholder }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder || "검색..."}
-      style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#1a2744", fontSize: 13 }}
+      style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "var(--text)", fontSize: 13 }}
     />
     {value && (
       <button onClick={() => onChange("")} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, padding: 0 }}>✕</button>
@@ -95,7 +95,7 @@ export const SearchBox = ({ value, onChange, placeholder }) => (
 export const EmptyState = ({ icon, title, desc, action, onAction }) => (
   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", textAlign: "center" }}>
     <div className="empty-bounce" style={{ fontSize: 48, marginBottom: 16, opacity: 0.2 }}>{icon || "📭"}</div>
-    <p style={{ fontSize: 16, fontWeight: 700, color: "#1a2744", marginBottom: 6 }}>{title || "데이터가 없습니다"}</p>
+    <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>{title || "데이터가 없습니다"}</p>
     <p style={{ fontSize: 13, color: C.muted, marginBottom: action ? 18 : 0, maxWidth: 280, lineHeight: 1.5 }}>{desc || ""}</p>
     {action && (
       <button onClick={onAction} className="btn-primary" style={{
@@ -115,16 +115,16 @@ export const ConfirmDialog = ({ open, title, desc, onConfirm, onCancel, danger }
       background: "rgba(26,39,68,0.4)", backdropFilter: "blur(8px)", animation: "modal-bg .25s ease"
     }} onClick={onCancel}>
       <div style={{
-        width: 380, background: "#ffffff", border: "1px solid #e8e6e0",
+        width: 380, background: "var(--surface)", border: "1px solid var(--border)",
         borderRadius: 20, padding: "28px", animation: "modal-card .3s cubic-bezier(.22,1,.36,1)",
         boxShadow: "0 30px 80px rgba(26,39,68,0.2)"
       }} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 8 }}>{title}</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>{title}</h3>
         <p style={{ fontSize: 13, color: C.muted, marginBottom: 22, lineHeight: 1.5 }}>{desc}</p>
         <div style={{ display: "flex", gap: 9 }}>
           <button onClick={onCancel} style={{
             flex: 1, padding: "11px", borderRadius: 12,
-            background: "#f8f7f4", border: "1px solid #e8e6e0",
+            background: "var(--surface2)", border: "1px solid var(--border)",
             color: "#7a7a8a", fontWeight: 600, fontSize: 13, cursor: "pointer"
           }}>취소</button>
           <button onClick={onConfirm} className="btn-primary" style={{
@@ -159,7 +159,7 @@ export const Toast = () => {
         return (
           <div key={t.id} style={{
             display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
-            borderRadius: 14, background: "#ffffff",
+            borderRadius: 14, background: "var(--surface)",
             border: `1px solid ${col.border}`,
             boxShadow: "0 8px 30px rgba(26,39,68,0.12)",
             animation: "toast-in .3s ease", minWidth: 260
@@ -169,7 +169,7 @@ export const Toast = () => {
               display: "flex", alignItems: "center", justifyContent: "center",
               color: col.c, fontSize: 13, fontWeight: 800, flexShrink: 0
             }}>{col.icon}</div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#1a2744" }}>{t.msg}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{t.msg}</span>
           </div>
         );
       })}
@@ -188,7 +188,7 @@ export const Modal = ({ open, onClose, children, width }) => {
     }} onClick={onClose}>
       <div style={{
         width: width || 480, maxWidth: "min(calc(100vw - 40px), 100%)",
-        background: "#ffffff", border: "1px solid #e8e6e0",
+        background: "var(--surface)", border: "1px solid var(--border)",
         borderRadius: 22, padding: "32px",
         boxShadow: "0 40px 100px rgba(26,39,68,0.2)",
         animation: "modal-card .3s cubic-bezier(.22,1,.36,1)", flexShrink: 0
@@ -215,8 +215,8 @@ export const AuthInput = ({ label, type, placeholder, value, onChange, error, ic
           className="auth-input"
           style={{
             width: "100%", padding: `12px ${t === "password" ? "44px" : "14px"} 12px ${icon ? "40px" : "14px"}`,
-            fontSize: 14, color: "#1a2744", background: "#f8f7f4",
-            border: `1.5px solid ${error ? "#e8445a" : "#e8e6e0"}`, borderRadius: 12
+            fontSize: 14, color: "var(--text)", background: "var(--input-bg)",
+            border: `1.5px solid ${error ? "#e8445a" : "var(--border)"}`, borderRadius: 12
           }}
         />
         {t === "password" && (
@@ -234,9 +234,9 @@ export const AuthInput = ({ label, type, placeholder, value, onChange, error, ic
 export const SortButton = ({ label, active, dir, onClick }) => (
   <button onClick={onClick} style={{
     padding: "5px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
-    border: `1.5px solid ${active ? "#1a2744" : "#e8e6e0"}`,
-    background: active ? "rgba(26,39,68,0.07)" : "#ffffff",
-    color: active ? "#1a2744" : C.muted, transition: "all .15s",
+    border: `1.5px solid ${active ? "#1a2744" : "var(--border)"}`,
+    background: active ? "rgba(26,39,68,0.07)" : "var(--surface)",
+    color: active ? "var(--text)" : C.muted, transition: "all .15s",
     display: "flex", alignItems: "center", gap: 3
   }}>
     {label} {active && <span style={{ fontSize: 9 }}>{dir === "asc" ? "▲" : "▼"}</span>}

@@ -17,9 +17,9 @@ function DashboardFooter() {
 
   return (
     <footer style={{
-      borderTop: "1px solid #e8e6e0",
+      borderTop: "1px solid var(--border)",
       padding: "20px 28px",
-      background: "#f5f4f0",
+      background: "var(--bg)",
       fontFamily: "'Pretendard','DM Sans',sans-serif",
     }}>
       {/* 상단 링크 바 */}
@@ -75,14 +75,14 @@ function DashboardShell({ children }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f4f0", color: "#1a2744", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "#1a2744", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}>
       {/* 모바일 헤더 — 최상단, flex row 밖 */}
       <MobileHeader onLogout={handleLogout} />
 
       {/* 데스크탑: sidebar + main 가로 배치 */}
       <div style={{ display: "flex" }}>
         <Sidebar onLogout={handleLogout} />
-        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "#f5f4f0", minWidth: 0, display: "flex", flexDirection: "column", overflowX: "hidden" }}>
+        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "var(--bg)", minWidth: 0, display: "flex", flexDirection: "column", overflowX: "hidden" }}>
           <div style={{ flex: 1 }}>{children}</div>
           <DashboardFooter />
         </main>
