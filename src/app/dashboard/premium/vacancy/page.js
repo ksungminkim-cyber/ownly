@@ -1,0 +1,132 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useApp } from "../../../../context/AppContext";
+
+const C = { navy:"#1a2744", rose:"#e8445a", amber:"#e8960a", emerald:"#0fa573", surface:"#ffffff", border:"#e8e6e0", muted:"#8a8a9a", faint:"#f8f7f4" };
+
+export default function VacancyPage() {
+  const router = useRouter();
+  const { tenants } = useApp();
+  const [months, setMonths] = useState(3);
+  const [customRent, setCustomRent] = useState("");
+
+  const avgRent = tenants.length > 0
+    ? Math.round(tenants.reduce((s, t) => s + (t.rent || 0), 0) / tenants.length)
+    : 200;
+  const effectiveRent = customRent ? Number(customRent) : avgRent;
+  const directLoss    = effectiveRent * months;
+  const opportunityCost = Math.round(directLoss * 0.05);
+  const totalLoss     = directLoss + opportunityCost;
+  const annualImpact  = Math.round((directLoss / 12) * 100) / 100;
+
+  const tips = [
+    { icon:"🏠", title:"직방·다방 동시 등록", desc:"노출 극대화로 공실 기간 평균 40% 단축 효과" },
+    { icon:"💰", title:"보증금 유연 협의", desc:"보증금을 낮추면 임차인 유치 속도 향상" },
+    { icon:"📊", title:"시세 5% 이하 책정", desc:"빠른 계약 우선 시 장기 공실보다 수익 유리" },
+    { icon:"🔧", title:"소규모 리모델링", desc:"도배·장판만으로 임대료 5~10% 상향 가능" },
+  ];
+
+  const barMax = 24;
+
+  return (
+    <div className="page-in page-padding" style={{ maxWidth:760, fontFamily:"'Pretendard','DM Sans',sans-serif" }}>
+      <button onClick={() => router.back()}
+        style={{ background:"none", border:"none", color:C.muted, fontSize:13, fontWeight:600, cursor:"pointer", marginBottom:14, padding:0 }}>
+        ← 대시보드로
+      </button>
+
+      <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:28 }}>
+        <div style={{ width:48, height:48, borderRadius:14, background:"linear-gradient(135deg,#e8445a,#c0364a)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>📉</div>
+        <div>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
+            <h1 style={{ fontSize:22, fontWeight:900, color:C.navy, letterSpacing:"-.4px" }}>공실 손실 계산기</h1>
+            <span style={{ fontSize:10, fontWeight:800, color:C.rose, background:"rgba(232,68,90,0.1)", padding:"3px 8px", borderRadius:6 }}>STARTER+</span>
+          </div>
+          <p style={{ fontSize:13, color:C.muted }}>공실 기간에 발생하는 실제 손실과 기회비용을 계산합니다</p>
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:20 }}>
+        {/* 입력 */}
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {/* 월세 */}
+          <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:20 }}>
+            <p style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"1px", marginBottom:14 }}>월세 (만원)</p>
+            <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:12 }}>
+              <div style={{ flex:1, background:C.faint, borderRadius:10, padding:"10px 14px" }}>
+                <p style={{ fontSize:11, color:C.muted, marginBottom:2 }}>등록 물건 평균</p>
+                <p style={{ fontSize:20, fontWeight:900, color:C.navy }}>{avgRent}만원</p>
+              </div>
+            </div>
+            <p style={{ fontSize:11, color:C.muted, marginBottom:6 }}>직접 입력 (선택)</p>
+            <input type="number" value={customRent} onChange={e => setCustomRent(e.target.value)}
+              placeholder={String(avgRent)}
+              style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:`1px solid ${C.border}`,
+                fontSize:14, fontWeight:700, color:C.navy, background:C.faint, outline:"none", fontFamily:"inherit" }} />
+          </div>
+
+          {/* 공실 기간 슬라이더 */}
+          <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:20 }}>
+            <p style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"1px", marginBottom:14 }}>공실 기간</p>
+            <p style={{ fontSize:40, fontWeight:900, color:C.navy, marginBottom:10 }}>{months}<span style={{ fontSize:16, fontWeight:600, color:C.muted }}>개월</span></p>
+            <input type="range" min={1} max={barMax} value={months}
+              onChange={e => setMonths(Number(e.target.value))}
+              style={{ width:"100%", accentColor:C.rose, marginBottom:6 }} />
+            {/* 기간 레이블 */}
+            <div style={{ display:"flex", justifyContent:"space-between" }}>
+              {[1,3,6,12,24].map(m => (
+                <button key={m} onClick={() => setMonths(m)}
+                  style={{ fontSize:11, fontWeight:700, color:months===m?C.rose:C.muted,
+                    background:"none", border:"none", cursor:"pointer", padding:"2px 4px" }}>
+                  {m}개월
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 결과 */}
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {/* 메인 손실 */}
+          <div style={{ background:"linear-gradient(135deg,#e8445a,#c0364a)", borderRadius:20, padding:24, textAlign:"center" }}>
+            <p style={{ fontSize:12, fontWeight:800, color:"rgba(255,255,255,0.6)", letterSpacing:"1px", marginBottom:8 }}>총 예상 손실</p>
+            <p style={{ fontSize:44, fontWeight:900, color:"#fff", letterSpacing:"-2px", lineHeight:1 }}>
+              {totalLoss.toLocaleString()}<span style={{ fontSize:18 }}>만원</span>
+            </p>
+            <p style={{ fontSize:12, color:"rgba(255,255,255,0.6)", marginTop:8 }}>기회비용 {opportunityCost.toLocaleString()}만원 포함</p>
+          </div>
+
+          {/* 상세 */}
+          <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:20 }}>
+            <p style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"1px", marginBottom:14 }}>손실 상세</p>
+            {[
+              ["임대료 미수", directLoss.toLocaleString()+"만원", C.rose],
+              ["기회비용 (5%)", opportunityCost.toLocaleString()+"만원", C.amber],
+              ["연간 수익 영향", "-"+annualImpact.toFixed(1)+"%p", C.navy],
+            ].map(([label, value, color]) => (
+              <div key={label} style={{ display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:13, color:C.muted }}>{label}</span>
+                <span style={{ fontSize:14, fontWeight:800, color }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 단축 전략 */}
+      <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:20, padding:24 }}>
+        <p style={{ fontSize:14, fontWeight:800, color:C.navy, marginBottom:16 }}>🎯 공실 단축 전략</p>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          {tips.map((t, i) => (
+            <div key={i} style={{ background:C.faint, borderRadius:14, padding:16 }}>
+              <p style={{ fontSize:18, marginBottom:6 }}>{t.icon}</p>
+              <p style={{ fontSize:13, fontWeight:800, color:C.navy, marginBottom:4 }}>{t.title}</p>
+              <p style={{ fontSize:12, color:C.muted, lineHeight:1.6 }}>{t.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

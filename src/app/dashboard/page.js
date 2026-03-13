@@ -17,7 +17,7 @@ const FILTERS = ["전체", "주거", "상가", "토지", "만료임박", "미납
 // 프리미엄 기능 정의
 const PREMIUM_FEATURES = [
   {
-    id: "roi",
+    id: "roi", href: "/dashboard/premium/roi",
     icon: "💰",
     title: "수익률 계산기",
     desc: "취득세·종소세·건보료 감안한\n실질 수익률 시뮬레이션",
@@ -28,8 +28,8 @@ const PREMIUM_FEATURES = [
     tagColor: "#0fa573",
   },
   {
-    id: "vacancy_loss",
-    icon: "📊",
+    id: "vacancy_loss", href: "/dashboard/premium/vacancy",
+    icon: "📉",
     title: "공실 손실 계산기",
     desc: "공실 기간별 기회비용·\n손실액 자동 계산",
     badge: "STARTER+",
@@ -38,8 +38,8 @@ const PREMIUM_FEATURES = [
     tag: null,
   },
   {
-    id: "lease_check",
-    icon: "📋",
+    id: "lease_check", href: "/dashboard/premium/lease-check",
+    icon: "⚖️",
     title: "임대차 3법 체크리스트",
     desc: "계약갱신청구권·전월세상한제\n자동 적용 여부 확인",
     badge: "STARTER+",
@@ -48,7 +48,7 @@ const PREMIUM_FEATURES = [
     tag: null,
   },
   {
-    id: "map",
+    id: "map", href: "/dashboard/premium/map-search",
     icon: "🗺️",
     title: "주변 매물 조회",
     desc: "네이버 부동산 연동\n주변 시세·매물 비교",
@@ -59,7 +59,7 @@ const PREMIUM_FEATURES = [
     tagColor: "#5b4fcf",
   },
   {
-    id: "ai_report",
+    id: "ai_report", href: "/dashboard/premium/ai-report",
     icon: "🤖",
     title: "AI 입지 분석 리포트",
     desc: "위치 기반 상권·학군·\n인구밀도 AI 분석",
@@ -70,8 +70,8 @@ const PREMIUM_FEATURES = [
     tagColor: "#5b4fcf",
   },
   {
-    id: "kakao_alert",
-    icon: "📱",
+    id: "kakao_alert", href: "/dashboard/premium/kakao-alert",
+    icon: "💬",
     title: "카카오톡 수금 알림",
     desc: "미납 세입자에게\n자동 알림 발송",
     badge: "PRO",
@@ -88,8 +88,6 @@ export default function DashboardPage() {
   const { tenants, loading, userPlan } = useApp();
   const [filter, setFilter] = useState("전체");
   const [selected, setSelected] = useState(null);
-  const [activeFeature, setActiveFeature] = useState(null);
-
   const planLevel = PLAN_ORDER[userPlan] ?? 0;
 
   const totalRent = tenants.reduce((s, t) => s + (t.rent || 0), 0);
@@ -139,60 +137,6 @@ export default function DashboardPage() {
     </div>
   );
 
-  // ── 프리미엄 기능 상세 패널 ──────────────────────────────
-  const renderFeaturePanel = (f) => {
-    const locked = PLAN_ORDER[f.plan] > planLevel;
-
-    if (locked) return (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <button onClick={() => setActiveFeature(null)}
-          style={{ fontSize: 11, color: "#8a8a9a", background: "none", border: "none", cursor: "pointer", marginBottom: 16, padding: 0, fontWeight: 600, textAlign: "left" }}>
-          ← 돌아가기
-        </button>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 8px" }}>
-          <div style={{ fontSize: 44, marginBottom: 16 }}>{f.icon}</div>
-          <div style={{ fontSize: 10, fontWeight: 800, color: f.badgeColor, letterSpacing: "1.5px", background: f.badgeColor + "12", padding: "3px 10px", borderRadius: 20, marginBottom: 12 }}>{f.badge} 전용</div>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 8 }}>{f.title}</h3>
-          <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.7, marginBottom: 24, whiteSpace: "pre-line" }}>{f.desc}</p>
-          <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "14px 16px", width: "100%", marginBottom: 20, textAlign: "left" }}>
-            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 8 }}>이 기능을 사용하려면</p>
-            <p style={{ fontSize: 12, color: "#1a2744", fontWeight: 700 }}>
-              {f.plan === "starter" ? "스타터 이상" : "프로"} 플랜이 필요합니다
-            </p>
-          </div>
-          <button onClick={() => router.push("/dashboard/pricing")}
-            style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 800, fontSize: 13,
-              background: f.plan === "pro" ? "linear-gradient(135deg,#c9920a,#e8960a)" : "linear-gradient(135deg,#1a2744,#2d4270)",
-              color: "#fff", boxShadow: f.plan === "pro" ? "0 4px 16px rgba(201,146,10,0.3)" : "0 4px 16px rgba(26,39,68,0.25)" }}>
-            플랜 업그레이드 →
-          </button>
-        </div>
-      </div>
-    );
-
-    // 기능별 실제 컨텐츠
-    return (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <button onClick={() => setActiveFeature(null)}
-          style={{ fontSize: 11, color: "#8a8a9a", background: "none", border: "none", cursor: "pointer", marginBottom: 16, padding: 0, fontWeight: 600, textAlign: "left" }}>
-          ← 돌아가기
-        </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <span style={{ fontSize: 24 }}>{f.icon}</span>
-          <div>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: "#1a2744" }}>{f.title}</h3>
-            <span style={{ fontSize: 10, fontWeight: 800, color: f.badgeColor, letterSpacing: "1px" }}>{f.badge}</span>
-          </div>
-        </div>
-        {f.id === "roi" && <ROICalculator tenants={tenants} />}
-        {f.id === "vacancy_loss" && <VacancyLoss tenants={tenants} />}
-        {f.id === "lease_check" && <LeaseCheck tenants={tenants} />}
-        {f.id === "map" && <MapSearch />}
-        {f.id === "ai_report" && <AIReport tenants={tenants} />}
-        {f.id === "kakao_alert" && <KakaoAlert tenants={tenants} />}
-      </div>
-    );
-  };
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 320px", minHeight: "100%", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
@@ -363,7 +307,7 @@ export default function DashboardPage() {
       {/* ══ RIGHT PANEL ══ */}
       <div style={{ padding: "24px 20px", background: "#fff", display: "flex", flexDirection: "column", gap: 0, minHeight: isMobile ? "unset" : "100vh", overflowY: "auto", borderTop: isMobile ? "1px solid #ebe9e3" : "none" }}>
 
-        {activeFeature ? renderFeaturePanel(activeFeature) : sel ? (
+        {sel ? (
           /* 물건 선택 시 상세 */
           <>
             <button onClick={() => setSelected(null)}
@@ -462,7 +406,7 @@ export default function DashboardPage() {
                   const locked = PLAN_ORDER[f.plan] > planLevel;
                   const isPro = f.plan === "pro";
                   return (
-                    <div key={f.id} onClick={() => setActiveFeature(f)}
+                    <div key={f.id} onClick={() => { if (locked) router.push("/dashboard/pricing"); else router.push(f.href); }}
                       style={{
                         borderRadius: 14, cursor: "pointer", overflow: "hidden",
                         border: locked ? "1px solid #ebe9e3" : "1.5px solid " + f.badgeColor + "30",
