@@ -66,6 +66,32 @@ export default function SettingsPage() {
         ))}
       </div>
 
+      {/* 고객지원 */}
+      <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 16, padding: "20px", marginBottom: 18 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 14 }}>고객지원</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[
+            { icon: "✉️", label: "이메일 문의",      sub: "support@ownly.kr · 평일 1~3일 내 답변",   action: () => window.open("mailto:support@ownly.kr?subject=[Ownly] 문의사항", "_blank") },
+            { icon: "📖", label: "이용 가이드",      sub: "기능 사용법 및 자주 묻는 질문",            action: () => window.open("https://ownly.kr", "_blank") },
+            { icon: "💳", label: "플랜 업그레이드",  sub: "더 많은 기능을 사용해보세요",              action: () => window.location.href = "/dashboard/pricing" },
+            { icon: "🐛", label: "버그 신고",        sub: "문제가 발생했나요? 알려주세요",            action: () => window.open("mailto:support@ownly.kr?subject=[Ownly] 버그 신고", "_blank") },
+          ].map(({ icon, label, sub, action }) => (
+            <button key={label} onClick={action}
+              style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", borderRadius: 12, border: "1px solid #ebe9e3", background: "#faf9f6", cursor: "pointer", textAlign: "left", width: "100%", transition: "all .15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#f0efe9"; e.currentTarget.style.borderColor = "#1a2744"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#faf9f6"; e.currentTarget.style.borderColor = "#ebe9e3"; }}
+            >
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{icon}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", marginBottom: 2 }}>{label}</p>
+                <p style={{ fontSize: 11, color: "#8a8a9a" }}>{sub}</p>
+              </div>
+              <span style={{ fontSize: 14, color: "#a0a0b0" }}>→</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 위험 구역 */}
       <div style={{ background: C.rose + "08", border: `1px solid ${C.rose}30`, borderRadius: 16, padding: "20px" }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: "#e8445a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 14 }}>⚠️ 위험 구역</p>
