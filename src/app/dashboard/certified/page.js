@@ -42,7 +42,7 @@ function CertifiedContent() {
     const tenant = tenants.find((t) => String(t.id) === selectedTenant);
     const row = {
       user_id:     user.id,
-      tenant_id:   tenant?.id || null,
+      tenant_id:   tenant?.id ? String(tenant.id) : null,
       tenant_name: tenant?.name || "알수없음",
       reason,
       content,
