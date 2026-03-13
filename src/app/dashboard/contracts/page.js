@@ -68,11 +68,11 @@ export default function ContractsPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>CONTRACT MANAGEMENT</SectionLabel>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-.4px" }}>계약 관리</h1>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 3 }}>총 {contracts.length}건 · 진행중 {contracts.filter((c) => c.status === "active").length}건</p>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744", letterSpacing: "-.4px" }}>계약 관리</h1>
+          <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>총 {contracts.length}건 · 진행중 {contracts.filter((c) => c.status === "active").length}건</p>
         </div>
         <button onClick={openAdd} className="btn-primary"
-          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           + 계약 추가
         </button>
       </div>
@@ -87,30 +87,30 @@ export default function ContractsPage() {
             const dl = dLeft(c.end_date);
             const s  = CONTRACT_STATUS[c.status] || CONTRACT_STATUS.active;
             return (
-              <div key={c.id} className="hover-lift" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "17px 20px" }}>
+              <div key={c.id} className="hover-lift" style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "17px 20px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
                   <div style={{ display: "flex", gap: 13, alignItems: "center", flex: 1, minWidth: 0 }}>
                     <div style={{ width: 42, height: 42, borderRadius: 12, background: C.indigo + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19 }}>📋</div>
                     <div>
                       <div style={{ display: "flex", gap: 7, marginBottom: 5, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: C.indigo, background: C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{c.type}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#1a2744", background: C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{c.type}</span>
                         <Badge label={s.label} map={{ [s.label]: s }} />
-                        {dl <= 90 && <span style={{ fontSize: 10, fontWeight: 700, color: C.amber, background: C.amber + "18", padding: "2px 7px", borderRadius: 5 }}>D-{dl}</span>}
+                        {dl <= 90 && <span style={{ fontSize: 10, fontWeight: 700, color: "#e8960a", background: C.amber + "18", padding: "2px 7px", borderRadius: 5 }}>D-{dl}</span>}
                       </div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{c.tenant_name}</p>
-                      <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{c.start_date} ~ {c.end_date}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "#1a2744" }}>{c.tenant_name}</p>
+                      <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{c.start_date} ~ {c.end_date}</p>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <div style={{ textAlign: "right" }}>
-                      <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{c.rent}만원<span style={{ fontSize: 11, color: C.muted }}>/월</span></p>
-                      <p style={{ fontSize: 11, color: C.muted }}>보증금 {c.deposit}만원</p>
+                      <p style={{ fontSize: 16, fontWeight: 800, color: "#1a2744" }}>{c.rent}만원<span style={{ fontSize: 11, color: "#8a8a9a" }}>/월</span></p>
+                      <p style={{ fontSize: 11, color: "#8a8a9a" }}>보증금 {c.deposit}만원</p>
                     </div>
-                    <button onClick={() => openEdit(c)} style={{ padding: "5px 12px", borderRadius: 8, background: "transparent", border: `1px solid ${C.border}`, color: C.indigo, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>수정</button>
+                    <button onClick={() => openEdit(c)} style={{ padding: "5px 12px", borderRadius: 8, background: "transparent", border: "1px solid #ebe9e3", color: "#1a2744", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>수정</button>
                   </div>
                 </div>
                 {c.special_terms && (
-                  <div style={{ marginTop: 11, padding: "9px 13px", background: C.faint, borderRadius: 9, fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
+                  <div style={{ marginTop: 11, padding: "9px 13px", background: "#f8f7f4", borderRadius: 9, fontSize: 12, color: "#8a8a9a", lineHeight: 1.6 }}>
                     📝 {c.special_terms}
                   </div>
                 )}
@@ -122,16 +122,16 @@ export default function ContractsPage() {
 
       <Modal open={showModal} onClose={() => { setShowModal(false); resetForm(); }}>
         <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 19, fontWeight: 800, color: "#fff" }}>{editTarget ? "계약 수정" : "계약 추가"}</h2>
+          <h2 style={{ fontSize: 19, fontWeight: 800, color: "#1a2744" }}>{editTarget ? "계약 수정" : "계약 추가"}</h2>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <p style={{ fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>세입자 선택</p>
+              <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>세입자 선택</p>
               <select value={form.tenant_id} onChange={(e) => {
                 const t = tenants.find((x) => String(x.id) === e.target.value);
                 setForm((f) => ({ ...f, tenant_id: e.target.value, tenant_name: t?.name || "", rent: String(t?.rent || f.rent), deposit: String(t?.dep || f.deposit) }));
-              }} style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: C.text, background: C.faint, border: `1px solid ${C.border}`, borderRadius: 10, appearance: "none", outline: "none" }}>
+              }} style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, appearance: "none", outline: "none" }}>
                 <option value="">직접 입력</option>
                 {tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
@@ -141,7 +141,7 @@ export default function ContractsPage() {
           <div style={{ display: "flex", gap: 8 }}>
             {["월세", "전세", "반전세"].map((t) => (
               <button key={t} onClick={() => setForm((f) => ({ ...f, type: t }))}
-                style={{ flex: 1, padding: "9px", borderRadius: 9, border: `2px solid ${form.type === t ? C.indigo : C.border}`, background: form.type === t ? C.indigo + "18" : "transparent", color: form.type === t ? C.indigo : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{t}</button>
+                style={{ flex: 1, padding: "9px", borderRadius: 9, border: `2px solid ${form.type === t ? C.indigo : "#ebe9e3"}`, background: form.type === t ? C.indigo + "18" : "transparent", color: form.type === t ? C.indigo : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{t}</button>
             ))}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -153,14 +153,14 @@ export default function ContractsPage() {
             <AuthInput label="월세 (만원)"   placeholder="120"   value={form.rent}    onChange={(e) => setForm((f) => ({ ...f, rent:    e.target.value }))} icon="💰" />
           </div>
           <div>
-            <p style={{ fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>특약 사항</p>
+            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>특약 사항</p>
             <textarea value={form.special_terms} onChange={(e) => setForm((f) => ({ ...f, special_terms: e.target.value }))} placeholder="특약 사항을 입력하세요..." rows={3}
-              style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: C.text, background: C.faint, border: `1px solid ${C.border}`, borderRadius: 10, resize: "vertical", outline: "none" }} />
+              style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, resize: "vertical", outline: "none" }} />
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { setShowModal(false); resetForm(); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
+            <button onClick={() => { setShowModal(false); resetForm(); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
             <button onClick={saveContract} disabled={saving} className="btn-primary"
-              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
+              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "저장 중..." : editTarget ? "저장하기" : "등록하기"}
             </button>
           </div>

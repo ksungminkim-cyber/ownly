@@ -32,7 +32,7 @@ export default function CalendarPage() {
       if (t.end_date) {
         const d = new Date(t.end_date);
         if (d.getFullYear() === year && d.getMonth() === month)
-          add(d.getDate(), { type: "expiry", label: t.name, sub: "계약만료", color: C.rose });
+          add(d.getDate(), { type: "expiry", label: t.name, sub: "계약만료", color: "#e8445a" });
       }
       // 수금일 (payments 기록에서 이번 달 납부 예정/완료)
       const monthPayment = (payments || []).find(
@@ -42,7 +42,7 @@ export default function CalendarPage() {
       if (monthPayment?.paid) {
         const d = new Date(monthPayment.paid);
         if (d.getFullYear() === year && d.getMonth() === month)
-          add(d.getDate(), { type: "paid", label: t.name, sub: "월세납부", color: C.emerald });
+          add(d.getDate(), { type: "paid", label: t.name, sub: "월세납부", color: "#0fa573" });
       } else {
         // 미납/예정: 매월 1일에 표시
         add(1, {
@@ -59,12 +59,12 @@ export default function CalendarPage() {
       if (c.start_date) {
         const d = new Date(c.start_date);
         if (d.getFullYear() === year && d.getMonth() === month)
-          add(d.getDate(), { type: "contract_start", label: c.tenant_name || c.tenantName || "", sub: "계약시작", color: C.indigo });
+          add(d.getDate(), { type: "contract_start", label: c.tenant_name || c.tenantName || "", sub: "계약시작", color: "#1a2744" });
       }
       if (c.end_date) {
         const d = new Date(c.end_date);
         if (d.getFullYear() === year && d.getMonth() === month)
-          add(d.getDate(), { type: "contract_end", label: c.tenant_name || c.tenantName || "", sub: "계약종료", color: C.purple });
+          add(d.getDate(), { type: "contract_end", label: c.tenant_name || c.tenantName || "", sub: "계약종료", color: "#5b4fcf" });
       }
     });
 
@@ -94,17 +94,17 @@ export default function CalendarPage() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", padding: "28px 28px 28px 36px" }}>
         <div style={{ marginBottom: 20 }}>
           <SectionLabel>LEASE CALENDAR</SectionLabel>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#fff" }}>임대차 캘린더</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a2744" }}>임대차 캘린더</h1>
         </div>
 
         {/* 월 네비게이션 */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <button onClick={prevMonth} style={{ width: 34, height: 34, borderRadius: 9, background: C.surface, border: `1px solid ${C.border}`, color: C.text, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+          <button onClick={prevMonth} style={{ width: 34, height: 34, borderRadius: 9, background: "#ffffff", border: "1px solid #ebe9e3", color: "#1a2744", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <span style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{year}년 {MONTH_KO[month]}</span>
-            <button onClick={goToday} style={{ padding: "4px 12px", borderRadius: 8, background: C.indigo + "20", border: `1px solid ${C.indigo}40`, color: C.indigo, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>오늘</button>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#1a2744" }}>{year}년 {MONTH_KO[month]}</span>
+            <button onClick={goToday} style={{ padding: "4px 12px", borderRadius: 8, background: C.indigo + "20", border: `1px solid ${C.indigo}40`, color: "#1a2744", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>오늘</button>
           </div>
-          <button onClick={nextMonth} style={{ width: 34, height: 34, borderRadius: 9, background: C.surface, border: `1px solid ${C.border}`, color: C.text, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+          <button onClick={nextMonth} style={{ width: 34, height: 34, borderRadius: 9, background: "#ffffff", border: "1px solid #ebe9e3", color: "#1a2744", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
         </div>
 
         {/* 요일 헤더 */}
@@ -125,13 +125,13 @@ export default function CalendarPage() {
               <div key={d} onClick={() => setSelected(isSel ? null : d)}
                 style={{
                   minHeight: 72, borderRadius: 10, padding: "8px 7px", cursor: "pointer",
-                  background: isSel ? C.indigo + "25" : isToday(d) ? C.indigo + "12" : C.surface,
-                  border: `1px solid ${isSel ? C.indigo : isToday(d) ? C.indigo + "60" : C.border}`,
+                  background: isSel ? C.indigo + "25" : isToday(d) ? C.indigo + "12" : "#ffffff",
+                  border: `1px solid ${isSel ? C.indigo : isToday(d) ? C.indigo + "60" : "#ebe9e3"}`,
                   transition: "all .12s",
                 }}>
                 <div style={{ fontSize: 13, fontWeight: isToday(d) ? 800 : 600, color: isToday(d) ? C.indigo : col === 0 ? C.rose : col === 6 ? "#818cf8" : C.text, marginBottom: 4 }}>
                   {d}
-                  {isToday(d) && <span style={{ marginLeft: 3, fontSize: 9, background: C.indigo, color: "#fff", padding: "1px 4px", borderRadius: 4, fontWeight: 700 }}>오늘</span>}
+                  {isToday(d) && <span style={{ marginLeft: 3, fontSize: 9, background: C.indigo, color: "#1a2744", padding: "1px 4px", borderRadius: 4, fontWeight: 700 }}>오늘</span>}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {evs.slice(0, 3).map((ev, j) => (
@@ -139,7 +139,7 @@ export default function CalendarPage() {
                       {ev.label} {ev.sub}
                     </div>
                   ))}
-                  {evs.length > 3 && <div style={{ fontSize: 10, color: C.muted }}>+{evs.length - 3}개</div>}
+                  {evs.length > 3 && <div style={{ fontSize: 10, color: "#8a8a9a" }}>+{evs.length - 3}개</div>}
                 </div>
               </div>
             );
@@ -148,33 +148,33 @@ export default function CalendarPage() {
       </div>
 
       {/* ── 오른쪽 사이드: 이벤트 목록 ── */}
-      <div style={{ width: 260, borderLeft: `1px solid ${C.border}`, overflowY: "auto", padding: "28px 18px", flexShrink: 0 }}>
+      <div style={{ width: 260, borderLeft: "1px solid #ebe9e3", overflowY: "auto", padding: "28px 18px", flexShrink: 0 }}>
         {selected ? (
           <>
-            <p style={{ fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>{month+1}월 {selected}일</p>
+            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>{month+1}월 {selected}일</p>
             {selectedEvents.length === 0
-              ? <p style={{ fontSize: 13, color: C.muted, marginTop: 20, textAlign: "center" }}>일정 없음</p>
+              ? <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 20, textAlign: "center" }}>일정 없음</p>
               : selectedEvents.map((ev, i) => (
-                <div key={i} style={{ background: C.surface, border: `1px solid ${ev.color}30`, borderLeft: `3px solid ${ev.color}`, borderRadius: 10, padding: "11px 12px", marginBottom: 8 }}>
+                <div key={i} style={{ background: "#ffffff", border: `1px solid ${ev.color}30`, borderLeft: `3px solid ${ev.color}`, borderRadius: 10, padding: "11px 12px", marginBottom: 8 }}>
                   <div style={{ fontSize: 11, color: ev.color, fontWeight: 700, marginBottom: 4 }}>{TYPE_ICON[ev.type]} {ev.sub}</div>
-                  <div style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{ev.label}</div>
+                  <div style={{ fontSize: 13, color: "#1a2744", fontWeight: 600 }}>{ev.label}</div>
                 </div>
               ))
             }
           </>
         ) : (
           <>
-            <p style={{ fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 14 }}>{month+1}월 전체 일정</p>
+            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 14 }}>{month+1}월 전체 일정</p>
             {allEvents.length === 0
-              ? <p style={{ fontSize: 13, color: C.muted, marginTop: 20, textAlign: "center" }}>이번 달 일정 없음</p>
+              ? <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 20, textAlign: "center" }}>이번 달 일정 없음</p>
               : allEvents.map((ev, i) => (
                 <div key={i} onClick={() => setSelected(ev.date)}
-                  style={{ background: C.surface, border: `1px solid ${C.border}`, borderLeft: `3px solid ${ev.color}`, borderRadius: 10, padding: "10px 12px", marginBottom: 7, cursor: "pointer" }}>
+                  style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderLeft: `3px solid ${ev.color}`, borderRadius: 10, padding: "10px 12px", marginBottom: 7, cursor: "pointer" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                     <span style={{ fontSize: 11, color: ev.color, fontWeight: 700 }}>{TYPE_ICON[ev.type]} {ev.sub}</span>
-                    <span style={{ fontSize: 11, color: C.muted }}>{month+1}/{ev.date}</span>
+                    <span style={{ fontSize: 11, color: "#8a8a9a" }}>{month+1}/{ev.date}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{ev.label}</div>
+                  <div style={{ fontSize: 13, color: "#1a2744", fontWeight: 600 }}>{ev.label}</div>
                 </div>
               ))
             }
@@ -182,18 +182,18 @@ export default function CalendarPage() {
         )}
 
         {/* 범례 */}
-        <div style={{ marginTop: 24, paddingTop: 18, borderTop: `1px solid ${C.border}` }}>
-          <p style={{ fontSize: 10, color: C.muted, fontWeight: 700, letterSpacing: ".5px", marginBottom: 10 }}>범례</p>
+        <div style={{ marginTop: 24, paddingTop: 18, borderTop: "1px solid #ebe9e3" }}>
+          <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", marginBottom: 10 }}>범례</p>
           {[
-            { color: C.amber,   label: "수금 예정" },
-            { color: C.emerald, label: "납부 완료" },
-            { color: C.rose,    label: "미납 / 계약만료" },
-            { color: C.indigo,  label: "계약 시작" },
-            { color: C.purple,  label: "계약 종료" },
+            { color: "#e8960a",   label: "수금 예정" },
+            { color: "#0fa573", label: "납부 완료" },
+            { color: "#e8445a",    label: "미납 / 계약만료" },
+            { color: "#1a2744",  label: "계약 시작" },
+            { color: "#5b4fcf",  label: "계약 종료" },
           ].map(({ color, label }) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
               <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: C.muted }}>{label}</span>
+              <span style={{ fontSize: 12, color: "#8a8a9a" }}>{label}</span>
             </div>
           ))}
         </div>

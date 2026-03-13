@@ -90,8 +90,8 @@ export default function PropertiesPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>PROPERTY MANAGEMENT</SectionLabel>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-.4px" }}>물건 관리</h1>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 3 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744", letterSpacing: "-.4px" }}>물건 관리</h1>
+          <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>
             총 {tenants.length}개 · 주거 {tenants.filter((t) => t.pType === "주거").length} · 상가 {tenants.filter((t) => t.pType === "상가").length}
           </p>
         </div>
@@ -104,7 +104,7 @@ export default function PropertiesPage() {
             }
             resetForm(); setEditTarget(null); setShowModal(true);
           }} className="btn-primary"
-          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           + 물건 추가
         </button>
       </div>
@@ -112,7 +112,7 @@ export default function PropertiesPage() {
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 7 }}>
           {["전체", "주거", "상가"].map((f) => (
-            <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 16px", borderRadius: 18, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${filter === f ? C.indigo : C.border}`, background: filter === f ? C.indigo + "20" : "transparent", color: filter === f ? C.indigo : C.muted }}>{f}</button>
+            <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 16px", borderRadius: 18, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${filter === f ? C.indigo : "#ebe9e3"}`, background: filter === f ? C.indigo + "20" : "transparent", color: filter === f ? C.indigo : C.muted }}>{f}</button>
           ))}
         </div>
         <div style={{ flex: 1, minWidth: 180 }}>
@@ -132,7 +132,7 @@ export default function PropertiesPage() {
           {filtered.map((t) => {
             const dl = daysLeft(getEnd(t));
             return (
-              <div key={t.id} className="hover-lift" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "17px 20px" }}>
+              <div key={t.id} className="hover-lift" style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "17px 20px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
                   <div style={{ display: "flex", gap: 13, alignItems: "center", flex: 1, minWidth: 0 }}>
                     <div style={{ width: 42, height: 42, borderRadius: 12, background: (t.color || t.c || C.indigo) + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0 }}>
@@ -143,19 +143,19 @@ export default function PropertiesPage() {
                         <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : C.indigo, background: t.pType === "상가" ? C.amber + "18" : C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{t.sub}</span>
                         <Badge label={t.status} map={STATUS_MAP} />
                       </div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>서울 {t.addr}</p>
-                      <p style={{ fontSize: 11, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>👤 {t.name} · {t.phone}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "#1a2744", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>서울 {t.addr}</p>
+                      <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>👤 {t.name} · {t.phone}</p>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <div style={{ textAlign: "right" }}>
-                      <p style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{t.rent}만원<span style={{ fontSize: 11, color: C.muted, fontWeight: 400 }}>/월</span></p>
-                      <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>보증금 {(t.dep / 10000).toFixed(1)}억</p>
+                      <p style={{ fontSize: 18, fontWeight: 800, color: "#1a2744" }}>{t.rent}만원<span style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 400 }}>/월</span></p>
+                      <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>보증금 {(t.dep / 10000).toFixed(1)}억</p>
                       <p style={{ fontSize: 11, color: dl <= 60 ? C.amber : C.muted, marginTop: 3, fontWeight: 600 }}>만료 D-{dl}</p>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <button onClick={() => openEdit(t)} style={{ padding: "5px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.indigo }}>수정</button>
-                      <button onClick={() => setDeleteTarget(t)} style={{ padding: "5px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${C.rose}33`, background: "transparent", color: C.rose }}>삭제</button>
+                      <button onClick={() => openEdit(t)} style={{ padding: "5px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #ebe9e3", background: "transparent", color: "#1a2744" }}>수정</button>
+                      <button onClick={() => setDeleteTarget(t)} style={{ padding: "5px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${C.rose}33`, background: "transparent", color: "#e8445a" }}>삭제</button>
                     </div>
                   </div>
                 </div>
@@ -167,14 +167,14 @@ export default function PropertiesPage() {
 
       <Modal open={showModal} onClose={() => { setShowModal(false); resetForm(); }}>
         <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 19, fontWeight: 800, color: "#fff" }}>{editTarget ? "물건 수정" : "물건 추가"}</h2>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>{editTarget ? "물건 정보를 수정합니다" : "새 임대 물건 정보를 입력하세요"}</p>
+          <h2 style={{ fontSize: 19, fontWeight: 800, color: "#1a2744" }}>{editTarget ? "물건 수정" : "물건 추가"}</h2>
+          <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 4 }}>{editTarget ? "물건 정보를 수정합니다" : "새 임대 물건 정보를 입력하세요"}</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", gap: 10 }}>
             {["주거", "상가"].map((t) => (
               <button key={t} onClick={() => setForm((f) => ({ ...f, pType: t, sub: t === "주거" ? "아파트" : "1층 상가" }))}
-                style={{ flex: 1, padding: "11px", borderRadius: 10, border: `2px solid ${form.pType === t ? C.indigo : C.border}`, background: form.pType === t ? C.indigo + "18" : "transparent", color: form.pType === t ? C.indigo : C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                style={{ flex: 1, padding: "11px", borderRadius: 10, border: `2px solid ${form.pType === t ? C.indigo : "#ebe9e3"}`, background: form.pType === t ? C.indigo + "18" : "transparent", color: form.pType === t ? C.indigo : C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                 {t === "주거" ? "🏠 주거" : "🏪 상가"}
               </button>
             ))}
@@ -190,9 +190,9 @@ export default function PropertiesPage() {
           </div>
           <AuthInput label="계약 만료일" type="date" value={form.end} onChange={(e) => setForm((f) => ({ ...f, end: e.target.value }))} />
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-            <button onClick={() => { setShowModal(false); resetForm(); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
+            <button onClick={() => { setShowModal(false); resetForm(); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
             <button onClick={saveTenant} disabled={saving} className="btn-primary"
-              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
+              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "저장 중..." : editTarget ? "저장하기" : "등록하기"}
             </button>
           </div>
