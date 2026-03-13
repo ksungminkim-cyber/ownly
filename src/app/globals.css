@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,17 +7,20 @@
 
  * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
-  body { background: #07070e; overflow-x: hidden; }
+  body { background: #f5f4f0; overflow-x: hidden; color: #1a1a2e; }
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #2a2a4e; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: #d0cec5; border-radius: 4px; }
   input, select, textarea, button { font-family: inherit; }
-  input { color-scheme: dark; }
+  input { color-scheme: light; }
 
   .grid-bg {
-    background-image: linear-gradient(#6366f10d 1px, transparent 1px),
-      linear-gradient(90deg, #6366f10d 1px, transparent 1px);
-    background-size: 56px 56px;
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(26,39,68,0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(91,79,207,0.04) 0%, transparent 40%),
+      linear-gradient(#1a27440a 1px, transparent 1px),
+      linear-gradient(90deg, #1a27440a 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -47,7 +51,7 @@
   .card-in { animation: card-in .45s cubic-bezier(.22,1,.36,1) both; }
    
   .gradient-text {
-    background: linear-gradient(135deg,#818cf8,#a855f7,#38bdf8,#818cf8);
+    background: linear-gradient(135deg, #1a2744, #5b4fcf, #ff5a3c, #1a2744);
     background-size: 300% 100%;
     -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     animation: shimmer-text 5s linear infinite;
@@ -61,30 +65,30 @@
   .stagger > *:nth-child(5){animation-delay:.24s}
   .stagger > *:nth-child(6){animation-delay:.29s}
 
-  .main-content { margin-left: 206px; width: calc(100% - 206px); }
+  .main-content { margin-left: 224px; width: calc(100% - 224px); }
 
   .btn-primary { position:relative; overflow:hidden; transition:transform .15s, box-shadow .15s; }
-  .btn-primary:hover { transform:translateY(-2px); }
-  .btn-primary::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent); transition:left .5s; }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow: 0 8px 24px rgba(26,39,68,0.25); }
+  .btn-primary::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent); transition:left .5s; }
   .btn-primary:hover::after { left:100%; }
   .btn-primary:active { transform:translateY(0); }
 
   .hover-lift { transition:transform .2s, border-color .2s, box-shadow .2s; }
-  .hover-lift:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(99,102,241,.12); border-color:#6366f155 !important; }
+  .hover-lift:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(26,39,68,0.1); border-color:#1a274430 !important; }
 
   .nav-item { transition:all .15s; }
-  .nav-item:hover { background:#13132a; }
-  .nav-item.active { background:#6366f118; border-left-color:#6366f1 !important; }
+  .nav-item:hover { background: rgba(26,39,68,0.06); }
+  .nav-item.active { background: rgba(26,39,68,0.08); border-left-color:#1a2744 !important; }
 
   .auth-input { transition:border-color .2s, box-shadow .2s; }
-  .auth-input:focus { border-color:#6366f1 !important; box-shadow:0 0 0 3px #6366f122; outline:none; }
+  .auth-input:focus { border-color:#1a2744 !important; box-shadow:0 0 0 3px rgba(26,39,68,0.1); outline:none; }
 
   .custom-check {
     appearance:none; width:16px; height:16px; border-radius:5px; flex-shrink:0;
-    border:1px solid #1e1e38; background:#0d0d1a; cursor:pointer; transition:all .15s;
+    border:1.5px solid #d0cec5; background:#fff; cursor:pointer; transition:all .15s;
   }
   .custom-check:checked {
-    background:#6366f1; border-color:#6366f1;
+    background:#1a2744; border-color:#1a2744;
     background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 6l3 3 5-5' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-size:12px; background-repeat:no-repeat; background-position:center;
   }
@@ -92,7 +96,7 @@
   .reveal { opacity:0; transform:translateY(20px); transition:opacity .65s ease, transform .65s ease; }
   .reveal.visible { opacity:1; transform:translateY(0); }
   .trow { transition:background .12s; }
-  .trow:hover { background:#11112a !important; }
+  .trow:hover { background:#f8f7f4 !important; }
 
   /* ═══ RESPONSIVE SYSTEM ═══ */
   @media (max-width: 768px) {
@@ -115,7 +119,7 @@
 
     /* 세입자 패널 */
     .tenant-split       { flex-direction: column !important; }
-    .tenant-list-panel  { width: 100% !important; border-right: none !important; border-bottom: 1px solid #1e1e38 !important; max-height: 240px !important; overflow-y: auto; }
+    .tenant-list-panel  { width: 100% !important; border-right: none !important; border-bottom: 1px solid #e8e6e0 !important; max-height: 240px !important; overflow-y: auto; }
     .tenant-split { min-height: auto !important; }
     .detail-2col        { grid-template-columns: 1fr !important; }
 
@@ -172,6 +176,6 @@
   }
 
   .search-box { transition: border-color .2s, box-shadow .2s; }
-  .search-box:focus-within { border-color: #6366f1 !important; box-shadow: 0 0 0 3px #6366f122; }
+  .search-box:focus-within { border-color: #1a2744 !important; box-shadow: 0 0 0 3px rgba(26,39,68,0.1); }
 
   .empty-bounce { animation: float 4s ease-in-out infinite; }

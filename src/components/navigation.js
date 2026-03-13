@@ -4,32 +4,45 @@ import { useRouter, usePathname } from "next/navigation";
 import { C, NAV, daysLeft } from "../lib/constants";
 import { useApp } from "../context/AppContext";
 
-// ─── SVG 로고 컴포넌트 ───────────────────────────────────────────
 function OwnlyLogo({ size = "md", onClick }) {
-  const sizes = { sm: { box: 28, r: 7, svg: 72, h: 22, fs: 13 }, md: { box: 34, r: 9, svg: 88, h: 26, fs: 15 }, lg: { box: 44, r: 12, svg: 112, h: 34, fs: 20 } };
+  const sizes = {
+    sm: { box: 28, r: 8, fontSize: 15, gap: 8 },
+    md: { box: 36, r: 10, fontSize: 18, gap: 10 },
+    lg: { box: 48, r: 13, fontSize: 24, gap: 12 }
+  };
   const s = sizes[size];
   return (
-    <div onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: size === "lg" ? 10 : 8, cursor: onClick ? "pointer" : "default" }}>
-      {/* 아이콘 */}
-      <div style={{ width: s.box, height: s.box, borderRadius: s.r, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 16px ${C.indigo}44`, flexShrink: 0 }}>
-        <svg width={s.box * 0.6} height={s.box * 0.6} viewBox="0 0 20 20" fill="none">
+    <div onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: s.gap, cursor: onClick ? "pointer" : "default" }}>
+      <div style={{
+        width: s.box, height: s.box, borderRadius: s.r,
+        background: "linear-gradient(145deg, #1a2744, #2d4270)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 4px 14px rgba(26,39,68,0.35)", flexShrink: 0
+      }}>
+        <svg width={s.box * 0.55} height={s.box * 0.55} viewBox="0 0 20 20" fill="none">
           <polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.95"/>
-          <rect x="7.5" y="12" width="5" height="6" rx="1" fill={C.indigo}/>
+          <rect x="7.5" y="12" width="5" height="6" rx="1" fill="rgba(255,255,255,0.4)"/>
         </svg>
       </div>
-      {/* 텍스트 */}
-      <svg width={s.svg} height={s.h} viewBox={`0 0 ${s.svg} ${s.h}`} fill="none">
-        <defs>
-          <linearGradient id="logoTextGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#818cf8"/>
-            <stop offset="100%" stopColor="#c084fc"/>
-          </linearGradient>
-        </defs>
-        <text x="0" y={s.h - 4} fontFamily="'Outfit',sans-serif" fontWeight="800" fontSize={s.fs} fill="white" letterSpacing="-0.5">Ownly</text>
-      </svg>
+      <div>
+        <span style={{
+          fontFamily: "'DM Sans','Pretendard',sans-serif",
+          fontWeight: 800, fontSize: s.fontSize,
+          color: "#1a2744", letterSpacing: "-0.5px", lineHeight: 1
+        }}>Ownly</span>
+        {size === "md" && (
+          <div style={{ fontSize: 9, color: "#8a8a9a", letterSpacing: "1.5px", fontWeight: 500, marginTop: 1 }}>by McLean</div>
+        )}
+      </div>
     </div>
   );
 }
+
+const NAV_ICONS = {
+  dashboard:  "⊞", properties: "🏠", tenants: "👤", payments: "💰",
+  contracts:  "📝", calendar: "📅", vacancy: "🚪", certified: "📨",
+  reports:    "📊", tax: "🧾", settings: "⚙️", pricing: "💎",
+};
 
 export function MobileHeader({ onLogout }) {
   const router = useRouter();
@@ -38,31 +51,44 @@ export function MobileHeader({ onLogout }) {
 
   return (
     <>
-      <div
-        className="mobile-header"
-        style={{ display: "none", position: "sticky", top: 0, zIndex: 200, background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", alignItems: "center", justifyContent: "space-between" }}
-      >
+      <div className="mobile-header" style={{
+        display: "none", position: "sticky", top: 0, zIndex: 200,
+        background: "#ffffff", borderBottom: "1px solid #e8e6e0",
+        padding: "10px 16px", alignItems: "center", justifyContent: "space-between",
+        boxShadow: "0 1px 8px rgba(26,39,68,0.06)"
+      }}>
         <OwnlyLogo size="sm" onClick={() => router.push("/dashboard")} />
-        <button onClick={() => setOpen(!open)} style={{ background: "none", border: "none", color: C.text, fontSize: 22, cursor: "pointer", padding: 4 }}>
+        <button onClick={() => setOpen(!open)} style={{ background: "none", border: "none", color: "#1a2744", fontSize: 22, cursor: "pointer", padding: 4 }}>
           {open ? "✕" : "☰"}
         </button>
       </div>
 
       {open && (
-        <div style={{ position: "fixed", inset: 0, top: 52, zIndex: 199, background: C.bg, padding: 16, animation: "fade-in .2s ease" }}>
-          {NAV.map((n) => (
-            <div
-              key={n.key}
-              onClick={() => { router.push(n.key === "dashboard" ? "/dashboard" : "/dashboard/" + n.key); setOpen(false); }}
-              style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 12px", borderRadius: 10, marginBottom: 4, cursor: "pointer", background: pathname.includes(n.key) ? `${C.indigo}18` : "transparent" }}
-            >
-              <span style={{ fontSize: 18 }}>{n.icon}</span>
-              <span style={{ fontSize: 15, fontWeight: pathname.includes(n.key) ? 700 : 500, color: pathname.includes(n.key) ? "#fff" : C.muted }}>{n.label}</span>
-            </div>
-          ))}
-          <button onClick={onLogout} style={{ marginTop: 16, padding: "12px", width: "100%", borderRadius: 10, background: `${C.rose}15`, border: `1px solid ${C.rose}33`, color: C.rose, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            로그아웃
-          </button>
+        <div style={{
+          position: "fixed", inset: 0, top: 52, zIndex: 199,
+          background: "#ffffff", padding: 16, animation: "fade-in .2s ease"
+        }}>
+          {NAV.map((n) => {
+            const isActive = pathname.includes(n.key);
+            return (
+              <div key={n.key}
+                onClick={() => { router.push(n.key === "dashboard" ? "/dashboard" : "/dashboard/" + n.key); setOpen(false); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "13px 14px",
+                  borderRadius: 12, marginBottom: 3, cursor: "pointer",
+                  background: isActive ? "rgba(26,39,68,0.07)" : "transparent"
+                }}
+              >
+                <span style={{ fontSize: 17 }}>{NAV_ICONS[n.key] || n.icon}</span>
+                <span style={{ fontSize: 15, fontWeight: isActive ? 700 : 500, color: isActive ? "#1a2744" : "#6a6a7a" }}>{n.label}</span>
+              </div>
+            );
+          })}
+          <button onClick={onLogout} style={{
+            marginTop: 12, padding: "12px", width: "100%", borderRadius: 12,
+            background: "rgba(232,68,90,0.08)", border: "1px solid rgba(232,68,90,0.25)",
+            color: "#e8445a", fontWeight: 700, fontSize: 14, cursor: "pointer"
+          }}>로그아웃</button>
         </div>
       )}
     </>
@@ -78,107 +104,132 @@ export function Sidebar({ onLogout }) {
   const expiringCount = tenants.filter((t) => daysLeft(t.end) <= 90).length;
   const alerts = { payments: unpaidCount, tenants: expiringCount };
 
-  const planLabel = { free: "무료", starter: "스타터", pro: "프로" };
-  const planColor = { free: C.muted, starter: C.indigo, pro: C.gold || "#f5c542" };
+  const planMeta = {
+    free:    { label: "무료 플랜",  color: "#8a8a9a", bg: "rgba(138,138,154,0.08)", dot: "#b0aead" },
+    starter: { label: "스타터 플랜", color: "#1a2744", bg: "rgba(26,39,68,0.06)",   dot: "#1a2744" },
+    pro:     { label: "프로 플랜",   color: "#c9920a", bg: "rgba(201,146,10,0.08)", dot: "#c9920a" },
+  };
   const currentPlan = userPlan || "free";
+  const pm = planMeta[currentPlan];
 
-  // 유저 이니셜
   const email = user?.email || "";
   const initial = email ? email[0].toUpperCase() : "U";
+  const displayName = email.split("@")[0] || "사용자";
 
   return (
-    <aside
-      className="desktop-sidebar"
-      style={{ width: 206, minHeight: "100vh", background: "#09090f", borderRight: `1px solid ${C.border}`, position: "fixed", top: 0, left: 0, display: "flex", flexDirection: "column", zIndex: 100 }}
-    >
-      {/* 로고 — 클릭 시 대시보드로 */}
-      <div style={{ padding: "20px 18px 16px" }}>
+    <aside className="desktop-sidebar" style={{
+      width: 224, minHeight: "100vh", background: "#ffffff",
+      borderRight: "1px solid #ebe9e3", position: "fixed", top: 0, left: 0,
+      display: "flex", flexDirection: "column", zIndex: 100,
+      boxShadow: "2px 0 20px rgba(26,39,68,0.05)"
+    }}>
+      {/* 로고 */}
+      <div style={{ padding: "24px 20px 20px" }}>
         <OwnlyLogo size="md" onClick={() => router.push("/dashboard")} />
-        <p style={{ fontSize: 9, color: C.muted, marginTop: 6, paddingLeft: 2 }}>by McLean</p>
       </div>
 
       {/* 플랜 뱃지 */}
-      <div
-        onClick={() => router.push("/dashboard/pricing")}
-        style={{ margin: "0 10px 8px", padding: "8px 12px", borderRadius: 10, background: `${planColor[currentPlan]}15`, border: `1px solid ${planColor[currentPlan]}33`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
-      >
-        <span style={{ fontSize: 11, fontWeight: 700, color: planColor[currentPlan] }}>
-          {planLabel[currentPlan]} 플랜
-        </span>
+      <div onClick={() => router.push("/dashboard/pricing")} style={{
+        margin: "0 14px 8px", padding: "10px 14px", borderRadius: 12,
+        background: pm.bg, border: `1px solid ${pm.dot}22`, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "space-between"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: pm.dot }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: pm.color }}>{pm.label}</span>
+        </div>
         {currentPlan === "free" && (
-          <span style={{ fontSize: 10, color: C.indigo, fontWeight: 600 }}>업그레이드 →</span>
+          <span style={{
+            fontSize: 9, color: "#1a2744", fontWeight: 800, letterSpacing: ".5px",
+            background: "rgba(26,39,68,0.1)", padding: "3px 8px", borderRadius: 20, textTransform: "uppercase"
+          }}>업그레이드</span>
         )}
       </div>
 
+      <div style={{ height: 1, background: "#f0efe9", margin: "8px 14px 14px" }} />
+
       {/* 메인 메뉴 */}
-      <nav style={{ padding: "2px 10px", flex: 1 }}>
-        <p style={{ fontSize: 9, color: C.muted, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", padding: "8px 10px 6px" }}>메뉴</p>
+      <nav style={{ padding: "0 10px", flex: 1, overflowY: "auto" }}>
+        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 9px" }}>메뉴</p>
         {NAV.slice(0, 10).map((item) => {
           const isActive = pathname === "/dashboard/" + item.key || (item.key === "dashboard" && pathname === "/dashboard");
           const badge = alerts[item.key];
           return (
-            <div
-              key={item.key}
+            <div key={item.key}
               onClick={() => router.push(item.key === "dashboard" ? "/dashboard" : "/dashboard/" + item.key)}
               className={"nav-item" + (isActive ? " active" : "")}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 11px", borderRadius: 10, marginBottom: 2, cursor: "pointer", borderLeft: "2px solid " + (isActive ? C.indigo : "transparent") }}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "9px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
+                borderLeft: "2.5px solid " + (isActive ? "#1a2744" : "transparent")
+              }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ fontSize: 14 }}>{item.icon}</span>
-                <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "#fff" : C.muted }}>{item.label}</span>
+                <span style={{ fontSize: 15, lineHeight: 1 }}>{NAV_ICONS[item.key] || item.icon}</span>
+                <span style={{
+                  fontSize: 13.5, fontWeight: isActive ? 700 : 500,
+                  color: isActive ? "#1a2744" : "#7a7a8a",
+                  letterSpacing: isActive ? "-.2px" : "0"
+                }}>{item.label}</span>
               </div>
               {badge > 0 && (
-                <span style={{ fontSize: 9, fontWeight: 800, background: C.rose, color: "#fff", padding: "1px 6px", borderRadius: 8 }}>{badge}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 800, background: "#e8445a", color: "#fff",
+                  padding: "2px 7px", borderRadius: 20
+                }}>{badge}</span>
               )}
             </div>
           );
         })}
 
-        <div style={{ height: 1, background: C.border, margin: "10px 6px" }} />
+        <div style={{ height: 1, background: "#f0efe9", margin: "10px 4px 10px" }} />
 
-        <p style={{ fontSize: 9, color: C.muted, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", padding: "4px 10px 6px" }}>계정</p>
-        {[NAV[10]].map((item) => {
+        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 9px" }}>계정</p>
+        {[NAV[10], NAV[11]].filter(Boolean).map((item) => {
           const isActive = pathname.includes(item.key);
           return (
-            <div
-              key={item.key}
+            <div key={item.key}
               onClick={() => router.push("/dashboard/" + item.key)}
               className={"nav-item" + (isActive ? " active" : "")}
-              style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: 10, marginBottom: 2, cursor: "pointer", borderLeft: "2px solid " + (isActive ? C.indigo : "transparent") }}
+              style={{
+                display: "flex", alignItems: "center", gap: 9, padding: "9px 10px",
+                borderRadius: 10, marginBottom: 1, cursor: "pointer",
+                borderLeft: "2.5px solid " + (isActive ? "#1a2744" : "transparent")
+              }}
             >
-              <span style={{ fontSize: 14 }}>{item.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "#fff" : C.muted }}>{item.label}</span>
+              <span style={{ fontSize: 15 }}>{NAV_ICONS[item.key] || item.icon}</span>
+              <span style={{ fontSize: 13.5, fontWeight: isActive ? 700 : 500, color: isActive ? "#1a2744" : "#7a7a8a" }}>{item.label}</span>
             </div>
           );
         })}
-
-        {/* 구독 플랜 메뉴 */}
-        <div
-          onClick={() => router.push("/dashboard/pricing")}
-          className={"nav-item" + (pathname.includes("pricing") ? " active" : "")}
-          style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: 10, marginBottom: 2, cursor: "pointer", borderLeft: "2px solid " + (pathname.includes("pricing") ? C.indigo : "transparent") }}
-        >
-          <span style={{ fontSize: 14 }}>💎</span>
-          <span style={{ fontSize: 13, fontWeight: pathname.includes("pricing") ? 700 : 500, color: pathname.includes("pricing") ? "#fff" : C.muted }}>구독 플랜</span>
-        </div>
       </nav>
 
-      {/* 프로필 + 로그아웃 */}
-      <div style={{ padding: "12px 10px 20px", borderTop: `1px solid ${C.border}` }}>
-        <div style={{ padding: "11px 12px", borderRadius: 11, background: C.faint, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 9 }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg,${C.indigo},${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "#fff", flexShrink: 0 }}>{initial}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email || "사용자"}</p>
-            <p style={{ fontSize: 10, color: planColor[currentPlan], fontWeight: 600 }}>{planLabel[currentPlan]} 플랜</p>
+      {/* 하단 유저 프로필 */}
+      <div style={{ padding: "12px 14px 16px", borderTop: "1px solid #f0efe9" }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "10px 12px", borderRadius: 12, background: "#f8f7f4", marginBottom: 10
+        }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: "50%",
+            background: "linear-gradient(135deg, #1a2744, #5b4fcf)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontSize: 14, fontWeight: 800, flexShrink: 0
+          }}>{initial}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
+            <div style={{ fontSize: 10, color: "#8a8a9a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
           </div>
-          <button
-            onClick={onLogout}
-            title="로그아웃"
-            style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 14, padding: 2, transition: "color .2s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = C.rose)}
-            onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
-          >↩</button>
         </div>
+        <button onClick={onLogout} style={{
+          width: "100%", padding: "9px", borderRadius: 10,
+          background: "transparent", border: "1px solid #e8e6e0",
+          color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer",
+          transition: "all .15s"
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(232,68,90,0.07)"; e.currentTarget.style.borderColor = "rgba(232,68,90,0.3)"; e.currentTarget.style.color = "#e8445a"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#e8e6e0"; e.currentTarget.style.color = "#8a8a9a"; }}
+        >로그아웃</button>
       </div>
     </aside>
   );

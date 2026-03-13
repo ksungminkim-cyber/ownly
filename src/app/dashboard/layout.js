@@ -16,14 +16,14 @@ function DashboardShell({ children }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Outfit','Noto Sans KR',sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#f5f4f0", color: "#1a2744", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}>
       {/* 모바일 헤더 — 최상단, flex row 밖 */}
       <MobileHeader onLogout={handleLogout} />
 
       {/* 데스크탑: sidebar + main 가로 배치 */}
       <div style={{ display: "flex" }}>
         <Sidebar onLogout={handleLogout} />
-        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: C.bg, minWidth: 0 }}>
+        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "#f5f4f0", minWidth: 0 }}>
           {children}
         </main>
       </div>
