@@ -65,7 +65,7 @@
   .stagger > *:nth-child(5){animation-delay:.24s}
   .stagger > *:nth-child(6){animation-delay:.29s}
 
-  .main-content { margin-left: 224px; width: calc(100% - 224px); }
+  .main-content { margin-left: 220px; width: calc(100% - 220px); }
 
   .btn-primary { position:relative; overflow:hidden; transition:transform .15s, box-shadow .15s; }
   .btn-primary:hover { transform:translateY(-2px); box-shadow: 0 8px 24px rgba(26,39,68,0.25); }

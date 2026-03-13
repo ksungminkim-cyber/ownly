@@ -155,19 +155,19 @@ export function Sidebar({ onLogout }) {
 
   return (
     <aside className="desktop-sidebar" style={{
-      width: 224, minHeight: "100vh", background: "#ffffff",
+      width: 220, height: "100vh", background: "#ffffff",
       borderRight: "1px solid #ebe9e3", position: "fixed", top: 0, left: 0,
-      display: "flex", flexDirection: "column", zIndex: 100,
+      display: "flex", flexDirection: "column", zIndex: 100, overflow: "hidden",
       boxShadow: "2px 0 20px rgba(26,39,68,0.05)"
     }}>
       {/* 로고 */}
-      <div style={{ padding: "24px 20px 20px" }}>
+      <div style={{ padding: "16px 20px 12px" }}>
         <OwnlyLogo size="md" onClick={() => router.push("/dashboard")} />
       </div>
 
       {/* 플랜 뱃지 */}
       <div onClick={() => router.push("/dashboard/pricing")} style={{
-        margin: "0 14px 8px", padding: "10px 14px", borderRadius: 12,
+        margin: "0 14px 6px", padding: "10px 14px", borderRadius: 12,
         background: pm.bg, border: `1px solid ${pm.dot}22`, cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "space-between"
       }}>
@@ -186,8 +186,8 @@ export function Sidebar({ onLogout }) {
       <div style={{ height: 1, background: "#f0efe9", margin: "8px 14px 14px" }} />
 
       {/* 메인 메뉴 */}
-      <nav style={{ padding: "0 10px", flex: 1, overflowY: "auto" }}>
-        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 9px" }}>메뉴</p>
+      <nav style={{ padding: "0 10px", flex: 1, overflowY: "auto", paddingBottom: 4 }}>
+        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>메뉴</p>
         {NAV.slice(0, 10).map((item) => {
           const isActive = pathname === "/dashboard/" + item.key || (item.key === "dashboard" && pathname === "/dashboard");
           const badge = alerts[item.key];
@@ -197,14 +197,14 @@ export function Sidebar({ onLogout }) {
               className={"nav-item" + (isActive ? " active" : "")}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "9px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
+                padding: "7px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
                 borderLeft: "2.5px solid " + (isActive ? "#1a2744" : "transparent")
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ fontSize: 15, lineHeight: 1 }}>{NAV_ICONS[item.key] || item.icon}</span>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>{NAV_ICONS[item.key] || item.icon}</span>
                 <span style={{
-                  fontSize: 13.5, fontWeight: isActive ? 700 : 500,
+                  fontSize: 13, fontWeight: isActive ? 700 : 500,
                   color: isActive ? "#1a2744" : "#7a7a8a",
                   letterSpacing: isActive ? "-.2px" : "0"
                 }}>{item.label}</span>
@@ -219,10 +219,10 @@ export function Sidebar({ onLogout }) {
           );
         })}
 
-        <div style={{ height: 1, background: "#f0efe9", margin: "10px 4px 10px" }} />
+        <div style={{ height: 1, background: "#f0efe9", margin: "6px 4px 6px" }} />
 
         {/* 프리미엄 기능 섹션 */}
-        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 9px" }}>프리미엄</p>
+        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>프리미엄</p>
         {PREMIUM_NAV.map((item) => {
           const isActive = pathname.includes(item.key);
           const unlocked = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER[item.plan];
@@ -232,7 +232,7 @@ export function Sidebar({ onLogout }) {
               className={"nav-item" + (isActive ? " active" : "")}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "8px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
+                padding: "6px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
                 borderLeft: "2.5px solid " + (isActive ? "#5b4fcf" : "transparent"),
                 opacity: unlocked ? 1 : 0.5,
               }}
@@ -249,7 +249,7 @@ export function Sidebar({ onLogout }) {
           );
         })}
 
-        <div style={{ height: 1, background: "#f0efe9", margin: "10px 4px 10px" }} />
+        <div style={{ height: 1, background: "#f0efe9", margin: "6px 4px 6px" }} />
 
         {/* 커뮤니티 */}
         {(() => {
@@ -257,16 +257,16 @@ export function Sidebar({ onLogout }) {
           return (
             <div onClick={() => router.push("/dashboard/community")}
               className={"nav-item" + (isActive ? " active" : "")}
-              style={{ display:"flex", alignItems:"center", gap:9, padding:"9px 10px", borderRadius:10, marginBottom:1, cursor:"pointer", borderLeft:"2.5px solid "+(isActive?"#0fa573":"transparent") }}>
+              style={{ display:"flex", alignItems:"center", gap:9, padding:"7px 10px", borderRadius:10, marginBottom:1, cursor:"pointer", borderLeft:"2.5px solid "+(isActive?"#0fa573":"transparent") }}>
               <span style={{ fontSize:15 }}>💬</span>
               <span style={{ fontSize:13.5, fontWeight:isActive?700:500, color:isActive?"#0fa573":"#7a7a8a" }}>커뮤니티</span>
             </div>
           );
         })()}
 
-        <div style={{ height: 1, background: "#f0efe9", margin: "10px 4px 10px" }} />
+        <div style={{ height: 1, background: "#f0efe9", margin: "6px 4px 6px" }} />
 
-        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 9px" }}>계정</p>
+        <p style={{ fontSize: 9, color: "#c0bdb8", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>계정</p>
         {[NAV[10], NAV[11]].filter(Boolean).map((item) => {
           const isActive = pathname.includes(item.key);
           return (
@@ -274,23 +274,23 @@ export function Sidebar({ onLogout }) {
               onClick={() => router.push("/dashboard/" + item.key)}
               className={"nav-item" + (isActive ? " active" : "")}
               style={{
-                display: "flex", alignItems: "center", gap: 9, padding: "9px 10px",
+                display: "flex", alignItems: "center", gap: 9, padding: "7px 10px",
                 borderRadius: 10, marginBottom: 1, cursor: "pointer",
                 borderLeft: "2.5px solid " + (isActive ? "#1a2744" : "transparent")
               }}
             >
-              <span style={{ fontSize: 15 }}>{NAV_ICONS[item.key] || item.icon}</span>
-              <span style={{ fontSize: 13.5, fontWeight: isActive ? 700 : 500, color: isActive ? "#1a2744" : "#7a7a8a" }}>{item.label}</span>
+              <span style={{ fontSize: 14 }}>{NAV_ICONS[item.key] || item.icon}</span>
+              <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "#1a2744" : "#7a7a8a" }}>{item.label}</span>
             </div>
           );
         })}
       </nav>
 
       {/* 하단 유저 프로필 */}
-      <div style={{ padding: "12px 14px 16px", borderTop: "1px solid #f0efe9" }}>
+      <div style={{ padding: "10px 14px 12px", borderTop: "1px solid #f0efe9" }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
-          padding: "10px 12px", borderRadius: 12, background: "#f8f7f4", marginBottom: 10
+          padding: "8px 10px", borderRadius: 12, background: "#f8f7f4", marginBottom: 8
         }}>
           <div style={{
             width: 34, height: 34, borderRadius: "50%",
