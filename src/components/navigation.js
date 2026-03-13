@@ -221,6 +221,24 @@ export function Sidebar({ onLogout }) {
             <div style={{ fontSize: 10, color: "#8a8a9a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
           </div>
         </div>
+
+        {/* 관리자 메뉴 — 어드민 이메일만 표시 */}
+        {["k.sungminkim@gmail.com"].includes(email) && (
+          <button onClick={() => router.push("/dashboard/admin")}
+            style={{
+              width: "100%", padding: "8px", borderRadius: 10, marginBottom: 8,
+              background: "linear-gradient(135deg,rgba(26,39,68,0.06),rgba(91,79,207,0.06))",
+              border: "1px solid rgba(26,39,68,0.15)",
+              color: "#1a2744", fontWeight: 700, fontSize: 12, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              transition: "all .15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "linear-gradient(135deg,#1a2744,#2d4270)"; e.currentTarget.style.color = "#fff"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "linear-gradient(135deg,rgba(26,39,68,0.06),rgba(91,79,207,0.06))"; e.currentTarget.style.color = "#1a2744"; }}>
+            🛡️ 관리자 패널
+          </button>
+        )}
+
         <button onClick={onLogout} style={{
           width: "100%", padding: "9px", borderRadius: 10,
           background: "transparent", border: "1px solid #e8e6e0",
