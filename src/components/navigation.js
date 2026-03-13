@@ -62,6 +62,7 @@ export function MobileHeader({ onLogout }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { userPlan } = useApp();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <>
