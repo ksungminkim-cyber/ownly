@@ -20,6 +20,12 @@ export default function PricingPage() {
       return;
     }
 
+    // Toss 클라이언트 키가 없으면 준비 중 안내
+    if (!process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY) {
+      toast("결제 서비스 준비 중입니다. 곧 오픈 예정이에요! 문의: support@ownly.kr", "info");
+      return;
+    }
+
     setLoading(planId);
     try {
       const plan = PLANS[planId];
