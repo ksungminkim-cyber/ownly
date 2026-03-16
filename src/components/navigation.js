@@ -70,6 +70,7 @@ export function BottomNav({ onMore }) {
   const pathname = usePathname();
   const { tenants } = useApp();
   const unpaidCount = tenants.filter((t) => t.status === "미납").length;
+
   return (
     <nav className="bottom-nav" style={{
       display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 300,
@@ -147,7 +148,7 @@ export function MobileDrawer({ open, onClose, onLogout }) {
           </div>
         </div>
         <div style={{ flex: 1, padding: "10px 10px 0", overflowY: "auto" }}>
-          <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpaacing: "2px", textTransform: "uppercase", padding: "4px 10px 8px" }}>메뉴</p>
+          <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "4px 10px 8px" }}>메뉴</p>
           {NAV.map((n) => {
             const isActive = n.key === "dashboard" ? pathname === "/dashboard" : pathname.includes(n.key);
             return (
@@ -338,12 +339,12 @@ export function Sidebar({ onLogout }) {
             {theme === "light" ? "🌙" : "☀️"}
           </button>
         </div>
-        {["kcsungminkim@gmail.com"].includes(email) && (
+        {["k.sungminkim@gmail.com"].includes(email) && (
           <button onClick={() => router.push("/dashboard/admin")}
             style={{ width: "100%", padding: "8px", borderRadius: 10, marginBottom: 8, background: "linear-gradient(135deg,rgba(26,39,68,0.06),rgba(91,79,207,0.06))", border: "1px solid rgba(26,39,68,0.15)", color: "#1a2744", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .15s" }}
             onMouseEnter={e => { e.currentTarget.style.background = "linear-gradient(135deg,#1a2744,#2d4270)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "linear-gradient(135deg,rgba(26,39,68,0.06),rgba(91,79,207,0.06))"; e.currentTarget.style.color = "#1a2744"; }}>
-            🛠️ 관리자 패널
+            🛡️ 관리자 패널
           </button>
         )}
         <button onClick={onLogout} style={{ width: "100%", padding: "9px", borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all .15s" }}
