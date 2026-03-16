@@ -52,7 +52,7 @@
   }
 
  * { box-sizing: border-box; margin: 0; padding: 0; transition: var(--theme-transition); }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; overflow-x: hidden; }
   body { background: var(--bg); overflow-x: hidden; color: var(--text); }
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -155,6 +155,7 @@
 
     /* 모바일 전역 오버플로 방지 */
     body, #__next, main { max-width: 100vw; overflow-x: hidden; }
+    * { box-sizing: border-box; max-width: 100%; }
     .page-padding { padding: 20px 16px 100px !important; }
 
     /* 모바일 플랜 비교표 가로 스크롤 허용 */
