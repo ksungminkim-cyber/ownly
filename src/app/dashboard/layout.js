@@ -1,10 +1,10 @@
 "use client";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar, MobileHeader } from "../../components/navigation";
+import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation";
 import { Toast, PageLoader } from "../../components/shared";
 import { AppProvider, useApp } from "../../context/AppContext";
 import { supabase } from "../../lib/supabase";
-import { C } from "../../lib/constants";
 
 function DashboardFooter() {
   const LINKS = [
@@ -14,7 +14,6 @@ function DashboardFooter() {
     { label: "자주 묻는 질문",    href: "/legal/faq" },
     { label: "이용자권리 및 유의사항", href: "/legal/rights" },
   ];
-
   return (
     <footer style={{
       borderTop: "1px solid var(--border)",
@@ -22,7 +21,6 @@ function DashboardFooter() {
       background: "var(--bg)",
       fontFamily: "'Pretendard','DM Sans',sans-serif",
     }}>
-      {/* 상단 링크 바 */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0 4px", alignItems: "center", marginBottom: 10 }}>
         {LINKS.map((link, i) => (
           <span key={link.label} style={{ display: "flex", alignItems: "center" }}>
@@ -43,8 +41,6 @@ function DashboardFooter() {
           고객센터 inquiry@mclean21.com
         </a>
       </div>
-
-      {/* 사업자 정보 */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0 20px", fontSize: 11, color: "#9a9aaa", lineHeight: 2 }}>
         <span>상호명: (주)맥클린</span>
         <span>대표: 김성민</span>
@@ -52,8 +48,6 @@ function DashboardFooter() {
         <span>통신판매업신고: 제0000-서울00-0000호</span>
         <span>이메일: inquiry@mclean21.com</span>
       </div>
-
-      {/* 면책 문구 */}
       <p style={{ fontSize: 10.5, color: "#b0b0be", marginTop: 6, lineHeight: 1.7 }}>
         Ownly(온리)에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다.
         정확한 세무·법률 상담은 전문가에게 문의하시기 바랍니다.
@@ -68,6 +62,7 @@ function DashboardFooter() {
 function DashboardShell({ children }) {
   const router = useRouter();
   const { loading } = useApp();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -75,18 +70,31 @@ function DashboardShell({ children }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "#1a2744", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}>
-      {/* 모바일 헤더 — 최상단, flex row 밖 */}
-      <MobileHeader onLogout={handleLogout} />
+    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}>
+      {/* 모바일 헤더 */}
+      <MobileHeader onMoreClick={() => setDrawerOpen(true)} />
 
-      {/* 데스크탑: sidebar + main 가로 배치 */}
+      {/* 데스크탑: sidebar + main */}
       <div style={{ display: "flex" }}>
         <Sidebar onLogout={handleLogout} />
-        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "var(--bg)", minWidth: 0, display: "flex", flexDirection: "column", overflowX: "hidden" }}>
+        <main className="main-content" style={{
+          flex: 1, minHeight: "100vh", background: "var(--bg)",
+          minWidth: 0, display: "flex", flexDirection: "column", overflowX: "hidden"
+        }}>
           <div style={{ flex: 1 }}>{children}</div>
           <DashboardFooter />
         </main>
       </div>
+
+      {/* 모바일 하단 탭바 */}
+      <BottomNav onMore={() => setDrawerOpen(true)} />
+
+      {/* 모바일 풀스크린 드로어 */}
+      <MobileDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onLogout={handleLogout}
+      />
 
       <Toast />
       {loading && <PageLoader />}
