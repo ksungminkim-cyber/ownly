@@ -5,6 +5,29 @@ import { Badge, SectionLabel, EmptyState, Modal, AuthInput, toast } from "../../
 import { C, PAY_MAP } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 
+// ── 은행 입금 문자 파싱 ──────────────────────────────────────────
+function parseBankSms(text) {
+  if (!text) return null;
+  // 금액 패턴: 숫자(콤마 가능) + 원 or 만원
+  const amtMatch = text.match(/([0-9,]+)\s*만원/) || text.match(/([0-9,]+)\s*원/);
+  if (!amtMatch) return null;
+  let rawAmt = parseInt(amtMatch[1].replace(/,/g, ""), 10);
+  // "만원" 단위면 그대로, "원" 단위면 만원 변환
+  const isManWon = text.includes("만원");
+  const amt = isManWon ? rawAmt : Math.round(rawAmt / 10000);
+
+  // 날짜 패턴: MM/DD, MM-DD, MM월DD일
+  const dateMatch = text.match(/(\d{1,2})[\/\-월](\d{1,2})/);
+  const today = new Date();
+  let paidDate = today.toISOString().slice(0, 10);
+  if (dateMatch) {
+    const m = String(dateMatch[1]).padStart(2, "0");
+    const d = String(dateMatch[2]).padStart(2, "0");
+    paidDate = `${today.getFullYear()}-${m}-${d}`;
+  }
+  return { amt, paidDate };
+}
+
 export default function PaymentsPage() {
   const router = useRouter();
   const { tenants, payments, upsertPayment, deletePayment } = useApp();
@@ -12,11 +35,33 @@ export default function PaymentsPage() {
   const [payModal, setPayModal] = useState(null);
   const [payDate, setPayDate]   = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving]     = useState(false);
+  // 문자 파싱
+  const [smsModal, setSmsModal]   = useState(false);
+  const [smsText, setSmsText]     = useState("");
+  const [smsParsed, setSmsParsed] = useState(null);
+  const [smsTid, setSmsTid]       = useState(null);
 
   const rows      = tenants.map((t) => ({ t, p: payments.find((x) => x.tid === t.id && x.month === month) }));
   const totalExp  = tenants.reduce((s, t) => s + (t.rent || 0), 0);
   const totalColl = rows.filter((r) => r.p?.status === "paid").reduce((s, r) => s + (r.p?.amt || 0), 0);
   const rate      = totalExp > 0 ? Math.round((totalColl / totalExp) * 100) : 0;
+
+  const handleSmsChange = (text) => {
+    setSmsText(text);
+    setSmsParsed(parseBankSms(text));
+  };
+
+  const confirmSmsPay = async () => {
+    if (!smsTid || !smsParsed) return;
+    setSaving(true);
+    try {
+      const t = tenants.find((x) => x.id === smsTid);
+      await upsertPayment({ tid: smsTid, month, status: "paid", paid: smsParsed.paidDate, amt: smsParsed.amt || t?.rent });
+      toast((t?.name || "") + "님 납부 처리 완료");
+      setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null);
+    } catch { toast("처리 중 오류가 발생했습니다", "error"); }
+    finally { setSaving(false); }
+  };
 
   const markPaid = async (tid) => {
     const t = tenants.find((x) => x.id === tid);
@@ -52,10 +97,21 @@ export default function PaymentsPage() {
             {new Date().getFullYear()}년 {month}월 · 수금률 <span style={{ color: rate >= 80 ? C.emerald : C.rose, fontWeight: 700 }}>{rate}%</span>
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 11, padding: "7px 11px" }}>
-          <button onClick={() => setMonth((m) => Math.max(1, m - 1))} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>‹</button>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", minWidth: 58, textAlign: "center" }}>{new Date().getFullYear()}년 {month}월</span>
-          <button onClick={() => setMonth((m) => Math.min(12, m + 1))} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>›</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          {/* 은행 문자 파싱 버튼 */}
+          <button onClick={() => setSmsModal(true)} style={{
+            padding: "8px 14px", borderRadius: 10, minHeight: 36,
+            background: "rgba(15,165,115,0.1)", border: "1px solid rgba(15,165,115,0.3)",
+            color: "#0fa573", fontWeight: 700, fontSize: 12, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            📱 입금문자 파싱
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid #ebe9e3", borderRadius: 11, padding: "7px 11px" }}>
+            <button onClick={() => setMonth((m) => Math.max(1, m - 1))} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>‹</button>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", minWidth: 58, textAlign: "center" }}>{new Date().getFullYear()}년 {month}월</span>
+            <button onClick={() => setMonth((m) => Math.min(12, m + 1))} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>›</button>
+          </div>
         </div>
       </div>
 
@@ -87,7 +143,7 @@ export default function PaymentsPage() {
         <EmptyState icon="💰" title="세입자가 없습니다" desc="물건을 먼저 등록하면 수금 현황을 확인할 수 있습니다" />
       ) : (
         <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 17, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div className="table-scroll-wrap" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#0a0a10" }}>
@@ -125,6 +181,7 @@ export default function PaymentsPage() {
                       {st === "unpaid" ? (
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                           <button onClick={() => setPayModal(t.id)} style={{ padding: "5px 11px", borderRadius: 8, background: C.indigo + "20", border: `1px solid ${C.indigo}40`, color: "#1a2744", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>납부처리</button>
+                          <button onClick={() => { setSmsTid(t.id); setSmsModal(true); }} style={{ padding: "5px 9px", borderRadius: 8, background: "rgba(15,165,115,0.1)", border: "1px solid rgba(15,165,115,0.3)", color: "#0fa573", fontSize: 10, fontWeight: 700, cursor: "pointer" }} title="입금문자 파싱">📱</button>
                           <button onClick={() => router.push("/dashboard/certified")} style={{ padding: "5px 9px", borderRadius: 8, background: C.rose + "12", border: `1px solid ${C.rose}30`, color: "#e8445a", fontSize: 10, fontWeight: 700, cursor: "pointer" }} title="내용증명 발송">📨</button>
                         </div>
                       ) : (
@@ -165,6 +222,68 @@ export default function PaymentsPage() {
             </div>
           );
         })()}
+      </Modal>
+
+      {/* 📱 은행 입금 문자 파싱 모달 */}
+      <Modal open={smsModal} onClose={() => { setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null); }} width={420}>
+        <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>입금 문자 파싱</h3>
+        <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 16 }}>은행 입금 알림 문자를 붙여넣으면 금액·날짜를 자동으로 인식합니다</p>
+
+        {/* 세입자 선택 (미납만) */}
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>세입자 선택</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {tenants.map((t) => (
+              <button key={t.id} onClick={() => setSmsTid(t.id)}
+                style={{ padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  border: `1px solid ${smsTid === t.id ? C.emerald : "#ebe9e3"}`,
+                  background: smsTid === t.id ? "rgba(15,165,115,0.12)" : "transparent",
+                  color: smsTid === t.id ? "#0fa573" : "#8a8a9a" }}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 문자 입력 */}
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>입금 문자 내용</p>
+          <textarea value={smsText} onChange={(e) => handleSmsChange(e.target.value)}
+            placeholder={"예) [국민은행] 03/05 입금 120만원 잔액 340만원\n또는: 3월5일 하나은행 120만원 입금"}
+            rows={4}
+            style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, resize: "vertical", outline: "none", fontFamily: "inherit" }} />
+        </div>
+
+        {/* 파싱 결과 프리뷰 */}
+        {smsText && (
+          <div style={{ padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+            background: smsParsed ? "rgba(15,165,115,0.07)" : "rgba(232,68,90,0.07)",
+            border: `1px solid ${smsParsed ? "rgba(15,165,115,0.25)" : "rgba(232,68,90,0.25)"}` }}>
+            {smsParsed ? (
+              <div style={{ display: "flex", gap: 20 }}>
+                <div>
+                  <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>인식된 금액</p>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: "#0fa573" }}>{smsParsed.amt}만원</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>인식된 날짜</p>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: "#1a2744" }}>{smsParsed.paidDate}</p>
+                </div>
+              </div>
+            ) : (
+              <p style={{ fontSize: 12, color: "#e8445a", fontWeight: 600 }}>금액을 인식하지 못했습니다. 문자 내용을 확인해주세요.</p>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 9 }}>
+          <button onClick={() => { setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null); }}
+            style={{ flex: 1, padding: "11px", borderRadius: 10, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
+          <button onClick={confirmSmsPay} disabled={saving || !smsParsed || !smsTid} className="btn-primary"
+            style={{ flex: 2, padding: "11px", borderRadius: 10, background: smsParsed && smsTid ? `linear-gradient(135deg,${C.emerald},#059669)` : "#e0e0e0", border: "none", color: smsParsed && smsTid ? "#fff" : "#aaa", fontWeight: 700, fontSize: 13, cursor: smsParsed && smsTid ? "pointer" : "not-allowed" }}>
+            {saving ? "처리 중..." : "납부 처리"}
+          </button>
+        </div>
       </Modal>
     </div>
   );

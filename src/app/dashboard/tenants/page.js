@@ -62,14 +62,14 @@ export default function TenantsPage() {
     <div className="page-in tenant-split" style={{ display: "flex", height: "100%", minHeight: "calc(100vh - 0px)" }}>
       {/* 왼쪽 목록 */}
       <div className="tenant-list-panel" style={{ width: 310, borderRight: "1px solid #ebe9e3", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "26px 18px 14px", borderBottom: "1px solid #ebe9e3" }}>
+        <div style={{ padding: "26px 18px 14px", borderBottom: "1px solid var(--border)" }}>
           <SectionLabel>TENANT MANAGEMENT</SectionLabel>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: "#1a2744" }}>세입자 관리</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)" }}>세입자 관리</h1>
           <div style={{ marginTop: 10 }}><SearchBox value={search} onChange={setSearch} placeholder="이름, 주소 검색..." /></div>
         </div>
-        <div style={{ padding: "10px 12px", borderBottom: "1px solid #ebe9e3", display: "flex", gap: 5, flexWrap: "wrap" }}>
+        <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)", display: "flex", gap: 5, flexWrap: "wrap" }}>
           {["전체", "주거", "상가", "토지", "만료임박", "미납"].map((f) => (
-            <button key={f} onClick={() => setFilter(f)} style={{ padding: "4px 10px", borderRadius: 13, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${filter === f ? C.indigo : "#ebe9e3"}`, background: filter === f ? C.indigo + "20" : "transparent", color: filter === f ? C.indigo : C.muted }}>{f}</button>
+            <button key={f} onClick={() => setFilter(f)} style={{ padding: "4px 10px", borderRadius: 13, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${filter === f ? C.indigo : "var(--border)"}`, background: filter === f ? C.indigo + "20" : "transparent", color: filter === f ? C.indigo : C.muted, minHeight: 30 }}>{f}</button>
           ))}
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>
