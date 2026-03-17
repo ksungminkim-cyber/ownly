@@ -143,19 +143,19 @@ export function MobileDrawer({ open, onClose, onLogout }) {
     return (
       <div onClick={() => go(path)} style={{
         display: "flex", alignItems: "center", gap: 12, padding: "11px 12px",
-        borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 44,
+        borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 46,
         background: isActive ? `${activeColor}12` : "transparent",
         borderLeft: `2.5px solid ${isActive ? activeColor : "transparent"}`,
       }}>
-        <span style={{ fontSize: 16 }}>{icon}</span>
-        <span style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "var(--text-muted)" }}>{label}</span>
+        <span style={{ fontSize: 17 }}>{icon}</span>
+        <span style={{ fontSize: 15, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "var(--text-muted)" }}>{label}</span>
       </div>
     );
   };
 
   const AccHeader = ({ label, open, onToggle, color = "var(--text-faint)" }) => (
     <div onClick={onToggle} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px 6px", cursor: "pointer" }}>
-      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", color }}>{label}</span>
+      <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", color }}>{label}</span>
       <span style={{ fontSize: 12, color, transition: "transform .2s", transform: open ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block" }}>›</span>
     </div>
   );
@@ -175,7 +175,7 @@ export function MobileDrawer({ open, onClose, onLogout }) {
           <Item icon="⊞" label="대시보드" path="/dashboard" />
           <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
 
-          <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "2px 12px 5px" }}>임대 관리</p>
+          <p style={{ fontSize: 10.5, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "4px 12px 6px" }}>임대 관리</p>
           <Item icon="🏠" label="물건 관리" path="/dashboard/properties" />
           <Item icon="👤" label="세입자"     path="/dashboard/tenants" />
           <Item icon="💰" label="수금 현황"  path="/dashboard/payments" />
@@ -205,7 +205,7 @@ export function MobileDrawer({ open, onClose, onLogout }) {
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 40, opacity: unlocked ? 1 : 0.55 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 14 }}>{item.icon}</span>
-                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{item.label}</span>
+                  <span style={{ fontSize: 14, color: "var(--text-muted)" }}>{item.label}</span>
                 </div>
                 {!unlocked && <span style={{ fontSize: 10 }}>🔒</span>}
               </div>
@@ -282,12 +282,12 @@ export function Sidebar({ onLogout }) {
         className={"nav-item" + (isActive ? " active" : "")}
         style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "7px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
+          padding: "9px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
           borderLeft: `2.5px solid ${isActive ? activeColor : "transparent"}`,
         }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <span style={{ fontSize: 14, lineHeight: 1 }}>{icon}</span>
-          <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "var(--text-muted)" }}>{label}</span>
+          <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
+          <span style={{ fontSize: 14.5, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "var(--text-muted)" }}>{label}</span>
         </div>
         {badge > 0 && (
           <span style={{ fontSize: 10, fontWeight: 800, background: "#e8445a", color: "#fff", padding: "2px 6px", borderRadius: 20, minWidth: 18, textAlign: "center" }}>{badge}</span>
@@ -298,15 +298,15 @@ export function Sidebar({ onLogout }) {
 
   const SectionHeader = ({ label, open, onToggle, color = "var(--text-faint)" }) => (
     <div onClick={onToggle}
-      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px 5px", cursor: "pointer", userSelect: "none", marginTop: 2 }}>
-      <span style={{ fontSize: 9, color, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" }}>{label}</span>
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 6px", cursor: "pointer", userSelect: "none", marginTop: 2 }}>
+      <span style={{ fontSize: 10.5, color, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" }}>{label}</span>
       <span style={{ fontSize: 11, color, transition: "transform .2s", transform: open ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block", lineHeight: 1 }}>›</span>
     </div>
   );
 
   return (
     <aside className="desktop-sidebar" style={{
-      width: 220, height: "100vh", background: "var(--sidebar-bg)",
+      width: 230, height: "100vh", background: "var(--sidebar-bg)",
       borderRight: "1px solid var(--sidebar-border)", position: "fixed", top: 0, left: 0,
       display: "flex", flexDirection: "column", zIndex: 100, overflow: "hidden",
       boxShadow: "2px 0 20px var(--shadow)"
@@ -324,7 +324,7 @@ export function Sidebar({ onLogout }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <div style={{ width: 7, height: 7, borderRadius: "50%", background: pm.dot }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: pm.color }}>{pm.label}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: pm.color }}>{pm.label}</span>
         </div>
         {(userPlan || "free") === "free" && (
           <span style={{ fontSize: 9, color: "#fff", fontWeight: 800, background: "#1a2744", padding: "2px 8px", borderRadius: 20 }}>UP</span>
@@ -342,7 +342,7 @@ export function Sidebar({ onLogout }) {
         <div style={{ height: 1, background: "var(--border)", margin: "5px 4px 6px" }} />
 
         {/* ── 임대 관리 (항상 표시) ── */}
-        <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "0 10px 5px" }}>임대 관리</p>
+        <p style={{ fontSize: 10.5, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "2px 10px 6px" }}>임대 관리</p>
         <NavItem icon="🏠" label="물건 관리"  path="/dashboard/properties" />
         <NavItem icon="👤" label="세입자"      path="/dashboard/tenants"    badge={expiringCount} />
         <NavItem icon="💰" label="수금 현황"   path="/dashboard/payments"   badge={unpaidCount} />
@@ -388,8 +388,8 @@ export function Sidebar({ onLogout }) {
                     opacity: unlocked ? 1 : 0.5,
                   }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                    <span style={{ fontSize: 13 }}>{item.icon}</span>
-                    <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? "#5b4fcf" : "var(--text-muted)" }}>{item.label}</span>
+                    <span style={{ fontSize: 15 }}>{item.icon}</span>
+                    <span style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? "#5b4fcf" : "var(--text-muted)" }}>{item.label}</span>
                   </div>
                   {!unlocked && <span style={{ fontSize: 9 }}>🔒</span>}
                 </div>
@@ -416,8 +416,8 @@ export function Sidebar({ onLogout }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", marginBottom: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#1a2744,#5b4fcf)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initial}</div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
           </div>
         </div>
         {["k.sungminkim@gmail.com"].includes(email) && (
