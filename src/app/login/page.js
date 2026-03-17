@@ -44,7 +44,8 @@ export default function AuthPage() {
           },
         });
         if (error) throw error;
-        setMsg("가입 확인 이메일을 발송했습니다. 메일함을 확인해주세요.");
+        setMsg("sent");
+      }
       }
     } catch (e) {
       setErrors({ submit: e.message === "Invalid login credentials" ? "이메일 또는 비밀번호가 올바르지 않습니다" : e.message });
@@ -216,6 +217,11 @@ export default function AuthPage() {
               <AuthInput label="이름" value={form.name} onChange={set("name")} placeholder="홍길동" error={errors.name} />
             )}
             <AuthInput label="이메일" type="email" value={form.email} onChange={set("email")} placeholder="you@example.com" error={errors.email} />
+            {tab === "signup" && form.email.includes("@") && (
+              <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: -8, paddingLeft: 2, lineHeight: 1.5 }}>
+                📬 가입 후 인증 메일이 발송됩니다. <b>스팸함</b>도 확인해주세요.
+              </p>
+            )}
             {tab === "signup" && (
               <AuthInput label="전화번호 (선택)" type="tel" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" />
             )}
@@ -232,7 +238,58 @@ export default function AuthPage() {
             )}
 
             {errors.submit && <p style={{ fontSize: 12, color: "#e8445a", textAlign: "center", fontWeight: 600 }}>{errors.submit}</p>}
-            {msg && <p style={{ fontSize: 12, color: "#0fa573", textAlign: "center", fontWeight: 600 }}>{msg}</p>}
+
+            {/* 가입 완료 — 인증 메일 발송 안내 카드 */}
+            {msg === "sent" && (
+              <div style={{
+                background: "linear-gradient(135deg, #f0fdf8, #e6faf3)",
+                border: "1.5px solid #0fa57340",
+                borderRadius: 14, padding: "18px 16px",
+                display: "flex", flexDirection: "column", gap: 10,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 22 }}>📧</span>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: "#0a6b4a" }}>
+                    인증 메일을 발송했습니다
+                  </p>
+                </div>
+                <p style={{ fontSize: 12, color: "#1a6b4a", lineHeight: 1.7 }}>
+                  <b>{form.email}</b> 로 인증 링크를 보냈습니다.<br/>
+                  링크를 클릭하면 자동으로 로그인됩니다.
+                </p>
+                {/* 스팸 경고 */}
+                <div style={{
+                  background: "#fff8e6", border: "1px solid #f59e0b40",
+                  borderRadius: 10, padding: "10px 12px",
+                  display: "flex", gap: 8, alignItems: "flex-start",
+                }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>
+                      메일이 안 보이시나요?
+                    </p>
+                    <p style={{ fontSize: 11, color: "#78350f", lineHeight: 1.6 }}>
+                      인증 메일이 <b>스팸함</b>으로 분류될 수 있습니다.<br/>
+                      스팸함을 확인하시고, 발신자 <b>noreply@mail.supabase.io</b>를 안전 발신자로 등록해주세요.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setMsg(""); setTab("login"); }}
+                  style={{
+                    background: "none", border: "none", color: "#0fa573",
+                    fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    textDecoration: "underline", textAlign: "center", padding: 0,
+                  }}>
+                  로그인 화면으로 돌아가기
+                </button>
+              </div>
+            )}
+
+            {/* 일반 메시지 (비밀번호 재설정 등) */}
+            {msg && msg !== "sent" && (
+              <p style={{ fontSize: 12, color: "#0fa573", textAlign: "center", fontWeight: 600 }}>{msg}</p>
+            )}
 
             <button onClick={submit} disabled={loading} style={{
               padding: "14px", borderRadius: 14,
