@@ -8,19 +8,26 @@ const C = { navy:"#1a2744", purple:"#5b4fcf", emerald:"#0fa573", rose:"#e8445a",
 function Slider({ label, value, setter, min, max, step=100, unit="만원", tip }) {
   return (
     <div style={{ background: C.faint, borderRadius: 14, padding: "16px 18px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div>
           <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{label}</span>
           {tip && <span style={{ fontSize: 11, color: C.muted, marginLeft: 6 }}>{tip}</span>}
         </div>
-        <span style={{ fontSize: 18, fontWeight: 900, color: C.navy }}>{value.toLocaleString()}<span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}> {unit}</span></span>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <input
+            type="number" value={value} min={min}
+            onChange={e => { const v = Number(e.target.value); if (!isNaN(v) && v >= 0) setter(v); }}
+            style={{ width: 100, padding: "4px 8px", borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13, fontWeight: 700, color: C.navy, textAlign: "right", outline: "none", background: "#fff" }}
+          />
+          <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{unit}</span>
+        </div>
       </div>
-      <input type="range" min={min} max={max} step={step} value={value}
+      <input type="range" min={min} max={max} step={step} value={Math.min(value, max)}
         onChange={e => setter(Number(e.target.value))}
         style={{ width: "100%", accentColor: C.navy, height: 4 }} />
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
         <span style={{ fontSize: 10, color: C.muted }}>{min.toLocaleString()}</span>
-        <span style={{ fontSize: 10, color: C.muted }}>{max.toLocaleString()}</span>
+        <span style={{ fontSize: 10, color: C.muted }}>{max.toLocaleString()}+</span>
       </div>
     </div>
   );
@@ -90,11 +97,20 @@ export default function ROIPage() {
           <div style={{ background:C.faint, borderRadius:14, padding:"16px 18px" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
               <span style={{ fontSize:13, fontWeight:700, color:C.navy }}>대출 금리</span>
-              <span style={{ fontSize:18, fontWeight:900, color:C.navy }}>{rate}<span style={{ fontSize:12, color:C.muted }}> %</span></span>
+              <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                <input type="number" value={rate} min={0} step={0.1}
+                  onChange={e => { const v=Number(e.target.value); if(!isNaN(v)&&v>=0) setRate(v); }}
+                  style={{ width:70, padding:"4px 8px", borderRadius:7, border:`1px solid ${C.border}`, fontSize:13, fontWeight:700, color:C.navy, textAlign:"right", outline:"none", background:"#fff" }} />
+                <span style={{ fontSize:12, color:C.muted }}>%</span>
+              </div>
             </div>
-            <input type="range" min={1} max={10} step={0.1} value={rate}
+            <input type="range" min={0} max={20} step={0.1} value={Math.min(rate,20)}
               onChange={e => setRate(Number(e.target.value))}
               style={{ width:"100%", accentColor:C.navy }} />
+            <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+              <span style={{ fontSize:10, color:C.muted }}>0%</span>
+              <span style={{ fontSize:10, color:C.muted }}>20%+</span>
+            </div>
           </div>
         </div>
 
