@@ -14,9 +14,9 @@ export default function PropertiesPage() {
   const [editTarget, setEditTarget]     = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [saving, setSaving]             = useState(false);
-  const [form, setForm] = useState({ pType: "주거", sub: "아파트", addr: "", rent: "", dep: "", name: "", phone: "", end: "" });
+  const [form, setForm] = useState({ pType: "주거", sub: "아파트", addr: "", rent: "", dep: "", name: "", phone: "", start: "", end: "", maintenance: "" });
 
-  const resetForm = () => setForm({ pType: "주거", sub: "아파트", addr: "", rent: "", dep: "", name: "", phone: "", end: "" });
+  const resetForm = () => setForm({ pType: "주거", sub: "아파트", addr: "", rent: "", dep: "", name: "", phone: "", start: "", end: "", maintenance: "" });
 
   const filtered = useMemo(() => {
     let list = [...tenants];
@@ -41,7 +41,7 @@ export default function PropertiesPage() {
 
   const openEdit = (t) => {
     setEditTarget(t);
-    setForm({ pType: t.pType, sub: t.sub, addr: t.addr, rent: String(t.rent), dep: String(t.dep), name: t.name, phone: t.phone || "", end: t.end_date || "" });
+    setForm({ pType: t.pType, sub: t.sub, addr: t.addr, rent: String(t.rent), dep: String(t.dep), name: t.name, phone: t.phone || "", start: t.start_date || "", end: t.end_date || "", maintenance: String(t.maintenance || "") });
     setShowModal(true);
   };
 
@@ -53,7 +53,9 @@ export default function PropertiesPage() {
       const payload = {
         name: form.name, phone: form.phone || "", p_type: form.pType, sub: form.sub,
         addr: form.addr, dep: Number(form.dep || 0), rent: Number(form.rent),
+        start_date: form.start || null,
         end_date: form.end || "2026-12-31", status: "정상", color, intent: "미확인",
+        maintenance: Number(form.maintenance || 0),
         biz: null, contacts: [],
       };
       if (editTarget) {
@@ -220,7 +222,27 @@ export default function PropertiesPage() {
             <AuthInput label={form.pType === "토지" ? "토지 가액 (만원)" : "보증금 (만원)"} placeholder={form.pType === "토지" ? "100000" : "50000"} value={form.dep}  onChange={(e) => setForm((f) => ({ ...f, dep:  e.target.value }))} icon="💵" />
             <AuthInput label={form.pType === "토지" ? "월 임대료 (만원)" : "월세 (만원) *"} placeholder={form.pType === "토지" ? "50" : "120"}   value={form.rent} onChange={(e) => setForm((f) => ({ ...f, rent: e.target.value }))} icon="💰" />
           </div>
-          <AuthInput label="계약 만료일" type="date" value={form.end} onChange={(e) => setForm((f) => ({ ...f, end: e.target.value }))} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <AuthInput label="계약 시작일" type="date" value={form.start} onChange={(e) => setForm((f) => ({ ...f, start: e.target.value }))} />
+            <AuthInput label="계약 만료일" type="date" value={form.end} onChange={(e) => setForm((f) => ({ ...f, end: e.target.value }))} />
+          </div>
+          {/* 관리비 — 상가·오피스텔에서만 표시 */}
+          {(form.pType === "상가" || form.pType === "오피스텔") && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <AuthInput label="관리비 (만원/월)" placeholder="예: 15" value={form.maintenance} onChange={(e) => setForm((f) => ({ ...f, maintenance: e.target.value }))} icon="🏢" />
+              <div style={{ background: "rgba(232,150,10,0.06)", border: "1px solid rgba(232,150,10,0.2)", borderRadius: 10, padding: "10px 13px", display: "flex", alignItems: "center" }}>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#e8960a", marginBottom: 3 }}>실수익 계산</p>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744" }}>
+                    {form.rent && form.maintenance
+                      ? `월 ${(Number(form.rent) - Number(form.maintenance)).toLocaleString()}만원`
+                      : form.rent ? `월 ${Number(form.rent).toLocaleString()}만원` : "—"}
+                  </p>
+                  <p style={{ fontSize: 10, color: "#8a8a9a", marginTop: 2 }}>월세 - 관리비</p>
+                </div>
+              </div>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
             <button onClick={() => { setShowModal(false); resetForm(); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
             <button onClick={saveTenant} disabled={saving} className="btn-primary"
