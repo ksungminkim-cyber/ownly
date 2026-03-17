@@ -44,7 +44,14 @@ function appToDb(data) {
 
 function payDbToApp(row) {
   if (!row) return row;
-  return { ...row, tid: row.tenant_id, paid: row.paid_date, amt: row.amount };
+  return {
+    ...row,
+    tid:  row.tenant_id,
+    paid: row.paid_date,
+    amt:  row.amount,
+    maintenance_paid: row.maintenance_paid || false,
+    maintenance_paid_date: row.maintenance_paid_date || null,
+  };
 }
 
 function payAppToDb(data) {
