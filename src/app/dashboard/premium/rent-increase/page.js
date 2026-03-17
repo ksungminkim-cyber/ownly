@@ -105,13 +105,17 @@ export default function RentIncreasePage() {
           <div style={{ background: C.faint, borderRadius: 14, padding: "16px 18px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>현재 월세</span>
-              <span style={{ fontSize: 18, fontWeight: 900, color: C.navy }}>{currentRent.toLocaleString()}<span style={{ fontSize: 12, color: C.muted }}> 만원</span></span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input type="number" value={currentRent} min={0} onChange={e => { const v=Number(e.target.value); if(!isNaN(v)&&v>=0) setCurrentRent(v); }}
+                  style={{ width:90, padding:"3px 7px", borderRadius:7, border:`1px solid ${C.border}`, fontSize:13, fontWeight:700, color:C.navy, textAlign:"right", outline:"none", background:"#fff" }} />
+                <span style={{ fontSize: 12, color: C.muted }}>만원</span>
+              </div>
             </div>
-            <input type="range" min={10} max={500} step={5} value={currentRent} onChange={e => setCurrentRent(Number(e.target.value))}
+            <input type="range" min={10} max={2000} step={10} value={Math.min(currentRent, 2000)} onChange={e => setCurrentRent(Number(e.target.value))}
               style={{ width: "100%", accentColor: C.navy, height: 4 }} />
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
               <span style={{ fontSize: 10, color: C.muted }}>10만원</span>
-              <span style={{ fontSize: 10, color: C.muted }}>500만원</span>
+              <span style={{ fontSize: 10, color: C.muted }}>2,000만원+</span>
             </div>
           </div>
 
@@ -119,13 +123,17 @@ export default function RentIncreasePage() {
           <div style={{ background: C.faint, borderRadius: 14, padding: "16px 18px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>현재 보증금</span>
-              <span style={{ fontSize: 18, fontWeight: 900, color: C.navy }}>{currentDep.toLocaleString()}<span style={{ fontSize: 12, color: C.muted }}> 만원</span></span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input type="number" value={currentDep} min={0} onChange={e => { const v=Number(e.target.value); if(!isNaN(v)&&v>=0) setCurrentDep(v); }}
+                  style={{ width:90, padding:"3px 7px", borderRadius:7, border:`1px solid ${C.border}`, fontSize:13, fontWeight:700, color:C.navy, textAlign:"right", outline:"none", background:"#fff" }} />
+                <span style={{ fontSize: 12, color: C.muted }}>만원</span>
+              </div>
             </div>
-            <input type="range" min={0} max={50000} step={500} value={currentDep} onChange={e => setCurrentDep(Number(e.target.value))}
+            <input type="range" min={0} max={200000} step={1000} value={Math.min(currentDep, 200000)} onChange={e => setCurrentDep(Number(e.target.value))}
               style={{ width: "100%", accentColor: C.navy, height: 4 }} />
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
               <span style={{ fontSize: 10, color: C.muted }}>0</span>
-              <span style={{ fontSize: 10, color: C.muted }}>5억</span>
+              <span style={{ fontSize: 10, color: C.muted }}>20억+</span>
             </div>
           </div>
 
