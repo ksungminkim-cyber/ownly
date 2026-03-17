@@ -68,6 +68,8 @@ ${sampleText || "데이터 없음"}
 - vacancyRisk: "낮음", "보통", "높음" 중 하나  
 - priceTrend: "상승", "보합", "하락" 중 하나
 - marketPositionScore: -2에서 2 사이 정수
+- floor 필드는 숫자만 입력 ("1", "2", "3" 형식 — "층" 절대 붙이지 마세요)
+- rentPerPyeong: 월세 ÷ 면적(평) 계산값 (소수점 1자리)
 - 모든 숫자는 숫자형`;
 }
 

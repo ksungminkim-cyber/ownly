@@ -500,8 +500,15 @@ export default function AIReportPage() {
                 {[
                   { label:"월세 범위", value:`${pResult.rentRange?.min}~${pResult.rentRange?.max}만원`, sub:"월", color:C.emerald },
                   { label:"보증금 범위", value:`${pResult.depositRange?.min?.toLocaleString()}~${pResult.depositRange?.max?.toLocaleString()}만원`, sub:"", color:C.amber },
-                  { label:"평당 임대료", value:`${pResult.rentPerPyeong || "-"}만원`, sub:"평당/월", color:"#a78bfa" },
-                  { label:"㎡당 임대료", value:`${pResult.rentPerSqm || "-"}만원`, sub:"㎡당/월", color:"#60a5fa" },
+                  { label:"평당 임대료", value: (() => {
+                    const v = pResult.rawStats?.avgRentPerPy || pResult.rentPerPyeong;
+                    return v ? `${v}만원` : "-";
+                  })(), sub:"평당/월", color:"#a78bfa" },
+                  { label:"㎡당 임대료", value: (() => {
+                    const py = pResult.rawStats?.avgRentPerPy || pResult.rentPerPyeong;
+                    if (!py) return "-";
+                    return `${(py / 3.306).toFixed(2)}만원`;
+                  })(), sub:"㎡당/월", color:"#60a5fa" },
                   { label:"평균 면적", value:`${pResult.avgArea || "-"}평`, sub:`(${pResult.avgArea ? Math.round(pResult.avgArea * 3.306) : "-"}㎡)`, color:"#fff" },
                 ].map(k=>(
                   <div key={k.label} style={{ background:"rgba(255,255,255,0.08)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
@@ -546,7 +553,8 @@ export default function AIReportPage() {
                   ))}
                 </div>
                 {pResult.comparables.map((comp, i) => {
-                  const rentPerPy = comp.area ? (comp.rent / comp.area).toFixed(1) : "-";
+                  const _py = comp.areaPyeong || (comp.area ? Math.round(comp.area / 3.306 * 10) / 10 : 0);
+                  const rentPerPy = (_py > 0 && comp.rent > 0) ? (_py > 0 ? (comp.rent / _py).toFixed(1) : "-") : (comp.rentPerPyeong || "-");
                   return (
                     <div key={i} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1.5fr", gap:0, padding:"12px 20px", borderBottom: i < pResult.comparables.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
                       <div>
@@ -559,7 +567,7 @@ export default function AIReportPage() {
                         <p style={{ fontSize:10, color:C.muted }}>{comp.area ? `${comp.area}㎡` : ""}</p>
                       </div>
                       <div>
-                        <p style={{ fontSize:12, color:C.navy }}>{comp.floor || "-"}층</p>
+                        <p style={{ fontSize:12, color:C.navy }}>{comp.floor ? (String(comp.floor).includes("층") ? comp.floor : comp.floor+"층") : "-"}</p>
                         <p style={{ fontSize:10, color:C.muted }}>{comp.builtYear ? comp.builtYear+"년" : ""}</p>
                       </div>
                       <div>
