@@ -109,12 +109,27 @@ export function AppProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    let realtimeChannel = null;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) { loadSubscription(u.id); loadAllData(u.id); }
-      else { setPlanLoading(false); setLoading(false); }
+      if (u) {
+        loadSubscription(u.id);
+        loadAllData(u.id);
+        // Realtime 구독 — tenants/payments/contracts 변경 시 자동 새로고침
+        realtimeChannel = supabase
+          .channel("ownly-realtime")
+          .on("postgres_changes", { event: "*", schema: "public", table: "tenants", filter: `user_id=eq.${u.id}` }, () => loadAllData(u.id))
+          .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, () => loadAllData(u.id))
+          .on("postgres_changes", { event: "*", schema: "public", table: "contracts" }, () => loadAllData(u.id))
+          .on("postgres_changes", { event: "*", schema: "public", table: "vacancies", filter: `user_id=eq.${u.id}` }, () => loadAllData(u.id))
+          .subscribe();
+      } else {
+        setPlanLoading(false); setLoading(false);
+      }
     });
+
     const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
@@ -127,7 +142,11 @@ export function AppProvider({ children }) {
         setLoading(false);
       }
     });
-    return () => authListener.unsubscribe();
+
+    return () => {
+      authListener.unsubscribe();
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    };
   }, [loadSubscription, loadAllData]);
 
   const canUse = useCallback((feature, currentCount = null) => {
