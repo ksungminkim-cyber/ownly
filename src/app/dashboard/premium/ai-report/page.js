@@ -226,38 +226,60 @@ export default function AIReportPage() {
   };
 
   const handlePrint = () => {
-    // 인쇄 전 body에 클래스 추가 → globals.css @media print 규칙 활성화
-    document.body.classList.add("printing-ai-report");
-    const style = document.createElement("style");
-    style.id = "ai-print-style";
-    style.innerHTML = `
-      body.printing-ai-report *:not(#ai-report-print):not(#ai-report-print *) {
-        display: none !important;
-      }
-      body.printing-ai-report #ai-report-print {
-        display: block !important;
-        position: fixed !important;
-        top: 0 !important; left: 0 !important;
-        width: 100% !important;
-        z-index: 9999 !important;
-        background: white !important;
-      }
-      @media print {
-        .no-print { display: none !important; }
-        #ai-report-print { display: block !important; }
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        @page { margin: 15mm; size: A4 portrait; }
-      }
-    `;
-    document.head.appendChild(style);
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        document.body.classList.remove("printing-ai-report");
-        const el = document.getElementById("ai-print-style");
-        if (el) el.remove();
-      }, 500);
-    }, 100);
+    const reportEl = reportRef.current;
+    if (!reportEl) return;
+
+    // 리포트 HTML 복사해서 새 창에서 인쇄 — 가장 확실한 방법
+    const printWindow = window.open("", "_blank", "width=900,height=800");
+    if (!printWindow) {
+      alert("팝업이 차단됐습니다. 브라우저 팝업 허용 후 다시 시도해주세요.");
+      return;
+    }
+
+    // 현재 페이지 스타일시트 전부 복사
+    const styles = Array.from(document.styleSheets)
+      .map(sheet => {
+        try {
+          return Array.from(sheet.cssRules).map(r => r.cssText).join("\n");
+        } catch { return ""; }
+      }).join("\n");
+
+    // no-print 요소 제거한 리포트 HTML만 추출
+    const clone = reportEl.cloneNode(true);
+    clone.querySelectorAll(".no-print").forEach(el => el.remove());
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8"/>
+        <title>Ownly AI 입지 분석 리포트 — ${confirmedAddr}</title>
+        <style>
+          ${styles}
+          body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Pretendard', sans-serif;
+            background: white;
+            margin: 0;
+            padding: 20px;
+            color: #1a2744;
+          }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          @page { margin: 15mm; size: A4 portrait; }
+          @media print { .no-print { display: none !important; } }
+        </style>
+      </head>
+      <body>
+        ${clone.outerHTML}
+        <script>
+          window.onload = function() {
+            setTimeout(function() { window.print(); }, 300);
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
   };
 
   const gm = report ? (GRADE_META[report.grade] || GRADE_META["C"]) : null;
