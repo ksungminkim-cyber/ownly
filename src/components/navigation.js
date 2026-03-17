@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { C, NAV, daysLeft } from "../lib/constants";
 import { useApp } from "../context/AppContext";
-import { useTheme } from "../context/ThemeContext";
+
 
 function OwnlyLogo({ size = "md", onClick }) {
   const sizes = {
@@ -129,7 +129,6 @@ export function MobileDrawer({ open, onClose, onLogout }) {
   const router = useRouter();
   const pathname = usePathname();
   const { userPlan } = useApp();
-  const { theme, toggleTheme } = useTheme();
   if (!open) return null;
   const go = (path) => { router.push(path); onClose(); };
   return (
@@ -143,7 +142,6 @@ export function MobileDrawer({ open, onClose, onLogout }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <OwnlyLogo size="sm" onClick={() => go("/dashboard")} />
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={toggleTheme} style={{ width: 34, height: 34, borderRadius: 9, border: "none", background: "var(--surface3)", cursor: "pointer", fontSize: 15 }}>{theme === "light" ? "🌙" : "☀️"}</button>
             <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "none", background: "var(--surface3)", color: "var(--text)", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>✕</button>
           </div>
         </div>
@@ -202,7 +200,6 @@ export function MobileDrawer({ open, onClose, onLogout }) {
 export function MobileHeader({ onMoreClick }) {
   const router = useRouter();
   const { tenants } = useApp();
-  const { theme, toggleTheme } = useTheme();
   const unpaidCount = tenants.filter((t) => t.status === "미납").length;
   return (
     <div className="mobile-header" style={{
@@ -219,7 +216,6 @@ export function MobileHeader({ onMoreClick }) {
             <span style={{ position: "absolute", top: 4, right: 4, width: 14, height: 14, borderRadius: "50%", background: "#e8445a", color: "#fff", fontSize: 8, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{unpaidCount}</span>
           </button>
         )}
-        <button onClick={toggleTheme} style={{ width: 36, height: 36, borderRadius: 10, border: "none", background: "var(--surface3)", cursor: "pointer", fontSize: 16 }}>{theme === "light" ? "🌙" : "☀️"}</button>
         <button onClick={onMoreClick} style={{ width: 36, height: 36, borderRadius: 10, border: "none", background: "var(--surface3)", color: "var(--text)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>☰</button>
       </div>
     </div>
@@ -230,7 +226,6 @@ export function Sidebar({ onLogout }) {
   const router = useRouter();
   const pathname = usePathname();
   const { tenants, user, userPlan } = useApp();
-  const { theme, toggleTheme } = useTheme();
   const unpaidCount = tenants.filter((t) => t.status === "미납").length;
   const expiringCount = tenants.filter((t) => daysLeft(t.end) <= 90).length;
   const alerts = { payments: unpaidCount, tenants: expiringCount };
@@ -335,9 +330,6 @@ export function Sidebar({ onLogout }) {
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
           </div>
-          <button onClick={toggleTheme} className="theme-toggle" title={theme === "light" ? "다크모드" : "라이트모드"}>
-            {theme === "light" ? "🌙" : "☀️"}
-          </button>
         </div>
         {["k.sungminkim@gmail.com"].includes(email) && (
           <button onClick={() => router.push("/dashboard/admin")}

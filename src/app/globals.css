@@ -26,32 +26,11 @@
     --shadow-deep:  rgba(26,39,68,0.15);
     --scrollbar:    #d0cec5;
     --nav-active-bg: rgba(26,39,68,0.07);
-    --theme-transition: background 0.2s, color 0.2s, border-color 0.2s;
+
   }
 
-  /* ── 다크모드 오버라이드 ── */
-  [data-theme="dark"] {
-    --bg:           #0f1117;
-    --surface:      #1a1d27;
-    --surface2:     #1f2232;
-    --surface3:     #252840;
-    --border:       #2e3250;
-    --border2:      #2a2e48;
-    --text:         #e8eaf6;
-    --text-muted:   #8892b0;
-    --text-faint:   #5a6080;
-    --sidebar-bg:   #13151f;
-    --sidebar-border: #1e2235;
-    --input-bg:     #1f2232;
-    --card-bg:      #1a1d27;
-    --card-hover:   rgba(255,255,255,0.04);
-    --shadow:       rgba(0,0,0,0.3);
-    --shadow-deep:  rgba(0,0,0,0.5);
-    --scrollbar:    #2e3250;
-    --nav-active-bg: rgba(255,255,255,0.07);
-  }
 
- * { box-sizing: border-box; margin: 0; padding: 0; transition: var(--theme-transition); }
+ * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; overflow-x: hidden; }
   body { background: var(--bg); overflow-x: hidden; color: var(--text); }
   ::-webkit-scrollbar { width: 5px; }
@@ -235,39 +214,8 @@
 
   .empty-bounce { animation: float 4s ease-in-out infinite; }
 
-  /* ── 다크모드 유틸리티 ── */
-  [data-theme="dark"] body { color-scheme: dark; }
-  [data-theme="dark"] input { color-scheme: dark; }
-  [data-theme="dark"] select { color-scheme: dark; }
-  [data-theme="dark"] textarea { color-scheme: dark; }
 
-  /* 다크모드 카드/surface 공통 */
-  [data-theme="dark"] .hover-lift:hover {
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4) !important;
-    border-color: #3a3f60 !important;
-  }
 
-  /* 다크모드 nav-item */
-  [data-theme="dark"] .nav-item:hover { background: rgba(255,255,255,0.05); }
-  [data-theme="dark"] .nav-item.active { background: rgba(255,255,255,0.07); }
 
-  /* 다크모드 grid-bg */
-  [data-theme="dark"] .grid-bg {
-    background-image:
-      radial-gradient(circle at 20% 50%, rgba(91,79,207,0.08) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(91,79,207,0.06) 0%, transparent 40%),
-      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
-  }
 
-  /* 테마 토글 버튼 */
-  .theme-toggle {
-    width: 34px; height: 34px; border-radius: 10px; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 16px;
-    background: var(--surface3); color: var(--text);
-    transition: background 0.2s, transform 0.15s;
-    flex-shrink: 0;
-  }
-  .theme-toggle:hover { transform: scale(1.1); }
 
