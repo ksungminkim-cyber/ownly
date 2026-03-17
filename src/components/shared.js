@@ -1,5 +1,6 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { C } from "../lib/constants";
 
 let _addToast = null;
@@ -178,13 +179,19 @@ export const Toast = () => {
 };
 
 export const Modal = ({ open, onClose, children, width, padding }) => {
-  if (!open) return null;
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!open || !mounted) return null;
+
+  const modal = (
     <div style={{
       position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
       background: "rgba(26,39,68,0.4)", backdropFilter: "blur(8px)",
       animation: "modal-bg .25s ease", overflowY: "auto",
-      display: "flex", justifyContent: "center", alignItems: "flex-start", padding: "40px 20px"
+      display: "flex", justifyContent: "center", alignItems: "flex-start",
+      padding: "40px 20px",
     }} onClick={onClose}>
       <div style={{
         width: width || 480, maxWidth: "min(calc(100vw - 40px), 100%)",
@@ -198,6 +205,8 @@ export const Modal = ({ open, onClose, children, width, padding }) => {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 export const AuthInput = ({ label, type, placeholder, value, onChange, error, icon }) => {
