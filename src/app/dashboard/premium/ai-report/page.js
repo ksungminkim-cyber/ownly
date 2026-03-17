@@ -132,7 +132,7 @@ function AddressInput({ value, onChange, onSelect, error }) {
 
 export default function AIReportPage() {
   const router = useRouter();
-  const { tenants } = useApp();
+  const { tenants, checkAiUsage, recordAiUsage, userPlan } = useApp();
   const [activeTab, setActiveTab] = useState("location"); // location | pricing
   const [inputAddr, setInputAddr] = useState("");
   const [confirmedAddr, setConfirmedAddr] = useState("");
@@ -152,6 +152,11 @@ export default function AIReportPage() {
 
   const generate = async () => {
     if (!inputAddr.trim()) { setError("주소를 입력해주세요."); return; }
+    const usage = checkAiUsage("aiReport");
+    if (!usage.allowed) {
+      setError(`이번 달 AI 입지 분석을 ${usage.limit}회 모두 사용했습니다. 플랜을 업그레이드하세요.`);
+      return;
+    }
     setLoading(true); setError(""); setReport(null);
     const addrToAnalyze = inputAddr.trim();
     try {
@@ -164,6 +169,8 @@ export default function AIReportPage() {
       if (data.error) throw new Error(data.error);
       setConfirmedAddr(addrToAnalyze);
       setReport(data);
+      await recordAiUsage("aiReport");
+      await recordAiUsage("aiReport");
     } catch (e) {
       setError(e.message || "분석 중 오류가 발생했습니다.");
     }
@@ -172,6 +179,11 @@ export default function AIReportPage() {
 
   const generatePricing = async () => {
     if (!pInputAddr.trim()) { setPError("주소를 입력해주세요."); return; }
+    const usage = checkAiUsage("aiPricing");
+    if (!usage.allowed) {
+      setPError(`이번 달 AI 임대료 분석을 ${usage.limit}회 모두 사용했습니다. 플랜을 업그레이드하세요.`);
+      return;
+    }
     setPLoading(true); setPError(""); setPResult(null);
     try {
       const res = await fetch("/api/ai-pricing", {
@@ -182,6 +194,7 @@ export default function AIReportPage() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setPResult(data);
+      await recordAiUsage("aiPricing");
     } catch (e) {
       setPError(e.message || "분석 중 오류가 발생했습니다.");
     }
@@ -239,10 +252,17 @@ export default function AIReportPage() {
               }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 18 }}>{tab.icon}</span>
-                <div>
+                <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: activeTab === tab.key ? C.navy : C.muted }}>{tab.label}</p>
                   <p style={{ fontSize: 11, color: C.muted }}>{tab.desc}</p>
                 </div>
+                {(() => {
+                  const featureKey = tab.key === "location" ? "aiReport" : "aiPricing";
+                  const u = checkAiUsage(featureKey);
+                  if (u.limit === Infinity) return <span style={{ fontSize: 10, color: C.emerald, background: "rgba(15,165,115,0.1)", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>무제한</span>;
+                  if (u.limit === 0) return <span style={{ fontSize: 10, color: C.muted, background: "#f0efe9", padding: "2px 8px", borderRadius: 20 }}>PRO 전용</span>;
+                  return <span style={{ fontSize: 10, color: u.allowed ? C.indigo : C.rose, background: u.allowed ? "rgba(59,91,219,0.1)" : "rgba(232,68,90,0.1)", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>{u.used}/{u.limit}회</span>;
+                })()}
               </div>
             </button>
           ))}

@@ -12,7 +12,7 @@ const CAT_COLORS = {
 };
 
 export default function CommunityPage() {
-  const { user } = useApp();
+  const { user, tenants, userPlan } = useApp();
   const [posts, setPosts]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [category, setCategory]     = useState("전체");
@@ -27,6 +27,18 @@ export default function CommunityPage() {
 
   const email = user?.email || "";
   const defaultName = email.split("@")[0] || "익명";
+
+  // 인증 뱃지 계산
+  const getBadge = (planOrTenantCount) => {
+    const plan = userPlan || "free";
+    const count = tenants?.length || 0;
+    if (plan === "pro") return { label: "🏆 프로 임대인", color: "#c9920a", bg: "rgba(201,146,10,0.1)" };
+    if (plan === "starter_plus") return { label: "⭐ 스타터+ 임대인", color: "#0fa573", bg: "rgba(15,165,115,0.1)" };
+    if (plan === "starter") return { label: "🏠 스타터 임대인", color: "#3b5bdb", bg: "rgba(59,91,219,0.1)" };
+    if (count >= 1) return { label: "🌱 임대인", color: "#8a8a9a", bg: "rgba(138,138,154,0.1)" };
+    return null;
+  };
+  const myBadge = getBadge();
 
   useEffect(() => {
     loadPosts();
@@ -63,6 +75,9 @@ export default function CommunityPage() {
     const row = {
       user_id: user.id,
       author_name: form.author_name.trim() || defaultName,
+      badge_label: myBadge?.label || null,
+      badge_color: myBadge?.color || null,
+      badge_bg:    myBadge?.bg    || null,
       category: form.category,
       title: form.title.trim(),
       content: form.content.trim(),
@@ -124,6 +139,12 @@ export default function CommunityPage() {
         <div>
           <SectionLabel>COMMUNITY</SectionLabel>
           <h1 style={{ fontSize:24, fontWeight:800, color:"#1a2744" }}>임대인 커뮤니티</h1>
+          {myBadge && (
+            <div style={{ display:"inline-flex", alignItems:"center", gap:6, marginTop:6, padding:"4px 12px", borderRadius:20, background:myBadge.bg, border:`1px solid ${myBadge.color}30` }}>
+              <span style={{ fontSize:11, fontWeight:700, color:myBadge.color }}>{myBadge.label}</span>
+              <span style={{ fontSize:10, color:myBadge.color }}>인증됨 ✓</span>
+            </div>
+          )}
           <p style={{ fontSize:13, color:"#8a8a9a", marginTop:3 }}>가입자 전용 · 팁·정보·질문 자유롭게 공유하세요</p>
         </div>
         <button onClick={() => { setForm({...form, author_name: defaultName}); setShowWrite(true); }}
@@ -163,6 +184,9 @@ export default function CommunityPage() {
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
                     <span style={{ fontSize:10, fontWeight:700, color: CAT_COLORS[post.category]||C.muted, background:(CAT_COLORS[post.category]||C.muted)+"15", padding:"2px 8px", borderRadius:5 }}>{post.category}</span>
                     <span style={{ fontSize:12, fontWeight:700, color:"#1a2744" }}>{post.author_name}</span>
+                    {post.badge_label && (
+                      <span style={{ fontSize:9, fontWeight:700, color: post.badge_color || "#8a8a9a", background: post.badge_bg || "#f0efe9", padding:"1px 6px", borderRadius:20, marginLeft:4 }}>{post.badge_label}</span>
+                    )}
                     <span style={{ fontSize:11, color:C.muted }}>{timeAgo(post.created_at)}</span>
                   </div>
                   <p style={{ fontSize:14, fontWeight:700, color:"#1a2744", marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{post.title}</p>
@@ -224,6 +248,9 @@ export default function CommunityPage() {
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
               <span style={{ fontSize:10, fontWeight:700, color:CAT_COLORS[showDetail.category]||C.muted, background:(CAT_COLORS[showDetail.category]||C.muted)+"15", padding:"2px 8px", borderRadius:5 }}>{showDetail.category}</span>
               <span style={{ fontSize:12, fontWeight:700, color:"#1a2744" }}>{showDetail.author_name}</span>
+            {showDetail.badge_label && (
+              <span style={{ fontSize:9, fontWeight:700, color: showDetail.badge_color || "#8a8a9a", background: showDetail.badge_bg || "#f0efe9", padding:"1px 7px", borderRadius:20, marginLeft:4 }}>{showDetail.badge_label}</span>
+            )}
               <span style={{ fontSize:11, color:C.muted }}>{timeAgo(showDetail.created_at)}</span>
               {showDetail.user_id===user?.id && (
                 <button onClick={()=>deletePost(showDetail.id)} style={{ marginLeft:"auto", fontSize:11, padding:"3px 9px", borderRadius:7, border:`1px solid ${C.rose}`, background:"transparent", color:C.rose, cursor:"pointer" }}>삭제</button>

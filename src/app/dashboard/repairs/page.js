@@ -229,6 +229,46 @@ export default function RepairsPage() {
           </div>
         </div>
       )}
+
+      {/* ── 제휴 업체 섹션 ── */}
+      <div style={{ marginTop: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>🤝 Ownly 제휴 업체</p>
+            <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>검증된 업체와 연결해드립니다 · 수리·청소·인테리어</p>
+          </div>
+          <span style={{ fontSize: 10, fontWeight: 800, color: "#0fa573", background: "rgba(15,165,115,0.1)", padding: "3px 10px", borderRadius: 20 }}>파트너</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+          {[
+            { icon: "🧹", category: "입주청소", desc: "이사 후 전문 청소 서비스", tag: "평균 2시간", cta: "견적 문의", color: "#3b5bdb" },
+            { icon: "🎨", category: "도배·장판", desc: "방 단위 도배·장판 시공", tag: "당일 시공 가능", cta: "견적 문의", color: "#0fa573" },
+            { icon: "🔧", category: "설비·보일러", desc: "누수·보일러·전기 수리", tag: "긴급 출동", cta: "연결하기", color: "#e8960a" },
+            { icon: "❄️", category: "에어컨 청소", desc: "에어컨 분해 청소 전문", tag: "계절 특가", cta: "견적 문의", color: "#5b4fcf" },
+            { icon: "🪟", category: "창문·방충망", desc: "창문·방충망 교체 설치", tag: "당일 설치", cta: "연결하기", color: "#0891b2" },
+            { icon: "📸", category: "매물 사진촬영", desc: "임대 매물 전문 사진 촬영", tag: "2시간 출장", cta: "예약하기", color: "#be185d" },
+          ].map((partner) => (
+            <div key={partner.category}
+              style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 18px", cursor: "pointer", transition: "all .15s" }}
+              onClick={() => alert("🚧 제휴 업체 연결 서비스 준비 중입니다.\n빠른 시일 내에 오픈할게요!")}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = partner.color; e.currentTarget.style.boxShadow = `0 4px 14px ${partner.color}20`; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#ebe9e3"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                <span style={{ fontSize: 24 }}>{partner.icon}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: partner.color, background: partner.color + "15", padding: "2px 7px", borderRadius: 20 }}>{partner.tag}</span>
+              </div>
+              <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>{partner.category}</p>
+              <p style={{ fontSize: 11, color: "#8a8a9a", marginBottom: 12, lineHeight: 1.5 }}>{partner.desc}</p>
+              <button style={{ width: "100%", padding: "7px 0", borderRadius: 8, background: partner.color + "15", border: `1px solid ${partner.color}30`, color: partner.color, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                {partner.cta} →
+              </button>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 10, textAlign: "center" }}>
+          💼 업체 등록 문의: <span style={{ color: "#1a2744", fontWeight: 700 }}>inquiry@mclean21.com</span>
+        </p>
+      </div>
     </div>
   );
 }

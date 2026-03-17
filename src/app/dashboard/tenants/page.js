@@ -232,6 +232,23 @@ export default function TenantsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* ── 세무사 연결 CTA — 상시 표시 ── */}
+      <div style={{ marginTop: 20, background: "linear-gradient(135deg,rgba(59,91,219,0.05),rgba(91,79,207,0.03))", border: "1px solid rgba(59,91,219,0.15)", borderRadius: 16, padding: "16px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span style={{ fontSize: 28 }}>🧾</span>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744", marginBottom: 2 }}>임대 소득세 신고 · 절세 전략이 필요하신가요?</p>
+              <p style={{ fontSize: 11, color: "#8a8a9a" }}>제휴 세무사가 임대인 전문 세무 서비스를 제공합니다 · 첫 상담 무료</p>
+            </div>
+          </div>
+          <button onClick={() => alert("🚧 세무사 연결 서비스 준비 중입니다.\n빠른 시일 내에 오픈할게요!")}
+            style={{ padding: "9px 18px", borderRadius: 10, background: "linear-gradient(135deg,#3b5bdb,#5b4fcf)", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+            세무사 연결 →
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

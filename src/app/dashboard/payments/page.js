@@ -407,6 +407,34 @@ export default function PaymentsPage() {
           </button>
         </div>
       </Modal>
+
+      {/* ── 전문가 연결 CTA — 미납 있을 때만 표시 ── */}
+      {tenants.some((t) => {
+        const p = payments.find((x) => x.tid === t.id && x.month === month);
+        return !p || p.status === "unpaid";
+      }) && (
+        <div style={{ marginTop: 20, background: "linear-gradient(135deg,rgba(232,68,90,0.05),rgba(232,68,90,0.02))", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 16, padding: "18px 22px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(232,68,90,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>⚖️</div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 800, color: "#1a2744", marginBottom: 3 }}>미납 임차인 법적 대응이 필요하신가요?</p>
+                <p style={{ fontSize: 12, color: "#8a8a9a" }}>내용증명 발송부터 명도소송까지 — 제휴 법무사가 도와드립니다</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => window.location.href = "/dashboard/certified"}
+                style={{ padding: "9px 16px", borderRadius: 10, background: "transparent", border: "1px solid rgba(232,68,90,0.4)", color: "#e8445a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                내용증명 작성
+              </button>
+              <button onClick={() => alert("🚧 법무사 연결 서비스 준비 중입니다.\n빠른 시일 내에 오픈할게요!")}
+                style={{ padding: "9px 16px", borderRadius: 10, background: "#e8445a", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                법무사 연결 →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

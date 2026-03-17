@@ -67,6 +67,7 @@ export function AppProvider({ children }) {
   const [tenants,      setTenantsState]   = useState([]);
   const [payments,     setPaymentsState]  = useState([]);
   const [contracts,    setContractsState] = useState([]);
+  const [aiUsage,      setAiUsageState]   = useState([]);
   const [vacancies,    setVacanciesState] = useState([]);
   const [loading,      setLoading]        = useState(true);
   const [user,         setUser]           = useState(null);
@@ -109,10 +110,17 @@ export function AppProvider({ children }) {
         tenantIds.length ? supabase.from("contracts").select("*").in("tenant_id", tenantIds).order("created_at", { ascending: false }) : { data: [] },
         supabase.from("vacancies").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
       ]);
+      // ai_usage 이번 달 사용량 조회
+      const now = new Date();
+      const aiUsageRes = await supabase.from("ai_usage")
+        .select("*").eq("user_id", userId)
+        .eq("year", now.getFullYear()).eq("month", now.getMonth() + 1);
+
       setTenantsState(tenantsRes.data?.length ? tenantsRes.data.map(dbToApp) : []);
       setPaymentsState(paymentsRes.data?.length ? paymentsRes.data.map(payDbToApp) : []);
       setContractsState(contractsRes.data ?? []);
       setVacanciesState(vacanciesRes.data ?? []);
+      setAiUsageState(aiUsageRes.data ?? []);
     } catch (err) {
       console.error("데이터 로딩 오류:", err);
       setTenantsState([]); setPaymentsState([]);
@@ -274,6 +282,35 @@ export function AppProvider({ children }) {
     return updated;
   };
 
+  // AI 사용 횟수 체크
+  const checkAiUsage = useCallback((feature) => {
+    const plan = PLANS[userPlan || "free"] || PLANS.free;
+    const limit = plan.limits[feature];
+    if (limit === Infinity || limit === true) return { allowed: true, used: 0, limit: Infinity };
+    if (!limit) return { allowed: false, used: 0, limit: 0 };
+    const now = new Date();
+    const usedCount = aiUsage.filter(u =>
+      u.feature === feature &&
+      u.year === now.getFullYear() &&
+      u.month === now.getMonth() + 1
+    ).length;
+    return { allowed: usedCount < limit, used: usedCount, limit };
+  }, [userPlan, aiUsage]);
+
+  // AI 사용 기록
+  const recordAiUsage = async (feature) => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
+    const now = new Date();
+    const { data } = await supabase.from("ai_usage").insert([{
+      user_id: currentUser.id,
+      feature,
+      month: now.getMonth() + 1,
+      year: now.getFullYear(),
+    }]).select().single();
+    if (data) setAiUsageState(prev => [...prev, data]);
+  };
+
   const resetAllData = async () => {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) return;
@@ -307,6 +344,7 @@ export function AppProvider({ children }) {
       setContracts: setContractsState,
       user, userPlan, subscription, planLoading,
       canUse, getPlanLimit,
+      checkAiUsage, recordAiUsage, aiUsage,
       refreshSubscription: () => user && loadSubscription(user.id),
     }}>
       {children}
