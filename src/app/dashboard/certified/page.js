@@ -306,7 +306,7 @@ function CertifiedContent() {
       )}
 
       {/* ── 작성/수정 모달 ── */}
-      <Modal open={showModal} onClose={() => { setShowModal(false); setEditTarget(null); }} width={640}>
+      <Modal open={showModal} onClose={() => { setShowModal(false); setEditTarget(null); }} width={660} padding="24px">
         <h2 style={{ fontSize:18, fontWeight:800, color:"#1a2744", marginBottom:20 }}>
           {editTarget ? "내용증명 수정" : "내용증명 작성"}
         </h2>

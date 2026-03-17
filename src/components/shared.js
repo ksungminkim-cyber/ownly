@@ -177,7 +177,7 @@ export const Toast = () => {
   );
 };
 
-export const Modal = ({ open, onClose, children, width }) => {
+export const Modal = ({ open, onClose, children, width, padding }) => {
   if (!open) return null;
   return (
     <div style={{
@@ -189,9 +189,10 @@ export const Modal = ({ open, onClose, children, width }) => {
       <div style={{
         width: width || 480, maxWidth: "min(calc(100vw - 40px), 100%)",
         background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: 22, padding: "32px",
+        borderRadius: 22, padding: padding || "32px",
         boxShadow: "0 40px 100px rgba(26,39,68,0.2)",
-        animation: "modal-card .3s cubic-bezier(.22,1,.36,1)", flexShrink: 0
+        animation: "modal-card .3s cubic-bezier(.22,1,.36,1)", flexShrink: 0,
+        maxHeight: "calc(100vh - 80px)", overflowY: "auto",
       }} onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
