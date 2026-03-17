@@ -226,59 +226,15 @@ export default function AIReportPage() {
   };
 
   const handlePrint = () => {
-    const reportEl = reportRef.current;
-    if (!reportEl) return;
-
-    // 리포트 HTML 복사해서 새 창에서 인쇄 — 가장 확실한 방법
-    const printWindow = window.open("", "_blank", "width=900,height=800");
-    if (!printWindow) {
-      alert("팝업이 차단됐습니다. 브라우저 팝업 허용 후 다시 시도해주세요.");
-      return;
+    if (!report) return;
+    // sessionStorage에 리포트 데이터 저장 후 전용 인쇄 페이지로 이동
+    try {
+      sessionStorage.setItem("ownly_ai_report", JSON.stringify(report));
+      sessionStorage.setItem("ownly_ai_report_addr", confirmedAddr);
+      window.open("/dashboard/premium/ai-report/print", "_blank");
+    } catch (e) {
+      alert("PDF 출력 중 오류가 발생했습니다: " + e.message);
     }
-
-    // 현재 페이지 스타일시트 전부 복사
-    const styles = Array.from(document.styleSheets)
-      .map(sheet => {
-        try {
-          return Array.from(sheet.cssRules).map(r => r.cssText).join("\n");
-        } catch { return ""; }
-      }).join("\n");
-
-    // no-print 요소 제거한 리포트 HTML만 추출
-    const clone = reportEl.cloneNode(true);
-    clone.querySelectorAll(".no-print").forEach(el => el.remove());
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8"/>
-        <title>Ownly AI 입지 분석 리포트 — ${confirmedAddr}</title>
-        <style>
-          ${styles}
-          body {
-            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Pretendard', sans-serif;
-            background: white;
-            margin: 0;
-            padding: 20px;
-            color: #1a2744;
-          }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          @page { margin: 15mm; size: A4 portrait; }
-          @media print { .no-print { display: none !important; } }
-        </style>
-      </head>
-      <body>
-        ${clone.outerHTML}
-        <script>
-          window.onload = function() {
-            setTimeout(function() { window.print(); }, 300);
-          };
-        <\/script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
   };
   };
 
