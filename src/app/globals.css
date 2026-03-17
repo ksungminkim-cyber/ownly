@@ -219,3 +219,39 @@
 
 
 
+
+  /* ── PDF 인쇄 전용 스타일 ── */
+  @media print {
+    /* 사이드바, 헤더, 네비게이션 전부 숨김 */
+    nav, aside, header, footer,
+    .sidebar, .mobile-header, .bottom-nav,
+    .no-print { display: none !important; }
+
+    /* 메인 레이아웃 초기화 */
+    body, html { background: white !important; margin: 0 !important; padding: 0 !important; }
+    #__next, main, [class*="layout"], [class*="dashboard"] {
+      display: block !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+
+    /* 리포트 영역만 표시 */
+    #ai-report-print {
+      display: block !important;
+      width: 100% !important;
+      max-width: 860px !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+    }
+
+    /* 페이지 설정 */
+    @page { margin: 15mm; size: A4 portrait; }
+
+    /* 색상 보존 */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    /* 페이지 나누기 방지 */
+    #ai-report-print > div { page-break-inside: avoid; }
+  }

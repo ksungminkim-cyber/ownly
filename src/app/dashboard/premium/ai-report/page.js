@@ -226,18 +226,38 @@ export default function AIReportPage() {
   };
 
   const handlePrint = () => {
+    // 인쇄 전 body에 클래스 추가 → globals.css @media print 규칙 활성화
+    document.body.classList.add("printing-ai-report");
     const style = document.createElement("style");
+    style.id = "ai-print-style";
     style.innerHTML = `
+      body.printing-ai-report *:not(#ai-report-print):not(#ai-report-print *) {
+        display: none !important;
+      }
+      body.printing-ai-report #ai-report-print {
+        display: block !important;
+        position: fixed !important;
+        top: 0 !important; left: 0 !important;
+        width: 100% !important;
+        z-index: 9999 !important;
+        background: white !important;
+      }
       @media print {
-        body > *:not(#ai-report-print) { display: none !important; }
-        #ai-report-print { display: block !important; }
         .no-print { display: none !important; }
-        @page { margin: 15mm; size: A4; }
+        #ai-report-print { display: block !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        @page { margin: 15mm; size: A4 portrait; }
       }
     `;
     document.head.appendChild(style);
-    window.print();
-    setTimeout(() => document.head.removeChild(style), 1000);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove("printing-ai-report");
+        const el = document.getElementById("ai-print-style");
+        if (el) el.remove();
+      }, 500);
+    }, 100);
   };
 
   const gm = report ? (GRADE_META[report.grade] || GRADE_META["C"]) : null;
