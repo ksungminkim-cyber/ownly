@@ -51,10 +51,12 @@ export default function PropertiesPage() {
     try {
       const color = COLORS[Math.floor(Math.random() * COLORS.length)];
       const payload = {
-        name: form.name, phone: form.phone || "", p_type: form.pType, sub: form.sub,
+        name: form.name, phone: form.phone || "",
+        pType: form.pType, sub: form.sub,
         addr: form.addr, dep: Number(form.dep || 0), rent: Number(form.rent),
         start_date: form.start || null,
-        end_date: form.end || "2026-12-31", status: "정상", color, intent: "미확인",
+        end_date: form.end || "2026-12-31",
+        status: "정상", color, intent: "미확인",
         maintenance: Number(form.maintenance || 0),
         biz: null, contacts: [],
       };

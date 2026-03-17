@@ -14,23 +14,29 @@ function dbToApp(row) {
   if (!row) return row;
   return {
     ...row,
-    sub:      row.sub_type,
-    addr:     row.address,
-    dep:      row.deposit,
-    end_date: row.contract_end,
-    biz:      row.business_name,
-    color:    row.color || "#6366f1",
-    contacts: row.contacts || [],
+    pType:      row.p_type     || row.pType     || "주거",
+    sub:        row.sub_type   || row.sub        || "",
+    addr:       row.address    || row.addr       || "",
+    dep:        row.deposit    !== undefined ? row.deposit : (row.dep || 0),
+    end_date:   row.contract_end || row.end_date || "",
+    start_date: row.start_date || "",
+    maintenance: row.maintenance || 0,
+    biz:        row.business_name || row.biz || "",
+    color:      row.color || "#6366f1",
+    contacts:   row.contacts || [],
   };
 }
 
 function appToDb(data) {
   const d = { ...data };
+  // 앱 필드명 → DB 컬럼명 변환
+  if ("pType"    in d) { d.p_type        = d.pType;    delete d.pType; }
   if ("sub"      in d) { d.sub_type      = d.sub;      delete d.sub; }
   if ("addr"     in d) { d.address       = d.addr;     delete d.addr; }
   if ("dep"      in d) { d.deposit       = d.dep;      delete d.dep; }
   if ("end_date" in d) { d.contract_end  = d.end_date; delete d.end_date; }
   if ("biz"      in d) { d.business_name = d.biz;      delete d.biz; }
+  // 불필요한 앱 전용 필드 제거
   delete d.color;
   delete d.contacts;
   return d;
