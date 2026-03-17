@@ -235,6 +235,8 @@ export const NAV = [
   { key: "certified",  icon: "📨", label: "내용증명" },
   { key: "repairs",    icon: "🔨", label: "수리 이력" },
   { key: "ledger",     icon: "📒", label: "간편 장부" },
+  { key: "renewal",    icon: "🔄", label: "갱신 의향" },
+  { key: "report-pdf", icon: "📄", label: "수익 리포트" },
   { key: "reports",    icon: "📊", label: "리포트" },
   { key: "tax",        icon: "🧾", label: "세금 관리" },
   { key: "settings",   icon: "⚙️", label: "설정" },
