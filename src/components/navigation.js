@@ -42,6 +42,7 @@ function OwnlyLogo({ size = "md", onClick }) {
 const NAV_ICONS = {
   dashboard: "⊞", properties: "🏠", tenants: "👤", payments: "💰",
   contracts: "📝", calendar: "📅", vacancy: "🚪", certified: "📨",
+  repairs: "🔨", ledger: "📒", renewal: "🔄", "report-pdf": "📄",
   reports: "📊", tax: "🧾", settings: "⚙️", pricing: "💎", community: "💬",
 };
 
@@ -131,68 +132,93 @@ export function MobileDrawer({ open, onClose, onLogout }) {
   const router = useRouter();
   const pathname = usePathname();
   const { userPlan } = useApp();
+  const [docsOpen,    setDocsOpen]    = useState(pathname.includes("/certified") || pathname.includes("/repairs") || pathname.includes("/ledger") || pathname.includes("/report") || pathname.includes("/tax"));
+  const [premiumOpen, setPremiumOpen] = useState(pathname.includes("/premium"));
+
   if (!open) return null;
   const go = (path) => { router.push(path); onClose(); };
+
+  const Item = ({ icon, label, path, activeColor = "#1a2744" }) => {
+    const isActive = path === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(path);
+    return (
+      <div onClick={() => go(path)} style={{
+        display: "flex", alignItems: "center", gap: 12, padding: "11px 12px",
+        borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 44,
+        background: isActive ? `${activeColor}12` : "transparent",
+        borderLeft: `2.5px solid ${isActive ? activeColor : "transparent"}`,
+      }}>
+        <span style={{ fontSize: 16 }}>{icon}</span>
+        <span style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "var(--text-muted)" }}>{label}</span>
+      </div>
+    );
+  };
+
+  const AccHeader = ({ label, open, onToggle, color = "var(--text-faint)" }) => (
+    <div onClick={onToggle} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px 6px", cursor: "pointer" }}>
+      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", color }}>{label}</span>
+      <span style={{ fontSize: 12, color, transition: "transform .2s", transform: open ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block" }}>›</span>
+    </div>
+  );
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.4)", animation: "fade-in .15s ease" }} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{
         position: "absolute", right: 0, top: 0, bottom: 0,
         width: "min(300px, 88vw)", background: "var(--surface)",
-        display: "flex", flexDirection: "column",
-        overflowY: "auto",
+        display: "flex", flexDirection: "column", overflowY: "auto",
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <OwnlyLogo size="sm" onClick={() => go("/dashboard")} />
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "none", background: "var(--surface3)", color: "var(--text)", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>✕</button>
-          </div>
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "none", background: "var(--surface3)", color: "var(--text)", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>✕</button>
         </div>
-        <div style={{ flex: 1, padding: "10px 10px 0", overflowY: "auto" }}>
-          <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "4px 10px 8px" }}>메뉴</p>
-          {NAV.map((n) => {
-            const isActive = n.key === "dashboard" ? pathname === "/dashboard" : pathname.includes(n.key);
-            return (
-              <div key={n.key} onClick={() => go(n.key === "dashboard" ? "/dashboard" : "/dashboard/" + n.key)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "11px 12px",
-                  borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 44,
-                  background: isActive ? "rgba(26,39,68,0.08)" : "transparent",
-                  borderLeft: "2.5px solid " + (isActive ? "#1a2744" : "transparent"),
-                }}>
-                <span style={{ fontSize: 16 }}>{NAV_ICONS[n.key] || n.icon}</span>
-                <span style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--text)" : "var(--text-muted)" }}>{n.label}</span>
-              </div>
-            );
-          })}
-          <div style={{ height: 1, background: "var(--border)", margin: "8px 0" }} />
-          <div onClick={() => go("/dashboard/community")}
-            style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 12px", borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 44,
-              background: pathname.includes("community") ? "rgba(15,165,115,0.08)" : "transparent" }}>
-            <span style={{ fontSize: 16 }}>💬</span>
-            <span style={{ fontSize: 14, color: pathname.includes("community") ? "#0fa573" : "var(--text-muted)" }}>커뮤니티</span>
-          </div>
-          <div style={{ height: 1, background: "var(--border)", margin: "8px 0" }} />
-          <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "4px 10px 8px" }}>프리미엄</p>
-          {PREMIUM_NAV.map((item) => {
+        <div style={{ flex: 1, padding: "8px 10px", overflowY: "auto" }}>
+          <Item icon="⊞" label="대시보드" path="/dashboard" />
+          <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
+
+          <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "2px 12px 5px" }}>임대 관리</p>
+          <Item icon="🏠" label="물건 관리" path="/dashboard/properties" />
+          <Item icon="👤" label="세입자"     path="/dashboard/tenants" />
+          <Item icon="💰" label="수금 현황"  path="/dashboard/payments" />
+          <Item icon="📅" label="캘린더"     path="/dashboard/calendar" />
+          <Item icon="🔄" label="갱신 의향"  path="/dashboard/renewal" />
+          <Item icon="🚪" label="공실 관리"  path="/dashboard/vacancy" />
+
+          <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
+          <AccHeader label="문서·기록" open={docsOpen} onToggle={() => setDocsOpen(o => !o)} />
+          {docsOpen && (
+            <>
+              <Item icon="📨" label="내용증명"   path="/dashboard/certified" />
+              <Item icon="🔨" label="수리 이력"   path="/dashboard/repairs" />
+              <Item icon="📒" label="간편 장부"   path="/dashboard/ledger" />
+              <Item icon="📄" label="수익 리포트" path="/dashboard/report-pdf" />
+              <Item icon="📊" label="리포트"      path="/dashboard/reports" />
+              <Item icon="🧾" label="세금 관리"   path="/dashboard/tax" />
+            </>
+          )}
+
+          <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
+          <AccHeader label="프리미엄 도구" open={premiumOpen} onToggle={() => setPremiumOpen(o => !o)} color="#c9920a" />
+          {premiumOpen && PREMIUM_NAV.map((item) => {
             const unlocked = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER[item.plan];
             return (
               <div key={item.key} onClick={() => go(unlocked ? "/dashboard/" + item.key : "/dashboard/pricing")}
-                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 44, opacity: unlocked ? 1 : 0.55 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 15 }}>{item.icon}</span>
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 40, opacity: unlocked ? 1 : 0.55 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 14 }}>{item.icon}</span>
                   <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{item.label}</span>
                 </div>
                 {!unlocked && <span style={{ fontSize: 10 }}>🔒</span>}
               </div>
             );
           })}
+
+          <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
+          <Item icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" />
+          <Item icon="⚙️" label="설정"      path="/dashboard/settings" />
+          <Item icon="💎" label="구독 플랜"  path="/dashboard/pricing" />
         </div>
         <div style={{ padding: "12px 16px 24px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
-          <button onClick={onLogout} style={{
-            width: "100%", padding: "13px", borderRadius: 12, minHeight: 44,
-            background: "rgba(232,68,90,0.08)", border: "1px solid rgba(232,68,90,0.25)",
-            color: "#e8445a", fontWeight: 700, fontSize: 14, cursor: "pointer"
-          }}>로그아웃</button>
+          <button onClick={onLogout} style={{ width: "100%", padding: "13px", borderRadius: 12, minHeight: 44, background: "rgba(232,68,90,0.08)", border: "1px solid rgba(232,68,90,0.25)", color: "#e8445a", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>로그아웃</button>
         </div>
       </div>
     </div>
@@ -228,20 +254,56 @@ export function Sidebar({ onLogout }) {
   const router = useRouter();
   const pathname = usePathname();
   const { tenants, user, userPlan } = useApp();
-  const unpaidCount = tenants.filter((t) => t.status === "미납").length;
-  const expiringCount = tenants.filter((t) => daysLeft(t.end) <= 90).length;
-  const alerts = { payments: unpaidCount, tenants: expiringCount };
+  const unpaidCount    = tenants.filter((t) => t.status === "미납").length;
+  const expiringCount  = tenants.filter((t) => daysLeft(t.end) <= 90).length;
+
+  const inDocs    = ["/certified","/repairs","/ledger","/report-pdf","/renewal","/reports","/tax"].some(p => pathname.includes(p));
+  const inPremium = pathname.includes("/premium");
+  const [docsOpen,    setDocsOpen]    = useState(inDocs);
+  const [premiumOpen, setPremiumOpen] = useState(inPremium);
+
   const planMeta = {
-    free: { label: "무료 플랜", color: "#8a8a9a", bg: "rgba(138,138,154,0.08)", dot: "#b0aead" },
-    starter: { label: "스타터 플랜", color: "#1a2744", bg: "rgba(26,39,68,0.06)", dot: "#1a2744" },
-    starter_plus: { label: "스타터+ 플랜", color: "#0fa573", bg: "rgba(15,165,115,0.08)", dot: "#0fa573" },
-    pro: { label: "프로 플랜", color: "#c9920a", bg: "rgba(201,146,10,0.08)", dot: "#c9920a" },
+    free:         { label: "무료 플랜",    color: "#8a8a9a", bg: "rgba(138,138,154,0.08)", dot: "#b0aead" },
+    starter:      { label: "스타터 플랜",  color: "#1a2744", bg: "rgba(26,39,68,0.06)",    dot: "#1a2744" },
+    starter_plus: { label: "스타터+ 플랜", color: "#0fa573", bg: "rgba(15,165,115,0.08)",  dot: "#0fa573" },
+    pro:          { label: "프로 플랜",    color: "#c9920a", bg: "rgba(201,146,10,0.08)",   dot: "#c9920a" },
   };
-  const currentPlan = userPlan || "free";
-  const pm = planMeta[currentPlan] || planMeta.free;
-  const email = user?.email || "";
-  const initial = email ? email[0].toUpperCase() : "U";
-  const displayName = email.split("@")[0] || "사용자";
+  const pm           = planMeta[userPlan || "free"] || planMeta.free;
+  const email        = user?.email || "";
+  const initial      = email ? email[0].toUpperCase() : "U";
+  const displayName  = email.split("@")[0] || "사용자";
+
+  const NavItem = ({ icon, label, path, badge, activeColor = "#1a2744" }) => {
+    const isActive = path === "/dashboard"
+      ? pathname === "/dashboard"
+      : pathname.startsWith(path);
+    return (
+      <div onClick={() => router.push(path)}
+        className={"nav-item" + (isActive ? " active" : "")}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "7px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
+          borderLeft: `2.5px solid ${isActive ? activeColor : "transparent"}`,
+        }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <span style={{ fontSize: 14, lineHeight: 1 }}>{icon}</span>
+          <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "var(--text-muted)" }}>{label}</span>
+        </div>
+        {badge > 0 && (
+          <span style={{ fontSize: 10, fontWeight: 800, background: "#e8445a", color: "#fff", padding: "2px 6px", borderRadius: 20, minWidth: 18, textAlign: "center" }}>{badge}</span>
+        )}
+      </div>
+    );
+  };
+
+  const SectionHeader = ({ label, open, onToggle, color = "var(--text-faint)" }) => (
+    <div onClick={onToggle}
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px 5px", cursor: "pointer", userSelect: "none", marginTop: 2 }}>
+      <span style={{ fontSize: 9, color, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" }}>{label}</span>
+      <span style={{ fontSize: 11, color, transition: "transform .2s", transform: open ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block", lineHeight: 1 }}>›</span>
+    </div>
+  );
+
   return (
     <aside className="desktop-sidebar" style={{
       width: 220, height: "100vh", background: "var(--sidebar-bg)",
@@ -249,104 +311,132 @@ export function Sidebar({ onLogout }) {
       display: "flex", flexDirection: "column", zIndex: 100, overflow: "hidden",
       boxShadow: "2px 0 20px var(--shadow)"
     }}>
-      <div style={{ padding: "16px 20px 12px" }}>
+      {/* 로고 */}
+      <div style={{ padding: "16px 20px 10px", flexShrink: 0 }}>
         <OwnlyLogo size="md" onClick={() => router.push("/dashboard")} />
       </div>
+
+      {/* 플랜 배지 */}
       <div onClick={() => router.push("/dashboard/pricing")} style={{
-        margin: "0 14px 6px", padding: "10px 14px", borderRadius: 12,
-        background: pm.bg, border: `1px solid ${pm.dot}22`, cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "space-between"
+        margin: "0 14px 6px", padding: "9px 13px", borderRadius: 12,
+        background: pm.bg, border: `1px solid ${pm.dot}22`,
+        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <div style={{ width: 7, height: 7, borderRadius: "50%", background: pm.dot }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: pm.color }}>{pm.label}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: pm.color }}>{pm.label}</span>
         </div>
-        {currentPlan === "free" && (
-          <span style={{ fontSize: 9, color: "#1a2744", fontWeight: 800, letterSpacing: ".5px", background: "rgba(26,39,68,0.1)", padding: "3px 8px", borderRadius: 20, textTransform: "uppercase" }}>업그레이드</span>
+        {(userPlan || "free") === "free" && (
+          <span style={{ fontSize: 9, color: "#fff", fontWeight: 800, background: "#1a2744", padding: "2px 8px", borderRadius: 20 }}>UP</span>
         )}
       </div>
-      <div style={{ height: 1, background: "var(--border)", margin: "8px 14px 14px" }} />
-      <nav style={{ padding: "0 10px", flex: 1, overflowY: "auto", paddingBottom: 4 }}>
-        <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>메뉴</p>
-        {NAV.slice(0, 10).map((item) => {
-          const isActive = pathname === "/dashboard/" + item.key || (item.key === "dashboard" && pathname === "/dashboard");
-          const badge = alerts[item.key];
-          return (
-            <div key={item.key} onClick={() => router.push(item.key === "dashboard" ? "/dashboard" : "/dashboard/" + item.key)}
-              className={"nav-item" + (isActive ? " active" : "")}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer", borderLeft: "2.5px solid " + (isActive ? "#1a2744" : "transparent") }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ fontSize: 14, lineHeight: 1 }}>{NAV_ICONS[item.key] || item.icon}</span>
-                <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--text)" : "var(--text-muted)" }}>{item.label}</span>
-              </div>
-              {badge > 0 && <span style={{ fontSize: 10, fontWeight: 800, background: "#e8445a", color: "#fff", padding: "2px 7px", borderRadius: 20 }}>{badge}</span>}
-            </div>
-          );
-        })}
-        <div style={{ height: 1, background: "#f0efe9", margin: "6px 4px" }} />
-        <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>프리미엄</p>
-        {PREMIUM_NAV.map((item) => {
-          const isActive = pathname.includes(item.key);
-          const unlocked = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER[item.plan];
-          return (
-            <div key={item.key} onClick={() => unlocked ? router.push("/dashboard/" + item.key) : router.push("/dashboard/pricing")}
-              className={"nav-item" + (isActive ? " active" : "")}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer", borderLeft: "2.5px solid " + (isActive ? "#5b4fcf" : "transparent"), opacity: unlocked ? 1 : 0.5 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ fontSize: 14 }}>{item.icon}</span>
-                <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "#5b4fcf" : "var(--text-muted)" }}>{item.label}</span>
-              </div>
-              {!unlocked && <span style={{ fontSize: 9 }}>🔒</span>}
-            </div>
-          );
-        })}
-        <div style={{ height: 1, background: "#f0efe9", margin: "6px 4px" }} />
-        {(() => {
-          const isActive = pathname.includes("community");
-          return (
-            <div onClick={() => router.push("/dashboard/community")} className={"nav-item" + (isActive ? " active" : "")}
-              style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer", borderLeft: "2.5px solid " + (isActive ? "#0fa573" : "transparent") }}>
-              <span style={{ fontSize: 15 }}>💬</span>
-              <span style={{ fontSize: 13.5, fontWeight: isActive ? 700 : 500, color: isActive ? "#0fa573" : "var(--text-muted)" }}>커뮤니티</span>
-            </div>
-          );
-        })()}
-        <div style={{ height: 1, background: "#f0efe9", margin: "6px 4px" }} />
-        <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", padding: "0 10px 6px" }}>계정</p>
-        {[NAV[10], NAV[11]].filter(Boolean).map((item) => {
-          const isActive = pathname.includes(item.key);
-          return (
-            <div key={item.key} onClick={() => router.push("/dashboard/" + item.key)}
-              className={"nav-item" + (isActive ? " active" : "")}
-              style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer", borderLeft: "2.5px solid " + (isActive ? "#1a2744" : "transparent") }}>
-              <span style={{ fontSize: 14 }}>{NAV_ICONS[item.key] || item.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--text)" : "var(--text-muted)" }}>{item.label}</span>
-            </div>
-          );
-        })}
+
+      <div style={{ height: 1, background: "var(--border)", margin: "2px 14px 6px", flexShrink: 0 }} />
+
+      {/* 스크롤 영역 */}
+      <nav style={{ flex: 1, overflowY: "auto", padding: "0 10px 8px" }}>
+
+        {/* 대시보드 */}
+        <NavItem icon="⊞" label="대시보드" path="/dashboard" />
+
+        <div style={{ height: 1, background: "var(--border)", margin: "5px 4px 6px" }} />
+
+        {/* ── 임대 관리 (항상 표시) ── */}
+        <p style={{ fontSize: 9, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "0 10px 5px" }}>임대 관리</p>
+        <NavItem icon="🏠" label="물건 관리"  path="/dashboard/properties" />
+        <NavItem icon="👤" label="세입자"      path="/dashboard/tenants"    badge={expiringCount} />
+        <NavItem icon="💰" label="수금 현황"   path="/dashboard/payments"   badge={unpaidCount} />
+        <NavItem icon="📅" label="캘린더"      path="/dashboard/calendar" />
+        <NavItem icon="🔄" label="갱신 의향"   path="/dashboard/renewal" />
+        <NavItem icon="🚪" label="공실 관리"   path="/dashboard/vacancy" />
+
+        <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
+
+        {/* ── 문서·기록 (아코디언) ── */}
+        <SectionHeader label="문서·기록" open={docsOpen} onToggle={() => setDocsOpen(o => !o)} />
+        {docsOpen && (
+          <div style={{ animation: "sb-fade .15s ease" }}>
+            <NavItem icon="📨" label="내용증명"   path="/dashboard/certified" />
+            <NavItem icon="🔨" label="수리 이력"   path="/dashboard/repairs" />
+            <NavItem icon="📒" label="간편 장부"   path="/dashboard/ledger" />
+            <NavItem icon="📄" label="수익 리포트" path="/dashboard/report-pdf" />
+            <NavItem icon="📊" label="리포트"      path="/dashboard/reports" />
+            <NavItem icon="🧾" label="세금 관리"   path="/dashboard/tax" />
+          </div>
+        )}
+
+        <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
+
+        {/* ── 프리미엄 도구 (아코디언) ── */}
+        <SectionHeader
+          label="프리미엄 도구" open={premiumOpen}
+          onToggle={() => setPremiumOpen(o => !o)} color="#c9920a"
+        />
+        {premiumOpen && (
+          <div style={{ animation: "sb-fade .15s ease" }}>
+            {PREMIUM_NAV.map((item) => {
+              const isActive  = pathname.includes(item.key);
+              const unlocked  = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER[item.plan];
+              return (
+                <div key={item.key}
+                  onClick={() => router.push(unlocked ? "/dashboard/" + item.key : "/dashboard/pricing")}
+                  className={"nav-item" + (isActive ? " active" : "")}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "6px 10px", borderRadius: 10, marginBottom: 1, cursor: "pointer",
+                    borderLeft: `2.5px solid ${isActive ? "#5b4fcf" : "transparent"}`,
+                    opacity: unlocked ? 1 : 0.5,
+                  }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                    <span style={{ fontSize: 13 }}>{item.icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? "#5b4fcf" : "var(--text-muted)" }}>{item.label}</span>
+                  </div>
+                  {!unlocked && <span style={{ fontSize: 9 }}>🔒</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
+
+        {/* 커뮤니티 */}
+        <NavItem icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" />
+
+        <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
+
+        {/* 계정 */}
+        <NavItem icon="⚙️" label="설정"      path="/dashboard/settings" />
+        <NavItem icon="💎" label="구독 플랜"  path="/dashboard/pricing" />
+
       </nav>
-      <div style={{ padding: "10px 14px 12px", borderTop: "1px solid var(--border)" }}>
+
+      {/* 하단 유저 영역 */}
+      <div style={{ padding: "10px 14px 14px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, background: "var(--surface2)", marginBottom: 8 }}>
-          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #1a2744, #5b4fcf)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{initial}</div>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#1a2744,#5b4fcf)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initial}</div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
           </div>
         </div>
         {["k.sungminkim@gmail.com"].includes(email) && (
           <button onClick={() => router.push("/dashboard/admin")}
-            style={{ width: "100%", padding: "8px", borderRadius: 10, marginBottom: 8, background: "linear-gradient(135deg,rgba(26,39,68,0.06),rgba(91,79,207,0.06))", border: "1px solid rgba(26,39,68,0.15)", color: "#1a2744", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all .15s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "linear-gradient(135deg,#1a2744,#2d4270)"; e.currentTarget.style.color = "#fff"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "linear-gradient(135deg,rgba(26,39,68,0.06),rgba(91,79,207,0.06))"; e.currentTarget.style.color = "#1a2744"; }}>
+            style={{ width: "100%", padding: "7px", borderRadius: 10, marginBottom: 6, background: "rgba(26,39,68,0.06)", border: "1px solid rgba(26,39,68,0.12)", color: "#1a2744", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
             🛡️ 관리자 패널
           </button>
         )}
-        <button onClick={onLogout} style={{ width: "100%", padding: "9px", borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all .15s" }}
+        <button onClick={onLogout}
+          style={{ width: "100%", padding: "8px", borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 12, cursor: "pointer" }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(232,68,90,0.07)"; e.currentTarget.style.borderColor = "rgba(232,68,90,0.3)"; e.currentTarget.style.color = "#e8445a"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; }}>
           로그아웃
         </button>
       </div>
+
+      <style>{`
+        @keyframes sb-fade { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+      `}</style>
     </aside>
   );
 }

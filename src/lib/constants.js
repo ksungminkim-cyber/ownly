@@ -229,7 +229,6 @@ export const NAV = [
   { key: "properties", icon: "🏠", label: "물건 관리" },
   { key: "tenants",    icon: "👤", label: "세입자" },
   { key: "payments",   icon: "💰", label: "수금 현황" },
-  { key: "contracts",  icon: "📝", label: "계약서" },
   { key: "calendar",   icon: "📅", label: "캘린더" },
   { key: "vacancy",    icon: "🚪", label: "공실 관리" },
   { key: "certified",  icon: "📨", label: "내용증명" },

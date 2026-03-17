@@ -6,7 +6,8 @@ import { useApp } from "../../../context/AppContext";
 import AddressInput from "../../../components/AddressInput";
 
 export default function PropertiesPage() {
-  const { tenants, addTenant, updateTenant, deleteTenant, loading, canUse, getPlanLimit } = useApp();
+  const { tenants, addTenant, updateTenant, deleteTenant, contracts, addContract, updateContract, loading, canUse, getPlanLimit } = useApp();
+  const [activeTab, setActiveTab]       = useState("properties"); // properties | contracts
   const [filter, setFilter]             = useState("전체");
   const [search, setSearch]             = useState("");
   const [sort, setSort]                 = useState({ key: "rent", dir: "desc" });
@@ -15,6 +16,11 @@ export default function PropertiesPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [saving, setSaving]             = useState(false);
   const [form, setForm] = useState({ pType: "주거", sub: "아파트", addr: "", rent: "", dep: "", name: "", phone: "", start: "", end: "", maintenance: "" });
+
+  // 계약서 관련 state
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractForm, setContractForm] = useState({ tenant_id: "", start_date: "", end_date: "", rent: "", deposit: "", special_terms: "" });
+  const [contractEdit, setContractEdit] = useState(null);
 
   const resetForm = () => setForm({ pType: "주거", sub: "아파트", addr: "", rent: "", dep: "", name: "", phone: "", start: "", end: "", maintenance: "" });
 
@@ -92,13 +98,10 @@ export default function PropertiesPage() {
 
   return (
     <div className="page-in page-padding" style={{ maxWidth: 920 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>PROPERTY MANAGEMENT</SectionLabel>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744", letterSpacing: "-.4px" }}>물건 관리</h1>
-          <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>
-            총 {tenants.length}개 · 주거 {tenants.filter((t) => t.pType === "주거").length} · 상가 {tenants.filter((t) => t.pType === "상가").length} · 토지 {tenants.filter((t) => t.pType === "토지").length}
-          </p>
         </div>
         <button onClick={() => {
             const limit = getPlanLimit("properties");
@@ -113,6 +116,111 @@ export default function PropertiesPage() {
           + 물건 추가
         </button>
       </div>
+
+      {/* ── 탭 ── */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 18, borderBottom: "1px solid #ebe9e3", paddingBottom: 0 }}>
+        {[
+          { key: "properties", label: `🏠 물건 목록`, count: tenants.length },
+          { key: "contracts",  label: `📝 계약서`,    count: contracts?.length || 0 },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            style={{ padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none", background: "transparent",
+              borderBottom: `2.5px solid ${activeTab === tab.key ? "#1a2744" : "transparent"}`,
+              color: activeTab === tab.key ? "#1a2744" : "#8a8a9a", marginBottom: -1, transition: "all .15s" }}>
+            {tab.label} <span style={{ fontSize: 11, background: activeTab === tab.key ? "#1a274415" : "#f0efe9", padding: "1px 6px", borderRadius: 10, marginLeft: 4 }}>{tab.count}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── 계약서 탭 ── */}
+      {activeTab === "contracts" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
+            <button onClick={() => { setContractEdit(null); setContractForm({ tenant_id: "", start_date: "", end_date: "", rent: "", deposit: "", special_terms: "" }); setShowContractModal(true); }}
+              style={{ padding: "9px 18px", borderRadius: 10, background: `linear-gradient(135deg,#1a2744,#5b4fcf)`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              + 계약서 작성
+            </button>
+          </div>
+          {!contracts?.length ? (
+            <EmptyState icon="📝" title="등록된 계약서가 없습니다" desc="계약서 작성 버튼으로 첫 계약서를 등록하세요" />
+          ) : (
+            <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, overflow: "hidden" }}>
+              {contracts.map((c, i) => {
+                const tenant = tenants.find(t => t.id === c.tenant_id);
+                const dl = c.end_date ? Math.ceil((new Date(c.end_date) - new Date()) / 86400000) : null;
+                return (
+                  <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderBottom: i < contracts.length - 1 ? "1px solid #f0efe9" : "none" }}>
+                    <div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#1a2744" }}>{tenant?.name || c.tenant_name || "알수없음"}</span>
+                        {dl !== null && <span style={{ fontSize: 10, fontWeight: 700, color: dl <= 90 ? "#e8445a" : "#8a8a9a", background: dl <= 90 ? "rgba(232,68,90,0.1)" : "#f0efe9", padding: "2px 8px", borderRadius: 20 }}>만료 D-{dl}</span>}
+                      </div>
+                      <p style={{ fontSize: 12, color: "#8a8a9a" }}>
+                        {c.start_date || "—"} ~ {c.end_date || "—"} &nbsp;·&nbsp; 월세 {c.rent || tenant?.rent || "—"}만원 &nbsp;·&nbsp; 보증금 {c.deposit || tenant?.dep || "—"}만원
+                      </p>
+                      {c.special_terms && <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 3 }}>📌 {c.special_terms.slice(0, 60)}{c.special_terms.length > 60 ? "..." : ""}</p>}
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => { setContractEdit(c); setContractForm({ tenant_id: c.tenant_id || "", start_date: c.start_date || "", end_date: c.end_date || "", rent: c.rent || "", deposit: c.deposit || "", special_terms: c.special_terms || "" }); setShowContractModal(true); }}
+                        style={{ padding: "5px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #ebe9e3", background: "transparent", color: "#1a2744" }}>수정</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── 계약서 모달 ── */}
+      <Modal open={showContractModal} onClose={() => setShowContractModal(false)}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#1a2744", marginBottom: 18 }}>{contractEdit ? "계약서 수정" : "계약서 작성"}</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+          <div>
+            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>세입자</p>
+            <select value={contractForm.tenant_id} onChange={e => setContractForm(f => ({ ...f, tenant_id: e.target.value }))}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #ebe9e3", fontSize: 13, color: "#1a2744", background: "#f8f7f4", outline: "none" }}>
+              <option value="">선택하세요</option>
+              {tenants.map(t => <option key={t.id} value={t.id}>{t.name} — {t.addr}</option>)}
+            </select>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <AuthInput label="계약 시작일" type="date" value={contractForm.start_date} onChange={e => setContractForm(f => ({ ...f, start_date: e.target.value }))} />
+            <AuthInput label="계약 종료일" type="date" value={contractForm.end_date}   onChange={e => setContractForm(f => ({ ...f, end_date: e.target.value }))} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <AuthInput label="월세 (만원)" type="number" placeholder="120" value={contractForm.rent}    onChange={e => setContractForm(f => ({ ...f, rent: e.target.value }))} icon="💰" />
+            <AuthInput label="보증금 (만원)" type="number" placeholder="5000" value={contractForm.deposit} onChange={e => setContractForm(f => ({ ...f, deposit: e.target.value }))} icon="🏦" />
+          </div>
+          <div>
+            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>특약 사항</p>
+            <textarea value={contractForm.special_terms} onChange={e => setContractForm(f => ({ ...f, special_terms: e.target.value }))}
+              placeholder="특약 사항을 입력하세요..." rows={3}
+              style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, resize: "vertical", outline: "none", fontFamily: "inherit" }} />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setShowContractModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
+            <button onClick={async () => {
+              setSaving(true);
+              try {
+                const tenant = tenants.find(t => t.id === contractForm.tenant_id);
+                const payload = { ...contractForm, rent: Number(contractForm.rent || 0), deposit: Number(contractForm.deposit || 0), tenant_name: tenant?.name || "" };
+                if (contractEdit) await updateContract(contractEdit.id, payload);
+                else await addContract(payload);
+                toast(contractEdit ? "계약서가 수정되었습니다" : "계약서가 등록되었습니다");
+                setShowContractModal(false);
+              } catch { toast("저장 중 오류가 발생했습니다", "error"); }
+              finally { setSaving(false); }
+            }} disabled={saving}
+              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,#1a2744,#5b4fcf)`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
+              {saving ? "저장 중..." : contractEdit ? "수정 완료" : "저장하기"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── 물건 목록 탭 ── */}
+      {activeTab === "properties" && (<>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 7 }}>
@@ -258,6 +366,8 @@ export default function PropertiesPage() {
       <ConfirmDialog open={!!deleteTarget} title="물건 삭제"
         desc={deleteTarget ? `${deleteTarget.name}님의 ${deleteTarget.addr} 물건을 삭제하시겠습니까?` : ""}
         onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} danger />
+
+      </>)} {/* end activeTab === properties */}
     </div>
   );
 }
