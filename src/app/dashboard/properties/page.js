@@ -230,15 +230,15 @@ export default function PropertiesPage() {
           {(form.pType === "상가" || form.pType === "오피스텔") && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <AuthInput label="관리비 (만원/월)" placeholder="예: 15" value={form.maintenance} onChange={(e) => setForm((f) => ({ ...f, maintenance: e.target.value }))} icon="🏢" />
-              <div style={{ background: "rgba(232,150,10,0.06)", border: "1px solid rgba(232,150,10,0.2)", borderRadius: 10, padding: "10px 13px", display: "flex", alignItems: "center" }}>
+              <div style={{ background: "rgba(15,165,115,0.06)", border: "1px solid rgba(15,165,115,0.2)", borderRadius: 10, padding: "10px 13px", display: "flex", alignItems: "center" }}>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#e8960a", marginBottom: 3 }}>실수익 계산</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#0fa573", marginBottom: 3 }}>총 월 수익</p>
                   <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744" }}>
                     {form.rent && form.maintenance
-                      ? `월 ${(Number(form.rent) - Number(form.maintenance)).toLocaleString()}만원`
+                      ? `월 ${(Number(form.rent) + Number(form.maintenance)).toLocaleString()}만원`
                       : form.rent ? `월 ${Number(form.rent).toLocaleString()}만원` : "—"}
                   </p>
-                  <p style={{ fontSize: 10, color: "#8a8a9a", marginTop: 2 }}>월세 - 관리비</p>
+                  <p style={{ fontSize: 10, color: "#8a8a9a", marginTop: 2 }}>월세 + 관리비</p>
                 </div>
               </div>
             </div>
