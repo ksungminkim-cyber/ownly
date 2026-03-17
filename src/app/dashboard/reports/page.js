@@ -145,7 +145,7 @@ function ReportsContent({ tenants, period, setPeriod }) {
           <thead>
             <tr style={{ background: "#0a0a10" }}>
               {["물건", "세입자", "월세", "보증금", "연 수익률"].map((h) => (
-                <th key={h} style={{ padding: "9px 16px", textAlign: "left", fontSize: 10, color: "#4b5563", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px" }}>{h}</th>
+                <th key={h} style={{ padding: "9px 16px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px" }}>{h}</th>
               ))}
             </tr>
           </thead>

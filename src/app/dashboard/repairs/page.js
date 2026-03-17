@@ -115,7 +115,7 @@ export default function RepairsPage() {
         <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:17, overflow:"hidden" }}>
           <div style={{ padding:"10px 20px", background:"#0a0a10", display:"grid", gridTemplateColumns:"90px 80px 1fr 100px 80px 80px 40px", gap:8 }}>
             {["날짜","분류","상세","업체","비용","영수증",""].map(h=>(
-              <span key={h} style={{ fontSize:10, color:"#4b5563", fontWeight:700, textTransform:"uppercase", letterSpacing:".5px" }}>{h}</span>
+              <span key={h} style={{ fontSize:10, color:"#8a8a9a", fontWeight:700, textTransform:"uppercase", letterSpacing:".5px" }}>{h}</span>
             ))}
           </div>
           {filtered.map((r, i) => (

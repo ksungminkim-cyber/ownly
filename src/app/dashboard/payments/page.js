@@ -218,7 +218,7 @@ export default function PaymentsPage() {
               <thead>
                 <tr style={{ background: "#0a0a10" }}>
                   {["세입자", "물건", "월세", "월세 상태", ...(maintTenants.length > 0 ? ["관리비", "관리비 상태"] : []), ""].map((h) => (
-                    <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, color: "#4b5563", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
