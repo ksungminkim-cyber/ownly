@@ -78,7 +78,8 @@ function AddressInput({ value, onChange, onSelect, error }) {
     setLoading(true);
     try {
       // 행정안전부 도로명주소 공개 API (무료, 키 불필요)
-      const url = `https://business.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=8&keyword=${encodeURIComponent(q)}&confmKey=devU01TX0FVVEgyMDI1MDMxNzE0MjI1NjExNTI5MDc=&resultType=json`;
+      const jusoKey = process.env.NEXT_PUBLIC_JUSO_API_KEY || "devU01TX0FVVEgyMDI1MDMxNzE0MjI1NjExNTI5MDc=";
+      const url = `https://business.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=8&keyword=${encodeURIComponent(q)}&confmKey=${jusoKey}&resultType=json`;
       const res = await fetch(url);
       const data = await res.json();
       const results = data?.results?.juso || [];
