@@ -3,7 +3,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Ownly - 개인 임대인을 위한 스마트 임대 관리";
+export const alt = "Ownly - 임대 자산 관리 플랫폼";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -34,7 +34,7 @@ export default async function OGImage() {
 
         {/* 헤드라인 */}
         <h1 style={{ fontSize: 52, fontWeight: 900, color: "#fff", textAlign: "center", margin: "0 0 16px", lineHeight: 1.2 }}>
-          개인 임대인을 위한<br />
+          임대인을 위한<br />
           <span style={{ background: "linear-gradient(135deg, #818cf8, #a855f7)", WebkitBackgroundClip: "text", color: "transparent" }}>
             스마트 임대 관리
           </span>

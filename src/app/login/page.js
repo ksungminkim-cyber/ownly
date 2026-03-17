@@ -111,14 +111,14 @@ export default function AuthPage() {
             임대 관리,<br/>더 스마트하게
           </h2>
           <p style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
-            물건 관리부터 수금, 계약, 세금까지<br/>개인 임대인을 위한 올인원 솔루션
+            물건 관리부터 수금, 계약, 세금까지<br/>임대인을 위한 올인원 관리 플랫폼
           </p>
         </div>
         <div style={{ position: "relative" }}>
           {["✓ 수금 자동 추적", "✓ 계약 만료 알림", "✓ 세금 시뮬레이터", "✓ 내용증명 발행"].map((f) => (
             <div key={f} style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{f}</div>
           ))}
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 24 }}>by McLean · 개인 임대인의 진짜 파트너</p>
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 24 }}>by McLean · 임대 자산 관리의 진짜 파트너</p>
         </div>
       </div>
 

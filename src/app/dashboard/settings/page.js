@@ -57,7 +57,7 @@ export default function SettingsPage() {
           ["앱 이름",  "Ownly"],
           ["버전",     "v1.0.0"],
           ["제작사",   "McLean"],
-          ["지원",     "개인 임대인을 위한 스마트 관리 앱"],
+          ["지원",     "임대 자산 관리 플랫폼"],
         ].map(([l, v]) => (
           <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #ebe9e3" }}>
             <span style={{ fontSize: 13, color: "#8a8a9a" }}>{l}</span>

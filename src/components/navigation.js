@@ -148,12 +148,12 @@ export function MobileDrawer({ open, onClose, onLogout }) {
         borderLeft: `2.5px solid ${isActive ? activeColor : "transparent"}`,
       }}>
         <span style={{ fontSize: 17 }}>{icon}</span>
-        <span style={{ fontSize: 15, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "var(--text-muted)" }}>{label}</span>
+        <span style={{ fontSize: 15, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "#4a5568" }}>{label}</span>
       </div>
     );
   };
 
-  const AccHeader = ({ label, open, onToggle, color = "var(--text-faint)" }) => (
+  const AccHeader = ({ label, open, onToggle, color = "#94a3b8" }) => (
     <div onClick={onToggle} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px 6px", cursor: "pointer" }}>
       <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", color }}>{label}</span>
       <span style={{ fontSize: 12, color, transition: "transform .2s", transform: open ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block" }}>›</span>
@@ -205,7 +205,7 @@ export function MobileDrawer({ open, onClose, onLogout }) {
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 10, marginBottom: 2, cursor: "pointer", minHeight: 40, opacity: unlocked ? 1 : 0.55 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 14 }}>{item.icon}</span>
-                  <span style={{ fontSize: 14, color: "var(--text-muted)" }}>{item.label}</span>
+                  <span style={{ fontSize: 14, color: "#4a5568" }}>{item.label}</span>
                 </div>
                 {!unlocked && <span style={{ fontSize: 10 }}>🔒</span>}
               </div>
@@ -287,7 +287,7 @@ export function Sidebar({ onLogout }) {
         }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
-          <span style={{ fontSize: 14.5, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "var(--text-muted)" }}>{label}</span>
+          <span style={{ fontSize: 14.5, fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : "#4a5568" }}>{label}</span>
         </div>
         {badge > 0 && (
           <span style={{ fontSize: 10, fontWeight: 800, background: "#e8445a", color: "#fff", padding: "2px 6px", borderRadius: 20, minWidth: 18, textAlign: "center" }}>{badge}</span>
@@ -296,7 +296,7 @@ export function Sidebar({ onLogout }) {
     );
   };
 
-  const SectionHeader = ({ label, open, onToggle, color = "var(--text-faint)" }) => (
+  const SectionHeader = ({ label, open, onToggle, color = "#94a3b8" }) => (
     <div onClick={onToggle}
       style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 6px", cursor: "pointer", userSelect: "none", marginTop: 2 }}>
       <span style={{ fontSize: 10.5, color, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase" }}>{label}</span>
@@ -342,7 +342,7 @@ export function Sidebar({ onLogout }) {
         <div style={{ height: 1, background: "var(--border)", margin: "5px 4px 6px" }} />
 
         {/* ── 임대 관리 (항상 표시) ── */}
-        <p style={{ fontSize: 10.5, color: "var(--text-faint)", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "2px 10px 6px" }}>임대 관리</p>
+        <p style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", padding: "2px 10px 6px" }}>임대 관리</p>
         <NavItem icon="🏠" label="물건 관리"  path="/dashboard/properties" />
         <NavItem icon="👤" label="세입자"      path="/dashboard/tenants"    badge={expiringCount} />
         <NavItem icon="💰" label="수금 현황"   path="/dashboard/payments"   badge={unpaidCount} />
@@ -389,7 +389,7 @@ export function Sidebar({ onLogout }) {
                   }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                     <span style={{ fontSize: 15 }}>{item.icon}</span>
-                    <span style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? "#5b4fcf" : "var(--text-muted)" }}>{item.label}</span>
+                    <span style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? "#5b4fcf" : "#4a5568" }}>{item.label}</span>
                   </div>
                   {!unlocked && <span style={{ fontSize: 9 }}>🔒</span>}
                 </div>

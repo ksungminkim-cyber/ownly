@@ -49,7 +49,7 @@ export default function LandingPage() {
         </div>
 
         <h1 style={{ fontSize: "clamp(28px,5vw,52px)", fontWeight: 900, lineHeight: 1.15, marginBottom: 16 }}>
-          <span className="gradient-text">개인 임대인을 위한</span><br />
+          <span className="gradient-text">임대인을 위한</span><br />
           <span style={{ color: "#1a2744" }}>스마트 임대 관리 앱</span>
         </h1>
         <p style={{ fontSize: 15, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 32, maxWidth: 480, margin: "0 auto 32px" }}>
