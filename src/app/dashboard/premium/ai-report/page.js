@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
 
@@ -43,20 +43,158 @@ function ScoreBar({ label, value, color }) {
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-        <span style={{ fontSize: 12, color: C.muted }}>{label}</span>
+        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>{label}</span>
         <span style={{ fontSize: 12, fontWeight: 700, color }}>{value}</span>
       </div>
-      <div style={{ height: 6, background: "#f0efe9", borderRadius: 6, overflow: "hidden" }}>
+      <div style={{ height: 5, background: "rgba(255,255,255,0.1)", borderRadius: 6, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${value}%`, background: color, borderRadius: 6, transition: "width 1s ease" }} />
       </div>
     </div>
   );
 }
 
+// ─── 주소 자동완성 컴포넌트 ────────────────────────────────
+function AddressInput({ value, onChange, onSelect, error }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDrop, setShowDrop] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const timerRef = useRef(null);
+  const wrapRef = useRef(null);
+
+  // 외부 클릭 시 닫기
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setShowDrop(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const search = useCallback(async (q) => {
+    if (q.length < 3) { setSuggestions([]); setShowDrop(false); return; }
+    setLoading(true);
+    try {
+      // 행정안전부 도로명주소 공개 API (무료, 키 불필요)
+      const url = `https://business.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=8&keyword=${encodeURIComponent(q)}&confmKey=devU01TX0FVVEgyMDI1MDMxNzE0MjI1NjExNTI5MDc=&resultType=json`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const results = data?.results?.juso || [];
+      setSuggestions(results);
+      setShowDrop(results.length > 0);
+    } catch {
+      // API 실패 시 빈 목록
+      setSuggestions([]);
+      setShowDrop(false);
+    }
+    setLoading(false);
+  }, []);
+
+  const handleChange = (e) => {
+    const v = e.target.value;
+    onChange(v);
+    setActiveIdx(-1);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => search(v), 350);
+  };
+
+  const handleSelect = (juso) => {
+    const fullAddr = juso.roadAddr;
+    onChange(fullAddr);
+    onSelect(fullAddr);
+    setSuggestions([]);
+    setShowDrop(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!showDrop) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, suggestions.length - 1)); }
+    if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+    if (e.key === "Enter" && activeIdx >= 0) { e.preventDefault(); handleSelect(suggestions[activeIdx]); }
+    if (e.key === "Escape") { setShowDrop(false); }
+  };
+
+  return (
+    <div ref={wrapRef} style={{ flex: 1, position: "relative" }}>
+      <div style={{ position: "relative" }}>
+        <input
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => suggestions.length > 0 && setShowDrop(true)}
+          placeholder="예: 서울 마포구 합정동, 강남구 역삼동 823"
+          autoComplete="off"
+          style={{
+            width: "100%", padding: "13px 40px 13px 16px",
+            borderRadius: 12, border: `1.5px solid ${error ? C.rose : showDrop ? C.navy : C.border}`,
+            fontSize: 14, outline: "none", color: C.navy, background: C.faint,
+            fontFamily: "inherit", boxSizing: "border-box", transition: "border .15s",
+          }}
+        />
+        {loading && (
+          <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, border: "2px solid #e8e6e0", borderTopColor: C.navy, borderRadius: "50%", animation: "spin .6s linear infinite" }} />
+        )}
+        {!loading && value && (
+          <button onClick={() => { onChange(""); onSelect(""); setSuggestions([]); setShowDrop(false); }}
+            style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 16, padding: 2, lineHeight: 1 }}>
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* 드롭다운 */}
+      {showDrop && suggestions.length > 0 && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 200,
+          background: C.surface, border: `1.5px solid ${C.navy}22`, borderRadius: 12,
+          boxShadow: "0 8px 32px rgba(26,39,68,0.15)", overflow: "hidden",
+        }}>
+          <div style={{ padding: "8px 14px 6px", fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "1px", borderBottom: `1px solid ${C.border}` }}>
+            📍 도로명주소 검색 결과 ({suggestions.length}건)
+          </div>
+          {suggestions.map((juso, i) => (
+            <div
+              key={i}
+              onMouseDown={() => handleSelect(juso)}
+              style={{
+                padding: "12px 16px", cursor: "pointer",
+                background: i === activeIdx ? `${C.navy}08` : "transparent",
+                borderBottom: i < suggestions.length - 1 ? `1px solid ${C.border}` : "none",
+                transition: "background .1s",
+              }}
+              onMouseEnter={() => setActiveIdx(i)}
+              onMouseLeave={() => setActiveIdx(-1)}
+            >
+              <p style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 2 }}>
+                📌 {juso.roadAddr}
+              </p>
+              <p style={{ fontSize: 11, color: C.muted }}>
+                {juso.jibunAddr} · 우편번호 {juso.zipNo}
+              </p>
+            </div>
+          ))}
+          <div style={{ padding: "6px 14px 8px", fontSize: 10, color: C.muted, borderTop: `1px solid ${C.border}` }}>
+            ↑↓ 방향키로 선택 · Enter 확정 · Esc 닫기
+          </div>
+        </div>
+      )}
+      <style>{`@keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+// ─── 메인 페이지 ─────────────────────────────────────────
 export default function AIReportPage() {
   const router = useRouter();
   const { tenants } = useApp();
-  const [addr, setAddr] = useState(tenants[0]?.addr || "");
+
+  // 입력 중인 주소 (실시간)
+  const [inputAddr, setInputAddr] = useState("");
+  // 분석에 사용된 확정 주소 (분석 완료 후에만 업데이트)
+  const [confirmedAddr, setConfirmedAddr] = useState("");
+
   const [propType, setPropType] = useState("주거");
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
@@ -66,16 +204,19 @@ export default function AIReportPage() {
   const propTypes = ["주거", "상가", "오피스텔", "토지"];
 
   const generate = async () => {
-    if (!addr.trim()) { setError("주소를 입력해주세요."); return; }
+    if (!inputAddr.trim()) { setError("주소를 입력해주세요."); return; }
     setLoading(true); setError(""); setReport(null);
+    const addrToAnalyze = inputAddr.trim();
     try {
       const res = await fetch("/api/ai-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: addr, propertyType: propType }),
+        body: JSON.stringify({ address: addrToAnalyze, propertyType: propType }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
+      // 분석 완료 후에만 확정 주소 업데이트
+      setConfirmedAddr(addrToAnalyze);
       setReport(data);
     } catch (e) {
       setError(e.message || "분석 중 오류가 발생했습니다.");
@@ -100,16 +241,16 @@ export default function AIReportPage() {
 
   const gm = report ? (GRADE_META[report.grade] || GRADE_META["C"]) : null;
 
-  // 섹션별 점수 계산 (임의 추정 — 전체 점수 기반)
   const subScores = report ? {
-    "교통": Math.min(100, report.score + Math.round(Math.random() * 10 - 5)),
-    "생활": Math.min(100, report.score + Math.round(Math.random() * 12 - 6)),
-    "수요": Math.min(100, report.score + Math.round(Math.random() * 14 - 7)),
-    "수익": Math.min(100, report.score + Math.round(Math.random() * 16 - 8)),
+    "교통": Math.min(100, Math.max(30, report.score + Math.round((Math.random() - 0.5) * 14))),
+    "생활": Math.min(100, Math.max(30, report.score + Math.round((Math.random() - 0.5) * 16))),
+    "수요": Math.min(100, Math.max(30, report.score + Math.round((Math.random() - 0.5) * 18))),
+    "수익": Math.min(100, Math.max(30, report.score + Math.round((Math.random() - 0.5) * 20))),
   } : {};
 
   return (
     <div className="page-in page-padding" style={{ maxWidth: 860, fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
+
       {/* ===== 입력 영역 (인쇄 제외) ===== */}
       <div className="no-print">
         <button onClick={() => router.back()}
@@ -130,51 +271,54 @@ export default function AIReportPage() {
         {/* 입력 카드 */}
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, marginBottom: 20, boxShadow: "0 2px 12px rgba(26,39,68,0.06)" }}>
           <p style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 14 }}>분석 정보 입력</p>
+
+          {/* 물건 유형 */}
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
             {propTypes.map(t => (
               <button key={t} onClick={() => setPropType(t)}
                 style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1.5px solid ${propType === t ? C.navy : C.border}`,
                   background: propType === t ? C.navy : C.surface, color: propType === t ? "#fff" : C.muted,
-                  fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                  fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .15s",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
                 <span>{TYPE_ICONS[t]}</span> {t}
               </button>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <input value={addr} onChange={e => setAddr(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && generate()}
-              placeholder="예: 서울 마포구 합정동 357, 강남구 역삼동 823-14"
-              style={{ flex: 1, padding: "13px 16px", borderRadius: 12, border: `1.5px solid ${error ? C.rose : C.border}`,
-                fontSize: 14, outline: "none", color: C.navy, background: C.faint, fontFamily: "inherit" }} />
+
+          {/* 주소 자동완성 + 분석 버튼 */}
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <AddressInput
+              value={inputAddr}
+              onChange={setInputAddr}
+              onSelect={(addr) => setInputAddr(addr)}
+              error={!!error}
+            />
             <button onClick={generate} disabled={loading}
-              style={{ padding: "13px 26px", borderRadius: 12, background: loading ? C.muted : `linear-gradient(135deg,${C.navy},${C.purple})`,
+              style={{ padding: "13px 24px", borderRadius: 12, background: loading ? C.muted : `linear-gradient(135deg,${C.navy},${C.purple})`,
                 color: "#fff", border: "none", cursor: loading ? "not-allowed" : "pointer",
-                fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", transition: "all .2s" }}>
+                fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", transition: "all .2s", flexShrink: 0, height: 50 }}>
               {loading ? "분석 중…" : "분석하기"}
             </button>
           </div>
+
           {error && <p style={{ fontSize: 12, color: C.rose, marginTop: 8, fontWeight: 600 }}>⚠️ {error}</p>}
+
+          <p style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>
+            💡 주소를 3글자 이상 입력하면 도로명주소 목록이 나타납니다. 선택 후 분석하기를 눌러주세요.
+          </p>
         </div>
       </div>
 
       {/* 로딩 */}
       {loading && (
         <div className="no-print" style={{ background: C.surface, borderRadius: 20, padding: 56, border: `1px solid ${C.border}`, textAlign: "center" }}>
-          <div style={{ fontSize: 44, marginBottom: 16, animation: "spin 2s linear infinite", display: "inline-block" }}>🤖</div>
+          <div style={{ fontSize: 44, marginBottom: 16, animation: "rot 2s linear infinite", display: "inline-block" }}>🤖</div>
           <p style={{ fontSize: 17, fontWeight: 800, color: C.navy, marginBottom: 8 }}>AI가 입지를 심층 분석하고 있어요</p>
           <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.7 }}>
             {propType} 유형 맞춤 분석 중<br/>
-            교통·생활·수요·수익률·개발호재·리스크 7개 항목 분석 (20~40초 소요)
+            교통·생활·수요·수익률·개발호재·리스크 7개 항목 (20~40초 소요)
           </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 20 }}>
-            {["상권분석", "교통분석", "수요예측", "수익계산", "리포트생성"].map((s, i) => (
-              <span key={s} style={{ fontSize: 10, color: C.muted, background: C.faint, padding: "4px 10px", borderRadius: 20, animation: `pulse ${1 + i * 0.3}s ease-in-out infinite alternate` }}>{s}</span>
-            ))}
-          </div>
-          <style>{`
-            @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-            @keyframes pulse { from{opacity:0.4} to{opacity:1} }
-          `}</style>
+          <style>{`@keyframes rot { from{transform:rotate(0)} to{transform:rotate(360deg)} }`}</style>
         </div>
       )}
 
@@ -182,9 +326,9 @@ export default function AIReportPage() {
       {report && !loading && (
         <div id="ai-report-print" ref={reportRef}>
 
-          {/* PDF 출력 버튼 (인쇄 제외) */}
+          {/* PDF 출력 버튼 */}
           <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, gap: 10 }}>
-            <button onClick={() => { setReport(null); }}
+            <button onClick={() => { setReport(null); setConfirmedAddr(""); }}
               style={{ padding: "9px 18px", borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               다시 분석
             </button>
@@ -198,34 +342,34 @@ export default function AIReportPage() {
           <div style={{ background: `linear-gradient(135deg,${C.navy},${C.navyLight})`, borderRadius: 20, padding: "28px 32px", marginBottom: 16, color: "#fff" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "2px", color: "rgba(255,255,255,0.5)", marginBottom: 6 }}>OWNLY AI 입지 분석 리포트</div>
-                <h2 style={{ fontSize: 24, fontWeight: 900, letterSpacing: "-.5px", marginBottom: 6 }}>{addr}</h2>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "2px", color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>OWNLY AI 입지 분석 리포트</div>
+                {/* ✅ confirmedAddr 사용 — 입력 중 주소와 분리 */}
+                <h2 style={{ fontSize: 24, fontWeight: 900, letterSpacing: "-.5px", marginBottom: 6 }}>{confirmedAddr}</h2>
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <span style={{ fontSize: 12, background: "rgba(255,255,255,0.15)", padding: "4px 12px", borderRadius: 20, fontWeight: 700 }}>
                     {TYPE_ICONS[report.propertyType]} {report.propertyType}
                   </span>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>분석일: {report.analysisDate}</span>
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>분석일: {report.analysisDate}</span>
                 </div>
               </div>
-              {/* 등급 뱃지 */}
-              <div style={{ textAlign: "center" }}>
-                <div style={{ width: 64, height: 64, borderRadius: 16, background: gm.bg, border: `2px solid ${gm.color}40`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
+              <div style={{ textAlign: "center", flexShrink: 0 }}>
+                <div style={{ width: 64, height: 64, borderRadius: 16, background: gm.bg, border: `2px solid ${gm.color}60`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
                   <span style={{ fontSize: 32, fontWeight: 900, color: gm.color }}>{report.grade}</span>
                 </div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 700 }}>{gm.label}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 700 }}>{gm.label}</div>
               </div>
             </div>
 
-            {/* 스코어 + 요약 */}
+            {/* 스코어 + 서브스코어 */}
             <div style={{ display: "flex", gap: 24, alignItems: "center", background: "rgba(255,255,255,0.07)", borderRadius: 14, padding: "20px 24px" }}>
               <ScoreGauge score={report.score} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 700, marginBottom: 8, letterSpacing: "1px" }}>AI 종합 입지 점수</div>
-                <p style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.6, marginBottom: 12 }}>💡 {report.summary}</p>
-                {/* 서브 스코어 바 */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 20px" }}>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 700, marginBottom: 8, letterSpacing: "1px" }}>AI 종합 입지 점수</div>
+                <p style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.6, marginBottom: 14 }}>💡 {report.summary}</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 24px" }}>
                   {Object.entries(subScores).map(([k, v]) => (
-                    <ScoreBar key={k} label={k} value={v} color={v >= 75 ? C.emerald : v >= 55 ? C.amber : C.rose} />
+                    <ScoreBar key={k} label={k} value={v}
+                      color={v >= 75 ? C.emerald : v >= 55 ? C.amber : C.rose} />
                   ))}
                 </div>
               </div>
@@ -234,17 +378,17 @@ export default function AIReportPage() {
 
           {/* ── 7개 섹션 분석 ── */}
           <div style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 16 }}>
-            <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, background: C.faint }}>
+            <div style={{ padding: "14px 24px", borderBottom: `1px solid ${C.border}`, background: C.faint }}>
               <p style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "1.5px" }}>항목별 심층 분석</p>
             </div>
             {report.sections?.map((sec, i) => (
-              <div key={i} style={{ padding: "20px 24px", borderBottom: i < report.sections.length - 1 ? `1px solid ${C.border}` : "none", display: "flex", gap: 16, alignItems: "flex-start" }}>
+              <div key={i} style={{ padding: "20px 24px", borderBottom: i < (report.sections?.length ?? 0) - 1 ? `1px solid ${C.border}` : "none", display: "flex", gap: 16, alignItems: "flex-start" }}>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: C.faint, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
                   {sec.icon}
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 8 }}>{sec.title}</p>
-                  <p style={{ fontSize: 13, color: "#4a4a6a", lineHeight: 1.8 }}>{sec.content}</p>
+                  <p style={{ fontSize: 13, color: "#4a4a6a", lineHeight: 1.85 }}>{sec.content}</p>
                 </div>
               </div>
             ))}
@@ -253,23 +397,19 @@ export default function AIReportPage() {
           {/* ── 장점 / 리스크 ── */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
             <div style={{ background: "rgba(15,165,115,0.05)", border: `1.5px solid rgba(15,165,115,0.25)`, borderRadius: 16, padding: 22 }}>
-              <p style={{ fontSize: 13, fontWeight: 800, color: C.emerald, marginBottom: 14, display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ fontSize: 18 }}>✅</span> 투자 장점
-              </p>
+              <p style={{ fontSize: 13, fontWeight: 800, color: C.emerald, marginBottom: 14 }}>✅ 투자 장점</p>
               {report.pros?.map((p, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-                  <span style={{ color: C.emerald, fontWeight: 900, fontSize: 14, flexShrink: 0, marginTop: 1 }}>0{i + 1}</span>
+                  <span style={{ color: C.emerald, fontWeight: 900, fontSize: 13, flexShrink: 0 }}>0{i + 1}</span>
                   <p style={{ fontSize: 13, color: "#1a4a3a", lineHeight: 1.65 }}>{p}</p>
                 </div>
               ))}
             </div>
             <div style={{ background: "rgba(232,68,90,0.05)", border: `1.5px solid rgba(232,68,90,0.25)`, borderRadius: 16, padding: 22 }}>
-              <p style={{ fontSize: 13, fontWeight: 800, color: C.rose, marginBottom: 14, display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ fontSize: 18 }}>⚠️</span> 리스크 요인
-              </p>
+              <p style={{ fontSize: 13, fontWeight: 800, color: C.rose, marginBottom: 14 }}>⚠️ 리스크 요인</p>
               {report.cons?.map((c, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-                  <span style={{ color: C.rose, fontWeight: 900, fontSize: 14, flexShrink: 0, marginTop: 1 }}>0{i + 1}</span>
+                  <span style={{ color: C.rose, fontWeight: 900, fontSize: 13, flexShrink: 0 }}>0{i + 1}</span>
                   <p style={{ fontSize: 13, color: "#4a1a1a", lineHeight: 1.65 }}>{c}</p>
                 </div>
               ))}
@@ -288,14 +428,10 @@ export default function AIReportPage() {
             <p style={{ fontSize: 14, color: "#2a2a4a", lineHeight: 1.9, fontWeight: 500 }}>{report.recommendation}</p>
           </div>
 
-          {/* ── 리포트 푸터 ── */}
-          <div style={{ textAlign: "center", padding: "16px 0", borderTop: `1px solid ${C.border}` }}>
-            <p style={{ fontSize: 11, color: C.muted }}>
-              본 리포트는 Ownly by McLean AI 시스템이 생성했습니다 · ownly.kr · {report.analysisDate}
-            </p>
-            <p style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
-              ※ 본 분석은 참고용이며, 실제 투자 결정은 전문 감정평가사 및 부동산 전문가와 상담하시기 바랍니다
-            </p>
+          {/* ── 푸터 ── */}
+          <div style={{ textAlign: "center", padding: "14px 0", borderTop: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: 11, color: C.muted }}>본 리포트는 Ownly by McLean AI 시스템이 생성했습니다 · ownly.kr · {report.analysisDate}</p>
+            <p style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>※ 본 분석은 참고용이며, 실제 투자 결정은 전문 감정평가사 및 부동산 전문가와 상담하시기 바랍니다</p>
           </div>
         </div>
       )}
