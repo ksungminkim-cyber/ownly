@@ -1,119 +1,54 @@
 export const runtime = "edge";
 
-const PRICING_PROMPTS = {
-  주거: (address) => `당신은 대한민국 주거용 부동산 임대료 전문 감정평가사입니다.
-⚠️ 반드시 순수한 한국어로만 작성하세요. 한자, 영어, 외래어를 절대 사용하지 마세요.
+function buildPricingPrompt(address, propertyType) {
+  const typeMap = {
+    "주거": "residential (apartment/villa/house)",
+    "상가": "commercial (retail store/shop)",
+    "오피스텔": "officetel (studio/office)",
+    "토지": "land"
+  };
+  const typeEn = typeMap[propertyType] || "residential";
 
-분석 주소: "${address}"
-물건 유형: 주거 (아파트/빌라/원룸/단독주택)
+  return `⚠️ CRITICAL: Respond ONLY in Korean language. No Chinese characters, no English words, no Vietnamese words. All text must be pure Korean (한글).
+⚠️ CRITICAL: Output ONLY valid JSON. No markdown, no backticks, no explanation text outside JSON.
 
-해당 주소 인근의 실거래 시세를 기반으로 적정 임대료를 분석하세요.
-아래 JSON 형식으로만 응답하고 markdown 코드블록 없이 JSON만 출력하세요:
+You are a Korean real estate rent pricing expert with 15+ years of experience.
+Analyze this address and estimate appropriate rent prices based on current Korean market data.
+
+Address: "${address}"
+Property type: ${propertyType} (${typeEn})
+
+Output this exact JSON structure (replace all placeholder values with real Korean market data):
 {
-  "rentRange": { "min": 숫자, "max": 숫자, "unit": "만원/월" },
-  "depositRange": { "min": 숫자, "max": 숫자, "unit": "만원" },
-  "marketPosition": "고평가|적정|저평가",
-  "marketPositionScore": -2에서+2사이정수,
-  "avgRent": 숫자,
-  "avgDeposit": 숫자,
-  "pricePerSqm": 숫자,
+  "rentRange": { "min": 80, "max": 120, "unit": "만원/월" },
+  "depositRange": { "min": 3000, "max": 5000, "unit": "만원" },
+  "marketPosition": "적정",
+  "marketPositionScore": 0,
+  "avgRent": 100,
+  "avgDeposit": 4000,
+  "pricePerSqm": 3,
   "comparables": [
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" },
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" },
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" }
+    { "type": "인근 유사 물건 1", "rent": 90, "deposit": 3000, "note": "반경 300m 내 유사 면적" },
+    { "type": "인근 유사 물건 2", "rent": 100, "deposit": 4000, "note": "동일 건물 유형" },
+    { "type": "인근 유사 물건 3", "rent": 115, "deposit": 5000, "note": "리모델링 완료 물건" }
   ],
-  "strategy": "문자열 (적정 임대 전략 2~3문장, 구체적 수치 포함)",
-  "vacancyRisk": "낮음|보통|높음",
-  "bestTiming": "문자열 (임대 최적 시기 1문장)",
-  "negotiationTip": "문자열 (협상 팁 1~2문장)",
-  "priceTrend": "상승|보합|하락",
-  "trendReason": "문자열 (추세 이유 1문장)"
-}`,
+  "strategy": "해당 지역 시세와 물건 특성을 고려한 임대 전략을 2-3문장으로 작성하세요.",
+  "vacancyRisk": "보통",
+  "bestTiming": "임대 최적 시기를 1문장으로 작성하세요.",
+  "negotiationTip": "협상 팁을 1-2문장으로 작성하세요.",
+  "priceTrend": "보합",
+  "trendReason": "가격 추세 이유를 1문장으로 작성하세요."
+}
 
-  상가: (address) => `당신은 대한민국 상업용 부동산 임대료 전문 감정평가사입니다.
-⚠️ 반드시 순수한 한국어로만 작성하세요.
-
-분석 주소: "${address}"
-물건 유형: 상가
-
-아래 JSON 형식으로만 응답:
-{
-  "rentRange": { "min": 숫자, "max": 숫자, "unit": "만원/월" },
-  "depositRange": { "min": 숫자, "max": 숫자, "unit": "만원" },
-  "marketPosition": "고평가|적정|저평가",
-  "marketPositionScore": -2에서+2사이정수,
-  "avgRent": 숫자,
-  "avgDeposit": 숫자,
-  "pricePerSqm": 숫자,
-  "comparables": [
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" },
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" },
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" }
-  ],
-  "strategy": "문자열",
-  "vacancyRisk": "낮음|보통|높음",
-  "bestTiming": "문자열",
-  "negotiationTip": "문자열",
-  "priceTrend": "상승|보합|하락",
-  "trendReason": "문자열"
-}`,
-
-  오피스텔: (address) => `당신은 대한민국 오피스텔 임대료 전문 감정평가사입니다.
-⚠️ 반드시 순수한 한국어로만 작성하세요.
-
-분석 주소: "${address}"
-물건 유형: 오피스텔
-
-아래 JSON 형식으로만 응답:
-{
-  "rentRange": { "min": 숫자, "max": 숫자, "unit": "만원/월" },
-  "depositRange": { "min": 숫자, "max": 숫자, "unit": "만원" },
-  "marketPosition": "고평가|적정|저평가",
-  "marketPositionScore": -2에서+2사이정수,
-  "avgRent": 숫자,
-  "avgDeposit": 숫자,
-  "pricePerSqm": 숫자,
-  "comparables": [
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" },
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" },
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" }
-  ],
-  "strategy": "문자열",
-  "vacancyRisk": "낮음|보통|높음",
-  "bestTiming": "문자열",
-  "negotiationTip": "문자열",
-  "priceTrend": "상승|보합|하락",
-  "trendReason": "문자열"
-}`,
-
-  토지: (address) => `당신은 대한민국 토지 임대료 전문 감정평가사입니다.
-⚠️ 반드시 순수한 한국어로만 작성하세요.
-
-분석 주소: "${address}"
-물건 유형: 토지
-
-아래 JSON 형식으로만 응답:
-{
-  "rentRange": { "min": 숫자, "max": 숫자, "unit": "만원/월" },
-  "depositRange": { "min": 숫자, "max": 숫자, "unit": "만원" },
-  "marketPosition": "고평가|적정|저평가",
-  "marketPositionScore": -2에서+2사이정수,
-  "avgRent": 숫자,
-  "avgDeposit": 숫자,
-  "pricePerSqm": 숫자,
-  "comparables": [
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" },
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" },
-    { "type": "문자열", "rent": 숫자, "deposit": 숫자, "note": "문자열" }
-  ],
-  "strategy": "문자열",
-  "vacancyRisk": "낮음|보통|높음",
-  "bestTiming": "문자열",
-  "negotiationTip": "문자열",
-  "priceTrend": "상승|보합|하락",
-  "trendReason": "문자열"
-}`
-};
+Rules:
+- marketPosition must be exactly one of: "고평가", "적정", "저평가"
+- marketPositionScore must be integer between -2 and 2
+- vacancyRisk must be exactly one of: "낮음", "보통", "높음"
+- priceTrend must be exactly one of: "상승", "보합", "하락"
+- All numeric values (rent, deposit, etc.) must be actual numbers, not strings
+- All string values must be in Korean only
+- Return ONLY the JSON object, nothing else`;
+}
 
 export async function POST(req) {
   try {
@@ -123,20 +58,21 @@ export async function POST(req) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) return Response.json({ error: "API 키가 설정되지 않았습니다." }, { status: 500 });
 
-    const promptFn = PRICING_PROMPTS[propertyType] || PRICING_PROMPTS["주거"];
-    const prompt = promptFn(address);
-
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [
-          { role: "system", content: "당신은 대한민국 부동산 임대료 감정평가 전문가입니다. 반드시 순수한 한국어로만 응답하세요. 한자, 영어, 외래어를 절대 사용하지 마세요. 요청된 JSON 형식으로만 응답하고 문자열 값 안에 줄바꿈 문자를 포함하지 마세요." },
-          { role: "user", content: prompt },
+          {
+            role: "system",
+            content: "You are a Korean real estate pricing expert. You MUST output ONLY valid JSON with no markdown formatting, no backticks, no text outside the JSON. All string values inside the JSON must be in Korean (한글) only."
+          },
+          { role: "user", content: buildPricingPrompt(address, propertyType) }
         ],
-        temperature: 0.4,
-        max_tokens: 2000,
+        temperature: 0.3,
+        max_tokens: 1500,
+        response_format: { type: "json_object" },
       }),
     });
 
@@ -146,13 +82,19 @@ export async function POST(req) {
     let text = data?.choices?.[0]?.message?.content;
     if (!text) return Response.json({ error: "AI 응답이 비어있습니다." }, { status: 500 });
 
+    // 안전한 파싱
     text = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
     const jsonStart = text.indexOf("{");
     const jsonEnd   = text.lastIndexOf("}");
-    if (jsonStart === -1 || jsonEnd === -1) return Response.json({ error: "올바른 형식으로 응답하지 않았습니다." }, { status: 500 });
-
+    if (jsonStart === -1 || jsonEnd === -1) {
+      return Response.json({ error: "AI가 올바른 형식으로 응답하지 않았습니다. 다시 시도해주세요." }, { status: 500 });
+    }
     text = text.slice(jsonStart, jsonEnd + 1);
-    text = text.replace(/[\u0000-\u001F\u007F]/g, (ch) => ({ "\n": "\\n", "\r": "\\r", "\t": "\\t" }[ch] || ""));
+    // 제어문자 정리
+    text = text.replace(/[\u0000-\u001F\u007F]/g, (ch) => {
+      const safe = { "\n": "\\n", "\r": "\\r", "\t": "\\t" };
+      return safe[ch] || "";
+    });
 
     const result = JSON.parse(text);
     result.address = address;
