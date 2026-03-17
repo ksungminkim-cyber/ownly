@@ -258,7 +258,12 @@ export default function AIReportPage() {
             { key: "location", icon: "🗺️", label: "입지 분석 리포트", desc: "상권·학군·교통·수요 종합 분석" },
             { key: "pricing",  icon: "💰", label: "적정 임대료 분석", desc: "시세 기반 적정 임대료 산출" },
           ].map(tab => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            <button key={tab.key} onClick={() => {
+              setActiveTab(tab.key);
+              // 탭 전환 시 반대 탭 결과 초기화
+              if (tab.key === "pricing") { setReport(null); setError(""); }
+              if (tab.key === "location") { setPResult(null); setPError(""); }
+            }}
               style={{
                 flex: 1, padding: "11px 16px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left",
                 background: activeTab === tab.key ? "#fff" : "transparent",
