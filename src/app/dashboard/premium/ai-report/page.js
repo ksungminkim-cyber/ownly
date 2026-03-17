@@ -165,8 +165,9 @@ export default function AIReportPage() {
   const handlePrint = () => {
     if (!report) return;
     try {
-      sessionStorage.setItem("ownly_ai_report", JSON.stringify(report));
-      sessionStorage.setItem("ownly_ai_report_addr", confirmedAddr);
+      const key = "ownly_ai_report_latest";
+      localStorage.setItem(key, JSON.stringify(report));
+      localStorage.setItem(key + "_addr", confirmedAddr);
       window.open("/dashboard/premium/ai-report/print", "_blank");
     } catch (e) {
       alert("PDF 출력 중 오류가 발생했습니다: " + e.message);
