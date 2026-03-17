@@ -49,6 +49,8 @@ const PLAN_ORDER = { free: 0, starter: 1, starter_plus: 2, pro: 3 };
 
 const PREMIUM_NAV = [
   { key: "premium/roi", icon: "💰", label: "수익률 계산기", plan: "starter_plus" },
+  { key: "premium/rent-increase", icon: "📈", label: "임대료 인상 계산기", plan: "starter_plus" },
+  { key: "premium/deposit-return", icon: "🔑", label: "보증금 반환 계산기", plan: "starter_plus" },
   { key: "premium/vacancy", icon: "📉", label: "공실 손실 계산기", plan: "starter_plus" },
   { key: "premium/lease-check", icon: "⚖️", label: "임대차 3법", plan: "starter_plus" },
   { key: "premium/map-search", icon: "🗺️", label: "주변 매물 조회", plan: "pro" },
