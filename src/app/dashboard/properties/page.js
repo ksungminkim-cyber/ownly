@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { Badge, SectionLabel, SearchBox, EmptyState, ConfirmDialog, Modal, AuthInput, SortButton, toast, InlineLoader } from "../../../components/shared";
 import { C, STATUS_MAP, COLORS, daysLeft } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
+import AddressInput from "../../../components/AddressInput";
 
 export default function PropertiesPage() {
   const { tenants, addTenant, updateTenant, deleteTenant, loading, canUse, getPlanLimit } = useApp();
@@ -214,7 +215,7 @@ export default function PropertiesPage() {
             <AuthInput label="세입자 이름 *" placeholder="홍길동"       value={form.name}  onChange={(e) => setForm((f) => ({ ...f, name:  e.target.value }))} icon="👤" />
             <AuthInput label="연락처"         placeholder="010-0000-0000" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} icon="📞" />
           </div>
-          <AuthInput label="주소 *" placeholder="마포구 합정동 123" value={form.addr} onChange={(e) => setForm((f) => ({ ...f, addr: e.target.value }))} icon="📍" />
+          <AddressInput label="주소" value={form.addr} onChange={(v) => setForm((f) => ({ ...f, addr: v }))} onSelect={(v) => setForm((f) => ({ ...f, addr: v }))} placeholder="마포구 합정동 123" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <AuthInput label={form.pType === "토지" ? "토지 가액 (만원)" : "보증금 (만원)"} placeholder={form.pType === "토지" ? "100000" : "50000"} value={form.dep}  onChange={(e) => setForm((f) => ({ ...f, dep:  e.target.value }))} icon="💵" />
             <AuthInput label={form.pType === "토지" ? "월 임대료 (만원)" : "월세 (만원) *"} placeholder={form.pType === "토지" ? "50" : "120"}   value={form.rent} onChange={(e) => setForm((f) => ({ ...f, rent: e.target.value }))} icon="💰" />

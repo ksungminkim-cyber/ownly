@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { CustomTooltip, EmptyState } from "../../components/shared";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { REVENUE, daysLeft } from "../../lib/constants";
+import AddressInput from "../../components/AddressInput";
 import { useApp } from "../../context/AppContext";
 
 const ST = {
@@ -699,12 +700,10 @@ JSON 형식으로만 응답하세요:
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <p style={{ fontSize: 11, color: "#8a8a9a", lineHeight: 1.6 }}>AI가 입력한 주소의 상권·학군·교통을 분석합니다.</p>
-      <div style={{ display: "flex", gap: 8 }}>
-        <input value={addr} onChange={(e) => setAddr(e.target.value)}
-          placeholder="분석할 주소 입력"
-          style={{ flex: 1, padding: "9px 12px", borderRadius: 10, border: "1px solid #ebe9e3", fontSize: 12, outline: "none", color: "#1a2744" }} />
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <AddressInput value={addr} onChange={setAddr} onSelect={setAddr} placeholder="분석할 주소 입력" style={{ flex: 1 }} />
         <button onClick={generate} disabled={loading || !addr}
-          style={{ padding: "9px 14px", borderRadius: 10, background: "#1a2744", color: "#fff", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, opacity: loading ? 0.6 : 1 }}>
+          style={{ padding: "11px 14px", borderRadius: 10, background: "#1a2744", color: "#fff", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, opacity: loading ? 0.6 : 1, flexShrink: 0 }}>
           {loading ? "분석중..." : "분석"}
         </button>
       </div>

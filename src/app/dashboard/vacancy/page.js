@@ -4,6 +4,7 @@ import { SectionLabel, EmptyState, Modal, AuthInput, toast } from "../../../comp
 import { C } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 import PlanGate from "../../../components/PlanGate";
+import AddressInput from "../../../components/AddressInput";
 
 export default function VacancyPage() {
   return <PlanGate feature="vacancy"><VacancyContent /></PlanGate>;
@@ -96,7 +97,7 @@ function VacancyContent() {
               </button>
             ))}
           </div>
-          <AuthInput label="주소 *" placeholder="마포구 합정동 123" value={form.addr} onChange={(e) => setForm((f) => ({ ...f, addr: e.target.value }))} icon="📍" />
+          <AddressInput label="주소" value={form.addr} onChange={(v) => setForm((f) => ({ ...f, addr: v }))} onSelect={(v) => setForm((f) => ({ ...f, addr: v }))} placeholder="마포구 합정동 123" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <AuthInput label="공실 시작일" type="date" value={form.vacantSince} onChange={(e) => setForm((f) => ({ ...f, vacantSince: e.target.value }))} />
             <AuthInput label="기대 월세 (만원)" placeholder="120" value={form.expectedRent} onChange={(e) => setForm((f) => ({ ...f, expectedRent: e.target.value }))} icon="💰" />
