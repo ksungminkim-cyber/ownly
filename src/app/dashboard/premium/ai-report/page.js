@@ -606,9 +606,22 @@ export default function AIReportPage() {
               </div>
             </div>
 
+            {/* dataNote — 신뢰도 경고 */}
+            {pResult.dataNote && (
+              <div style={{ background: pResult.hasRealData ? "rgba(59,91,219,0.04)" : "rgba(251,191,36,0.08)", border: `1px solid ${pResult.hasRealData ? "rgba(59,91,219,0.15)" : "rgba(251,191,36,0.3)"}`, borderRadius:12, padding:"12px 16px", marginBottom:12, display:"flex", gap:10, alignItems:"flex-start" }}>
+                <span style={{ fontSize:16, flexShrink:0 }}>{pResult.hasRealData ? "ℹ️" : "⚠️"}</span>
+                <p style={{ fontSize:12, color: pResult.hasRealData ? "#3b5bdb" : "#b45309", lineHeight:1.7 }}>{pResult.dataNote}</p>
+              </div>
+            )}
+
             <div style={{ textAlign:"center", padding:"12px 0", borderTop:`1px solid ${C.border}` }}>
-              <p style={{ fontSize:10, color:C.muted }}>본 분석은 Ownly by McLean AI 시스템이 생성했습니다 · ownly.kr · {pResult.analysisDate}</p>
-              <p style={{ fontSize:9, color:C.muted, marginTop:2 }}>※ AI 추정 데이터로 실제 거래 시 공인중개사 및 감정평가사와 반드시 상담하시기 바랍니다</p>
+              <p style={{ fontSize:10, color:C.muted }}>
+                {pResult.hasRealData
+                  ? `국토교통부 실거래가 ${pResult.dataCount || pResult.rawStats?.count || ""}건 기반 · Ownly AI 분석 · ${pResult.analysisDate}`
+                  : `AI 추정 분석 (실거래가 데이터 없음) · Ownly AI · ${pResult.analysisDate}`
+                }
+              </p>
+              <p style={{ fontSize:9, color:C.muted, marginTop:2 }}>※ 본 분석은 참고용이며 실제 거래 시 공인중개사 및 감정평가사와 반드시 상담하시기 바랍니다</p>
             </div>
           </div>
         );
