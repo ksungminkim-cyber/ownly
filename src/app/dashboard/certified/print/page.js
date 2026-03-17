@@ -104,20 +104,15 @@ export default function CertifiedPrintPage() {
         <p style={{ fontSize:13, color:"#1a1a2e" }}>{today}</p>
       </div>
 
-      {/* 날인 */}
-      <div style={{ display:"flex", justifyContent:"flex-end", gap:48, marginTop:24, marginBottom:40 }}>
-        {[
-          { label:"발신인 (임대인)", name: f.senderName },
-          { label:"수신인 (임차인)", name: f.receiverName || h.tenant_name },
-        ].map(({ label, name }) => (
-          <div key={label} style={{ textAlign:"center" }}>
-            <p style={{ fontSize:11, color:"#8a8a9a", marginBottom:6 }}>{label}</p>
-            <p style={{ fontSize:13, fontWeight:700, color:"#1a2744", marginBottom:8 }}>{name}</p>
-            <div style={{ width:80, height:80, border:"1px solid #d0d0d8", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", color:"#d0d0d8", fontSize:11 }}>
-              (인)
-            </div>
+      {/* 날인 — 발신인(임대인)만 */}
+      <div style={{ display:"flex", justifyContent:"flex-end", marginTop:24, marginBottom:40 }}>
+        <div style={{ textAlign:"center" }}>
+          <p style={{ fontSize:11, color:"#8a8a9a", marginBottom:6 }}>발신인 (임대인)</p>
+          <p style={{ fontSize:13, fontWeight:700, color:"#1a2744", marginBottom:8 }}>{f.senderName || "　　　　　"}</p>
+          <div style={{ width:80, height:80, border:"1px solid #d0d0d8", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", color:"#d0d0d8", fontSize:11 }}>
+            (인)
           </div>
-        ))}
+        </div>
       </div>
 
       {/* 하단 안내 */}
@@ -128,7 +123,16 @@ export default function CertifiedPrintPage() {
 
       <style>{`
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        @media print { @page { margin: 20mm; size: A4 portrait; } body { margin:0; background:white; } }
+        nav, aside, header, footer,
+        .sidebar, .mobile-header, .bottom-nav, .no-print,
+        [class*="ticker"], [class*="Ticker"],
+        [class*="layout"], [class*="navigation"] { display: none !important; }
+        @media print {
+          @page { margin: 20mm; size: A4 portrait; }
+          body { margin: 0 !important; background: white !important; }
+          nav, aside, header, footer,
+          .sidebar, .bottom-nav { display: none !important; }
+        }
       `}</style>
     </div>
   );
