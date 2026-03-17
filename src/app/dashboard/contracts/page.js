@@ -72,7 +72,7 @@ export default function ContractsPage() {
           <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>총 {contracts.length}건 · 진행중 {contracts.filter((c) => c.status === "active").length}건</p>
         </div>
         <button onClick={openAdd} className="btn-primary"
-          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           + 계약 추가
         </button>
       </div>
@@ -160,7 +160,7 @@ export default function ContractsPage() {
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => { setShowModal(false); resetForm(); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
             <button onClick={saveContract} disabled={saving} className="btn-primary"
-              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
+              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "저장 중..." : editTarget ? "저장하기" : "등록하기"}
             </button>
           </div>

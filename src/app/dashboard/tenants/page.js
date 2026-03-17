@@ -226,7 +226,7 @@ export default function TenantsPage() {
           <div style={{ display: "flex", gap: 9 }}>
             <button onClick={() => setShowContact(false)} style={{ flex: 1, padding: "11px", borderRadius: 10, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
             <button onClick={addContact} disabled={saving} className="btn-primary"
-              style={{ flex: 2, padding: "11px", borderRadius: 10, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              style={{ flex: 2, padding: "11px", borderRadius: 10, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
               {saving ? "저장 중..." : "저장하기"}
             </button>
           </div>

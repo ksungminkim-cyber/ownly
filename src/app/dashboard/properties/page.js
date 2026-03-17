@@ -104,7 +104,7 @@ export default function PropertiesPage() {
             }
             resetForm(); setEditTarget(null); setShowModal(true);
           }} className="btn-primary"
-          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           + 물건 추가
         </button>
       </div>
@@ -223,7 +223,7 @@ export default function PropertiesPage() {
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
             <button onClick={() => { setShowModal(false); resetForm(); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
             <button onClick={saveTenant} disabled={saving} className="btn-primary"
-              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
+              style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "저장 중..." : editTarget ? "저장하기" : "등록하기"}
             </button>
           </div>

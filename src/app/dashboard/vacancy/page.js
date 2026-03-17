@@ -44,7 +44,7 @@ function VacancyContent() {
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744" }}>공실 관리</h1>
           <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>전체 {totalUnits}실 중 공실 {vacancies.length}실</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary" style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+        <button onClick={() => setShowModal(true)} className="btn-primary" style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           + 공실 등록
         </button>
       </div>
@@ -107,7 +107,7 @@ function VacancyContent() {
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
-            <button onClick={addVacancy} className="btn-primary" style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#1a2744", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>등록</button>
+            <button onClick={addVacancy} className="btn-primary" style={{ flex: 2, padding: "12px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>등록</button>
           </div>
         </div>
       </Modal>

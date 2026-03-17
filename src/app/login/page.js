@@ -38,7 +38,10 @@ export default function AuthPage() {
       } else {
         const { error } = await supabase.auth.signUp({
           email: form.email, password: form.pw,
-          options: { data: { full_name: form.name, phone: form.phone } },
+          options: {
+            data: { full_name: form.name, phone: form.phone },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
         });
         if (error) throw error;
         setMsg("가입 확인 이메일을 발송했습니다. 메일함을 확인해주세요.");

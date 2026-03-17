@@ -5,6 +5,7 @@ import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components
 import { Toast, PageLoader } from "../../components/shared";
 import { AppProvider, useApp } from "../../context/AppContext";
 import { supabase } from "../../lib/supabase";
+import RealEstateTicker from "../../components/RealEstateTicker";
 
 function DashboardFooter() {
   const LINKS = [
@@ -82,6 +83,7 @@ function DashboardShell({ children }) {
           minWidth: 0, display: "flex", flexDirection: "column", overflowX: "hidden"
         }}>
           <div style={{ flex: 1 }}>{children}</div>
+          <RealEstateTicker />
           <DashboardFooter />
         </main>
       </div>
