@@ -506,11 +506,27 @@ export default function AIReportPage() {
                   { label:"월세 범위", value:`${pResult.rentRange?.min}~${pResult.rentRange?.max}만원`, sub:"월", color:C.emerald },
                   { label:"보증금 범위", value:`${pResult.depositRange?.min?.toLocaleString()}~${pResult.depositRange?.max?.toLocaleString()}만원`, sub:"", color:C.amber },
                   { label:"평당 임대료", value: (() => {
-                    const v = pResult.rawStats?.avgRentPerPy || pResult.rentPerPyeong;
+                    // rawStats 우선 (실거래가 기반), 없으면 AI값, 둘 다 없으면 comparables에서 계산
+                    const fromStats = pResult.rawStats?.avgRentPerPy;
+                    const fromAI = pResult.rentPerPyeong;
+                    const fromComps = (() => {
+                      const valid = (pResult.comparables || []).filter(x => x.rent > 0 && (x.areaPyeong || x.area));
+                      if (!valid.length) return null;
+                      const vals = valid.map(x => x.rent / (x.areaPyeong || x.area / 3.306));
+                      return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length * 10) / 10;
+                    })();
+                    const v = fromStats || fromComps || (fromAI && fromAI < 100 ? fromAI : null);
                     return v ? `${v}만원` : "-";
                   })(), sub:"평당/월", color:"#a78bfa" },
                   { label:"㎡당 임대료", value: (() => {
-                    const py = pResult.rawStats?.avgRentPerPy || pResult.rentPerPyeong;
+                    const fromStats = pResult.rawStats?.avgRentPerPy;
+                    const fromComps = (() => {
+                      const valid = (pResult.comparables || []).filter(x => x.rent > 0 && (x.areaPyeong || x.area));
+                      if (!valid.length) return null;
+                      const vals = valid.map(x => x.rent / (x.areaPyeong || x.area / 3.306));
+                      return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length * 10) / 10;
+                    })();
+                    const py = fromStats || fromComps;
                     if (!py) return "-";
                     return `${(py / 3.306).toFixed(2)}만원`;
                   })(), sub:"㎡당/월", color:"#60a5fa" },

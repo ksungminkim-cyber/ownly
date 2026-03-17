@@ -29,11 +29,12 @@ function getEndpoint(apiType) {
 }
 
 function resolveApiType(propertyType) {
+  // 임대료 분석 목적 — 전월세 우선, 매매 없는 유형만 매매로
   const map = {
     "주거":    "아파트-전월세",
     "아파트":  "아파트-전월세",
     "오피스텔":"오피스텔-전월세",
-    "상가":    "상업업무용-매매",
+    "상가":    "상업업무용-매매",   // 상업용 전월세 API 없음 → 매매 참고
     "토지":    "토지-매매",
     "공장":    "공장창고-매매",
     "연립":    "연립다세대-전월세",
@@ -44,10 +45,11 @@ function resolveApiType(propertyType) {
   return map[propertyType] || "아파트-전월세";
 }
 
-function getRecentMonths(count = 3) {
+function getRecentMonths(count = 5) {
+  // 국토부 실거래가는 약 1~2개월 지연 게시되므로 2개월 전부터 조회
   const months = [];
   const now = new Date();
-  for (let i = 0; i < count; i++) {
+  for (let i = 2; i < count + 2; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
