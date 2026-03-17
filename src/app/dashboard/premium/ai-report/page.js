@@ -186,10 +186,25 @@ export default function AIReportPage() {
     }
     setPLoading(true); setPError(""); setPResult(null);
     try {
+      // 1단계: 카카오 API로 법정동코드 추출
+      let lawdCd = null;
+      try {
+        const geoRes = await fetch("/api/geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: pInputAddr.trim() }),
+        });
+        const geoData = await geoRes.json();
+        if (geoData.sigunguCode) lawdCd = geoData.sigunguCode;
+      } catch (e) {
+        console.warn("법정동코드 추출 실패, AI 추정으로 진행:", e.message);
+      }
+
+      // 2단계: 실거래가 기반 AI 분석
       const res = await fetch("/api/ai-pricing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: pInputAddr.trim(), propertyType: pPropType }),
+        body: JSON.stringify({ address: pInputAddr.trim(), propertyType: pPropType, lawdCd }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -526,24 +541,37 @@ export default function AIReportPage() {
                 </div>
                 {/* 테이블 헤더 */}
                 <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1.5fr", gap:0, padding:"8px 20px", background:"#fafaf8", borderBottom:`1px solid ${C.border}` }}>
-                  {["물건 유형", "면적", "층/건축년", "월세", "보증금", "평당 임대료"].map(h=>(
+                  {["물건명·동", "면적", "층/건축년", "월세", "보증금", "평당/계약"].map(h=>(
                     <p key={h} style={{ fontSize:10, fontWeight:800, color:C.muted, letterSpacing:".5px" }}>{h}</p>
                   ))}
                 </div>
                 {pResult.comparables.map((comp, i) => {
                   const rentPerPy = comp.area ? (comp.rent / comp.area).toFixed(1) : "-";
                   return (
-                    <div key={i} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1.5fr", gap:0, padding:"13px 20px", borderBottom: i < pResult.comparables.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
+                    <div key={i} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1.5fr", gap:0, padding:"12px 20px", borderBottom: i < pResult.comparables.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
                       <div>
-                        <p style={{ fontSize:13, fontWeight:700, color:C.navy }}>{comp.type}</p>
-                        <p style={{ fontSize:10, color:C.muted, marginTop:2 }}>{comp.distance} · {comp.note}</p>
+                        <p style={{ fontSize:12, fontWeight:700, color:C.navy }}>{comp.name || comp.type || "-"}</p>
+                        <p style={{ fontSize:10, color:C.muted, marginTop:2 }}>{comp.dong}{comp.distance ? ` · ${comp.distance}` : ""}</p>
+                        {comp.note && <p style={{ fontSize:10, color:C.muted }}>{comp.note}</p>}
                       </div>
-                      <p style={{ fontSize:13, fontWeight:600, color:C.navy }}>{comp.area ? `${comp.area}평` : "-"}<span style={{ fontSize:10, color:C.muted }}>({comp.area ? Math.round(comp.area*3.3)+"㎡" : ""})</span></p>
-                      <p style={{ fontSize:12, color:C.navy }}>{comp.floor || "-"}<br/><span style={{ fontSize:10, color:C.muted }}>{comp.builtYear ? comp.builtYear+"년" : ""}</span></p>
-                      <p style={{ fontSize:14, fontWeight:800, color:C.emerald }}>{comp.rent?.toLocaleString()}만원</p>
-                      <p style={{ fontSize:12, color:C.muted }}>{comp.deposit?.toLocaleString()}만원</p>
-                      <div style={{ background:`${C.indigo}10`, borderRadius:8, padding:"4px 10px", display:"inline-block" }}>
-                        <p style={{ fontSize:12, fontWeight:800, color:C.indigo }}>{rentPerPy}만원/평</p>
+                      <div>
+                        <p style={{ fontSize:12, fontWeight:600, color:C.navy }}>{comp.areaPyeong ? `${comp.areaPyeong}평` : (comp.area ? `${comp.area}평` : "-")}</p>
+                        <p style={{ fontSize:10, color:C.muted }}>{comp.area ? `${comp.area}㎡` : ""}</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize:12, color:C.navy }}>{comp.floor || "-"}층</p>
+                        <p style={{ fontSize:10, color:C.muted }}>{comp.builtYear ? comp.builtYear+"년" : ""}</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize:13, fontWeight:800, color:C.emerald }}>{comp.rent?.toLocaleString() || "-"}만원</p>
+                        {comp.type && <p style={{ fontSize:9, color:C.muted }}>{comp.type}</p>}
+                      </div>
+                      <p style={{ fontSize:12, color:C.muted }}>{comp.deposit?.toLocaleString() || "-"}만원</p>
+                      <div>
+                        <div style={{ background:`${C.indigo}10`, borderRadius:8, padding:"3px 8px", marginBottom:3 }}>
+                          <p style={{ fontSize:11, fontWeight:800, color:C.indigo }}>{rentPerPy}만원/평</p>
+                        </div>
+                        <p style={{ fontSize:10, color:C.muted }}>{comp.contract || ""}</p>
                       </div>
                     </div>
                   );
