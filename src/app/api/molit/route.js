@@ -1,52 +1,81 @@
 export const runtime = "edge";
 
-function getApiKey(apiType) {
-  const keyMap = {
-    "아파트-전월세":     process.env.MOLIT_APT_RENT_KEY,
-    "아파트-매매":       process.env.MOLIT_APT_TRADE_KEY,
-    "오피스텔-전월세":   process.env.MOLIT_OFFI_RENT_KEY,
-    "연립다세대-전월세": process.env.MOLIT_VILLA_RENT_KEY,
-    "단독다가구-전월세": process.env.MOLIT_HOUSE_RENT_KEY,
-    "상업업무용-매매":   process.env.MOLIT_COMMERCIAL_KEY,
-    "토지-매매":         process.env.MOLIT_LAND_KEY,
-    "공장창고-매매":     process.env.MOLIT_FACTORY_KEY,
-  };
-  return keyMap[apiType];
-}
+// ─────────────────────────────────────────────────────
+// API 설정 맵
+// ─────────────────────────────────────────────────────
+const API_CONFIG = {
+  "아파트-전월세": {
+    key:      () => process.env.MOLIT_APT_RENT_KEY,
+    endpoint: "getRTMSDataSvcAptRent",
+    isRent:   true,
+    fields:   { name:"아파트", area:"전용면적", deposit:"보증금액", rent:"월세금액", floor:"층", built:"건축년도", dong:"법정동" },
+  },
+  "아파트-매매": {
+    key:      () => process.env.MOLIT_APT_TRADE_KEY,
+    endpoint: "getRTMSDataSvcAptTradeDev",
+    isRent:   false,
+    fields:   { name:"아파트", area:"전용면적", price:"거래금액", floor:"층", built:"건축년도", dong:"법정동" },
+    yieldRate: 0.04,  // 4% 수익률로 임대료 역산
+  },
+  "오피스텔-전월세": {
+    key:      () => process.env.MOLIT_OFFI_RENT_KEY,
+    endpoint: "getRTMSDataSvcOffiRent",
+    isRent:   true,
+    fields:   { name:"단지명", area:"전용면적", deposit:"보증금", rent:"월세", floor:"층", built:"건축년도", dong:"법정동" },
+  },
+  "연립다세대-전월세": {
+    key:      () => process.env.MOLIT_VILLA_RENT_KEY,
+    endpoint: "getRTMSDataSvcRHRent",
+    isRent:   true,
+    fields:   { name:"연립다세대", area:"전용면적", deposit:"보증금액", rent:"월세금액", floor:"층", built:"건축년도", dong:"법정동" },
+  },
+  "단독다가구-전월세": {
+    key:      () => process.env.MOLIT_HOUSE_RENT_KEY,
+    endpoint: "getRTMSDataSvcSHRent",
+    isRent:   true,
+    fields:   { name:"지역", area:"전용면적", deposit:"보증금액", rent:"월세금액", floor:"층", built:null, dong:"지역" },
+  },
+  "상업업무용-매매": {
+    key:      () => process.env.MOLIT_COMMERCIAL_KEY,
+    endpoint: "getRTMSDataSvcNrgTrade",
+    isRent:   false,
+    fields:   { name:"건물명", area:"전용면적", price:"거래금액", floor:"층", built:"건축년도", dong:"법정동" },
+    yieldRate: 0.035,  // 상가 통상 3.5% 수익률
+    note:     "상업용 부동산은 전월세 실거래가 미공개 — 매매가 기준 수익률 3.5% 역산값입니다",
+  },
+  "토지-매매": {
+    key:      () => process.env.MOLIT_LAND_KEY,
+    endpoint: "getRTMSDataSvcLandTrade",
+    isRent:   false,
+    fields:   { name:"지역", area:"대지면적", price:"거래금액", floor:null, built:null, dong:"지역" },
+    yieldRate: 0.02,   // 토지 임대 수익률 낮음 (2%)
+    note:     "토지는 임대 수익률 추정이 어렵습니다. 매매가 기준 2% 역산값으로 참고용으로만 활용하세요",
+  },
+  "공장창고-매매": {
+    key:      () => process.env.MOLIT_FACTORY_KEY,
+    endpoint: "getRTMSDataSvcFctTrade",
+    isRent:   false,
+    fields:   { name:"공장명", area:"전용면적", price:"거래금액", floor:"층", built:null, dong:"법정동" },
+    yieldRate: 0.05,   // 공장창고 5% 수익률
+    note:     "공장·창고는 전월세 실거래가 미공개 — 매매가 기준 수익률 5% 역산값입니다",
+  },
+};
 
-function getEndpoint(apiType) {
-  const endpointMap = {
-    "아파트-전월세":     "getRTMSDataSvcAptRent",
-    "아파트-매매":       "getRTMSDataSvcAptTradeDev",
-    "오피스텔-전월세":   "getRTMSDataSvcOffiRent",
-    "연립다세대-전월세": "getRTMSDataSvcRHRent",
-    "단독다가구-전월세": "getRTMSDataSvcSHRent",
-    "상업업무용-매매":   "getRTMSDataSvcNrgTrade",
-    "토지-매매":         "getRTMSDataSvcLandTrade",
-    "공장창고-매매":     "getRTMSDataSvcFctTrade",
-  };
-  return endpointMap[apiType];
-}
+// ─────────────────────────────────────────────────────
+// Ownly 유형 → API 목록 매핑 (복수 병합 지원)
+// ─────────────────────────────────────────────────────
+const TYPE_TO_APIS = {
+  "주거":    ["아파트-전월세", "연립다세대-전월세", "단독다가구-전월세"],
+  "오피스텔": ["오피스텔-전월세"],
+  "상가":    ["상업업무용-매매"],
+  "토지":    ["토지-매매"],
+  "공장":    ["공장창고-매매"],
+};
 
-function resolveApiType(propertyType) {
-  // 임대료 분석 목적 — 전월세 우선, 매매 없는 유형만 매매로
-  const map = {
-    "주거":    "아파트-전월세",
-    "아파트":  "아파트-전월세",
-    "오피스텔":"오피스텔-전월세",
-    "상가":    "상업업무용-매매",   // 상업용 전월세 API 없음 → 매매 참고
-    "토지":    "토지-매매",
-    "공장":    "공장창고-매매",
-    "연립":    "연립다세대-전월세",
-    "빌라":    "연립다세대-전월세",
-    "단독":    "단독다가구-전월세",
-    "다가구":  "단독다가구-전월세",
-  };
-  return map[propertyType] || "아파트-전월세";
-}
-
+// ─────────────────────────────────────────────────────
+// 국토부 API 신고 지연: 현재 기준 2~7개월 전 데이터 조회
+// ─────────────────────────────────────────────────────
 function getRecentMonths(count = 5) {
-  // 국토부 실거래가는 약 1~2개월 지연 게시되므로 2개월 전부터 조회
   const months = [];
   const now = new Date();
   for (let i = 2; i < count + 2; i++) {
@@ -56,7 +85,10 @@ function getRecentMonths(count = 5) {
   return months;
 }
 
-async function fetchMolitData(endpoint, apiKey, lawdCd, dealYmd) {
+// ─────────────────────────────────────────────────────
+// 단일 API 호출
+// ─────────────────────────────────────────────────────
+async function fetchOne(endpoint, apiKey, lawdCd, dealYmd) {
   const url = `https://apis.data.go.kr/1613000/RTMSDataSvc/${endpoint}?serviceKey=${encodeURIComponent(apiKey)}&LAWD_CD=${lawdCd}&DEAL_YMD=${dealYmd}&pageNo=1&numOfRows=100&_type=json`;
   try {
     const res = await fetch(url, { headers: { "Accept": "application/json" } });
@@ -68,103 +100,164 @@ async function fetchMolitData(endpoint, apiKey, lawdCd, dealYmd) {
   } catch { return []; }
 }
 
-function normalizeRentItem(item) {
-  const rent    = parseInt(String(item.월세금액 || item.월세 || "0").replace(/,/g, "")) || 0;
-  const deposit = parseInt(String(item.보증금액 || item.전세금 || item.보증금 || "0").replace(/,/g, "")) || 0;
-  const area    = parseFloat(item.전용면적 || "0") || 0;
-  const areaPy  = Math.round(area / 3.306 * 10) / 10;
-  return {
-    name:        item.아파트 || item.연립다세대 || item.단지명 || "-",
-    dong:        item.법정동 || item.동 || "",
-    floor:       item.층 || "-",
-    builtYear:   item.건축년도 || "-",
-    contract:    `${item.년}-${item.월}`,
-    area:        Math.round(area * 10) / 10,
-    areaPyeong:  areaPy,
-    rent, deposit,
-    type:        rent > 0 ? "월세" : "전세",
-    rentPerPyeong: areaPy > 0 && rent > 0 ? Math.round(rent / areaPy * 10) / 10 : null,
-  };
-}
+// ─────────────────────────────────────────────────────
+// 아이템 정규화 — API 설정의 fields 기반으로 통합
+// ─────────────────────────────────────────────────────
+function normalizeItem(raw, config, apiType, year, month) {
+  const f = config.fields;
+  const toNum = v => parseInt(String(v || "0").replace(/,/g, "")) || 0;
+  const toFloat = v => parseFloat(v || "0") || 0;
 
-function normalizeTradeItem(item) {
-  const price  = parseInt(String(item.거래금액 || "0").replace(/,/g, "")) || 0;
-  const area   = parseFloat(item.전용면적 || item.대지면적 || "0") || 0;
-  const areaPy = Math.round(area / 3.306 * 10) / 10;
-  return {
-    name:         item.아파트 || item.도로명 || "-",
-    dong:         item.법정동 || item.동 || "",
-    floor:        item.층 || "-",
-    builtYear:    item.건축년도 || "-",
-    contract:     `${item.년}-${item.월}`,
-    area:         Math.round(area * 10) / 10,
-    areaPyeong:   areaPy,
-    price,
-    pricePerPyeong: areaPy > 0 && price > 0 ? Math.round(price / areaPy) : null,
-  };
-}
+  const areaSqm   = toFloat(raw[f.area]);
+  const areaPy    = areaSqm > 0 ? Math.round(areaSqm / 3.306 * 10) / 10 : 0;
 
-function calcStats(items, isRent) {
-  if (!items.length) return null;
-  if (isRent) {
-    const rents   = items.filter(i => i.rent > 0).map(i => i.rent);
-    const deps    = items.map(i => i.deposit).filter(Boolean);
-    const perPy   = items.filter(i => i.rentPerPyeong).map(i => i.rentPerPyeong);
-    const areas   = items.map(i => i.area).filter(Boolean);
-    const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+  const base = {
+    apiType,
+    name:      (f.name ? raw[f.name] : null) || raw["건물명"] || raw["단지명"] || raw["아파트"] || "-",
+    dong:      (f.dong ? raw[f.dong] : null) || raw["법정동"] || raw["지역"] || "",
+    floor:     f.floor ? String(raw[f.floor] || "-").replace("층","") : null,  // "층" 제거
+    builtYear: f.built ? String(raw[f.built] || "") : "",
+    contract:  `${year}-${String(month).padStart(2,"0")}`,
+    areaSqm:   Math.round(areaSqm * 10) / 10,
+    areaPy,
+  };
+
+  if (config.isRent) {
+    // 전월세: 직접 임대료
+    const deposit = toNum(raw[f.deposit]);
+    const rent    = toNum(raw[f.rent]);
     return {
-      count:          items.length,
-      avgRent:        avg(rents),
-      minRent:        rents.length ? Math.min(...rents) : 0,
-      maxRent:        rents.length ? Math.max(...rents) : 0,
-      avgDeposit:     avg(deps),
-      minDeposit:     deps.length ? Math.min(...deps) : 0,
-      maxDeposit:     deps.length ? Math.max(...deps) : 0,
-      avgRentPerPy:   perPy.length ? Math.round(perPy.reduce((a,b)=>a+b,0)/perPy.length * 10)/10 : null,
-      avgArea:        areas.length ? Math.round(areas.reduce((a,b)=>a+b,0)/areas.length * 10)/10 : null,
-      avgAreaPyeong:  areas.length ? Math.round(areas.reduce((a,b)=>a+b,0)/areas.length / 3.306 * 10)/10 : null,
-      jeonseCount:    items.filter(i => i.type === "전세").length,
-      wolseCount:     items.filter(i => i.type === "월세").length,
+      ...base,
+      deposit,
+      rent,
+      type:          rent > 0 ? "월세" : "전세",
+      rentPerPy:     areaPy > 0 && rent > 0 ? Math.round(rent / areaPy * 10) / 10 : null,
+      depositPerPy:  areaPy > 0 && deposit > 0 ? Math.round(deposit / areaPy) : null,
     };
   } else {
-    const prices = items.map(i => i.price).filter(Boolean);
-    const perPy  = items.filter(i => i.pricePerPyeong).map(i => i.pricePerPyeong);
-    const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+    // 매매: 임대료 역산
+    const price    = toNum(raw[f.price]);
+    const yield_   = config.yieldRate || 0.04;
+    const estRent  = price > 0 ? Math.round(price * yield_ / 12) : 0;  // 연수익률로 월 임대료 역산
+    const pricePerPy = areaPy > 0 && price > 0 ? Math.round(price / areaPy) : null;
+    const rentPerPy  = areaPy > 0 && estRent > 0 ? Math.round(estRent / areaPy * 10) / 10 : null;
     return {
-      count:          items.length,
-      avgPrice:       avg(prices),
-      minPrice:       prices.length ? Math.min(...prices) : 0,
-      maxPrice:       prices.length ? Math.max(...prices) : 0,
-      avgPricePerPy:  perPy.length ? Math.round(perPy.reduce((a,b)=>a+b,0)/perPy.length) : null,
+      ...base,
+      price,
+      pricePerPy,
+      estRent,          // 역산 임대료
+      rentPerPy,        // 역산 평당 임대료
+      yieldRate: yield_,
+      deposit:   null,
+      rent:      estRent,
+      type:      "매매역산",
     };
   }
 }
 
+// ─────────────────────────────────────────────────────
+// 통계 계산
+// ─────────────────────────────────────────────────────
+function calcStats(items, isRent) {
+  const valid = items.filter(i => (isRent ? i.rent > 0 || i.deposit > 0 : i.price > 0 || i.estRent > 0));
+  if (!valid.length) return null;
+
+  const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0;
+  const rents    = valid.map(i => i.rent  || i.estRent || 0).filter(Boolean);
+  const deposits = valid.map(i => i.deposit).filter(Boolean);
+  const perPy    = valid.map(i => i.rentPerPy).filter(Boolean);
+  const areas    = valid.map(i => i.areaPy).filter(Boolean);
+  const prices   = valid.map(i => i.price).filter(Boolean);
+
+  return {
+    count:         valid.length,
+    isRent,
+    // 임대료
+    avgRent:       avg(rents),
+    minRent:       rents.length ? Math.min(...rents) : 0,
+    maxRent:       rents.length ? Math.max(...rents) : 0,
+    // 보증금
+    avgDeposit:    avg(deposits),
+    minDeposit:    deposits.length ? Math.min(...deposits) : 0,
+    maxDeposit:    deposits.length ? Math.max(...deposits) : 0,
+    // 평당 임대료
+    avgRentPerPy:  perPy.length ? Math.round(perPy.reduce((a,b)=>a+b,0)/perPy.length * 10)/10 : null,
+    minRentPerPy:  perPy.length ? Math.min(...perPy) : null,
+    maxRentPerPy:  perPy.length ? Math.max(...perPy) : null,
+    // 면적
+    avgAreaPy:     areas.length ? Math.round(areas.reduce((a,b)=>a+b,0)/areas.length * 10)/10 : null,
+    avgAreaSqm:    areas.length ? Math.round(areas.reduce((a,b)=>a+b,0)/areas.length * 3.306 * 10)/10 : null,
+    // 매매 (비임대 유형)
+    avgPrice:      avg(prices),
+    minPrice:      prices.length ? Math.min(...prices) : 0,
+    maxPrice:      prices.length ? Math.max(...prices) : 0,
+    avgPricePerPy: valid.map(i=>i.pricePerPy).filter(Boolean).length
+                   ? Math.round(valid.map(i=>i.pricePerPy).filter(Boolean).reduce((a,b)=>a+b,0)/valid.map(i=>i.pricePerPy).filter(Boolean).length)
+                   : null,
+    // 타입 분포
+    wolseCount:  valid.filter(i=>i.type==="월세").length,
+    jeonseCount: valid.filter(i=>i.type==="전세").length,
+    tradeCount:  valid.filter(i=>i.type==="매매역산").length,
+  };
+}
+
+// ─────────────────────────────────────────────────────
+// 메인 핸들러
+// ─────────────────────────────────────────────────────
 export async function POST(req) {
   try {
     const { lawdCd, propertyType = "주거" } = await req.json();
-    if (!lawdCd) return Response.json({ error: "법정동코드가 필요합니다." }, { status: 400 });
+    if (!lawdCd) return Response.json({ error: "법정동코드 필요" }, { status: 400 });
 
-    const apiType  = resolveApiType(propertyType);
-    const apiKey   = getApiKey(apiType);
-    const endpoint = getEndpoint(apiType);
-    if (!apiKey) return Response.json({ error: `${apiType} API 키가 미설정입니다.` }, { status: 500 });
-
-    const months = getRecentMonths(3);
+    const apiTypes = TYPE_TO_APIS[propertyType] || TYPE_TO_APIS["주거"];
+    const months   = getRecentMonths(5);
     const lawdShort = String(lawdCd).slice(0, 5);
 
-    const results = await Promise.all(months.map(ym => fetchMolitData(endpoint, apiKey, lawdShort, ym)));
-    const allItems = results.flat();
-    const isRent = apiType.includes("전월세");
+    // 모든 API 병렬 호출
+    const allItems = [];
+    const usedApiTypes = [];
+    const notes = [];
 
-    const normalized = allItems
-      .map(item => isRent ? normalizeRentItem(item) : normalizeTradeItem(item))
-      .filter(item => isRent ? (item.rent > 0 || item.deposit > 0) : item.price > 0);
+    for (const apiType of apiTypes) {
+      const config = API_CONFIG[apiType];
+      const apiKey = config.key();
+      if (!apiKey) { notes.push(`${apiType} API 키 미설정`); continue; }
 
-    const stats   = calcStats(normalized, isRent);
-    const samples = normalized.slice(0, 15);
+      const results = await Promise.all(
+        months.map(ym => {
+          const [yr, mo] = [ym.slice(0,4), ym.slice(4,6)];
+          return fetchOne(config.endpoint, apiKey, lawdShort, ym)
+            .then(items => items.map(raw => normalizeItem(raw, config, apiType, yr, mo)));
+        })
+      );
 
-    return Response.json({ apiType, isRent, months, totalCount: normalized.length, stats, samples, lawdCd: lawdShort });
+      const items = results.flat().filter(i =>
+        config.isRent ? (i.rent > 0 || i.deposit > 0) : (i.price > 0)
+      );
+
+      allItems.push(...items);
+      if (items.length > 0) usedApiTypes.push(apiType);
+      if (config.note) notes.push(config.note);
+    }
+
+    const isRent = apiTypes.some(t => API_CONFIG[t].isRent);
+    const stats  = calcStats(allItems, isRent);
+    const samples = allItems
+      .sort((a,b) => (b.contract||"").localeCompare(a.contract||""))
+      .slice(0, 15);
+
+    return Response.json({
+      propertyType,
+      apiTypes: usedApiTypes,
+      isRent,
+      months,
+      totalCount: allItems.length,
+      stats,
+      samples,
+      notes,
+      lawdCd: lawdShort,
+    });
+
   } catch (err) {
     console.error("국토부 API 오류:", err.message);
     return Response.json({ error: "실거래가 조회 오류: " + err.message }, { status: 500 });

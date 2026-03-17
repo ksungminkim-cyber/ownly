@@ -506,29 +506,29 @@ export default function AIReportPage() {
                   { label:"월세 범위", value:`${pResult.rentRange?.min}~${pResult.rentRange?.max}만원`, sub:"월", color:C.emerald },
                   { label:"보증금 범위", value:`${pResult.depositRange?.min?.toLocaleString()}~${pResult.depositRange?.max?.toLocaleString()}만원`, sub:"", color:C.amber },
                   { label:"평당 임대료", value: (() => {
-                    // rawStats 우선 (실거래가 기반), 없으면 AI값, 둘 다 없으면 comparables에서 계산
+                    // 우선순위: rawStats(실거래) > AI rentPerPy > comparables 역산
                     const fromStats = pResult.rawStats?.avgRentPerPy;
-                    const fromAI = pResult.rentPerPyeong;
+                    const fromAI    = pResult.rentPerPy;
                     const fromComps = (() => {
-                      const valid = (pResult.comparables || []).filter(x => x.rent > 0 && (x.areaPyeong || x.area));
+                      const valid = (pResult.comparables||[]).filter(x=>x.rent>0&&(x.areaPy||x.areaPyeong));
                       if (!valid.length) return null;
-                      const vals = valid.map(x => x.rent / (x.areaPyeong || x.area / 3.306));
-                      return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length * 10) / 10;
+                      const vals = valid.map(x=>x.rent/(x.areaPy||x.areaPyeong));
+                      return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
                     })();
-                    const v = fromStats || fromComps || (fromAI && fromAI < 100 ? fromAI : null);
+                    const v = fromStats || (fromAI && fromAI < 200 ? fromAI : null) || fromComps;
                     return v ? `${v}만원` : "-";
                   })(), sub:"평당/월", color:"#a78bfa" },
                   { label:"㎡당 임대료", value: (() => {
                     const fromStats = pResult.rawStats?.avgRentPerPy;
+                    const fromAI    = pResult.rentPerPy;
                     const fromComps = (() => {
-                      const valid = (pResult.comparables || []).filter(x => x.rent > 0 && (x.areaPyeong || x.area));
+                      const valid = (pResult.comparables||[]).filter(x=>x.rent>0&&(x.areaPy||x.areaPyeong));
                       if (!valid.length) return null;
-                      const vals = valid.map(x => x.rent / (x.areaPyeong || x.area / 3.306));
-                      return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length * 10) / 10;
+                      const vals = valid.map(x=>x.rent/(x.areaPy||x.areaPyeong));
+                      return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
                     })();
-                    const py = fromStats || fromComps;
-                    if (!py) return "-";
-                    return `${(py / 3.306).toFixed(2)}만원`;
+                    const py = fromStats || (fromAI && fromAI < 200 ? fromAI : null) || fromComps;
+                    return py ? `${(py/3.306).toFixed(2)}만원` : "-";
                   })(), sub:"㎡당/월", color:"#60a5fa" },
                   { label:"평균 면적", value:`${pResult.avgArea || "-"}평`, sub:`(${pResult.avgArea ? Math.round(pResult.avgArea * 3.306) : "-"}㎡)`, color:"#fff" },
                 ].map(k=>(
@@ -574,8 +574,8 @@ export default function AIReportPage() {
                   ))}
                 </div>
                 {pResult.comparables.map((comp, i) => {
-                  const _py = comp.areaPyeong || (comp.area ? Math.round(comp.area / 3.306 * 10) / 10 : 0);
-                  const rentPerPy = (_py > 0 && comp.rent > 0) ? (_py > 0 ? (comp.rent / _py).toFixed(1) : "-") : (comp.rentPerPyeong || "-");
+                  const _py = comp.areaPy || comp.areaPyeong || (comp.areaSqm ? Math.round(comp.areaSqm/3.306*10)/10 : 0);
+                  const rentPerPy = comp.rentPerPy || ((_py > 0 && comp.rent > 0) ? (comp.rent/_py).toFixed(1) : "-");
                   return (
                     <div key={i} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1.5fr", gap:0, padding:"12px 20px", borderBottom: i < pResult.comparables.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
                       <div>
@@ -584,8 +584,8 @@ export default function AIReportPage() {
                         {comp.note && <p style={{ fontSize:10, color:C.muted }}>{comp.note}</p>}
                       </div>
                       <div>
-                        <p style={{ fontSize:12, fontWeight:600, color:C.navy }}>{comp.areaPyeong ? `${comp.areaPyeong}평` : (comp.area ? `${comp.area}평` : "-")}</p>
-                        <p style={{ fontSize:10, color:C.muted }}>{comp.area ? `${comp.area}㎡` : ""}</p>
+                        <p style={{ fontSize:12, fontWeight:600, color:C.navy }}>{(comp.areaPy||comp.areaPyeong) ? `${comp.areaPy||comp.areaPyeong}평` : "-"}</p>
+                        <p style={{ fontSize:10, color:C.muted }}>{(comp.areaSqm||comp.area) ? `${comp.areaSqm||comp.area}㎡` : ""}</p>
                       </div>
                       <div>
                         <p style={{ fontSize:12, color:C.navy }}>{comp.floor ? (String(comp.floor).includes("층") ? comp.floor : comp.floor+"층") : "-"}</p>
@@ -593,7 +593,11 @@ export default function AIReportPage() {
                       </div>
                       <div>
                         <p style={{ fontSize:13, fontWeight:800, color:C.emerald }}>{comp.rent?.toLocaleString() || "-"}만원</p>
-                        {comp.type && <p style={{ fontSize:9, color:C.muted }}>{comp.type}</p>}
+                        {comp.type && <p style={{ fontSize:9, fontWeight:700,
+                          color: comp.type==="매매역산" ? C.amber : comp.type==="전세" ? "#3b5bdb" : C.emerald,
+                          background: comp.type==="매매역산" ? "rgba(232,150,10,0.1)" : comp.type==="전세" ? "rgba(59,91,219,0.1)" : "rgba(15,165,115,0.1)",
+                          padding:"1px 6px", borderRadius:10, display:"inline-block", marginTop:2
+                        }}>{comp.type==="매매역산" ? "매매역산*" : comp.type}</p>}
                       </div>
                       <p style={{ fontSize:12, color:C.muted }}>{comp.deposit?.toLocaleString() || "-"}만원</p>
                       <div>
