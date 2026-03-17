@@ -42,6 +42,7 @@ function OwnlyLogo({ size = "md", onClick }) {
 const NAV_ICONS = {
   dashboard: "⊞", properties: "🏠", tenants: "👤", payments: "💰",
   contracts: "📝", calendar: "📅", vacancy: "🚪", certified: "📨",
+  repairs: "🔨", ledger: "📒",
   reports: "📊", tax: "🧾", settings: "⚙️", pricing: "💎", community: "💬",
 };
 

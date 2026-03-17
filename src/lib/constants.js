@@ -233,6 +233,8 @@ export const NAV = [
   { key: "calendar",   icon: "📅", label: "캘린더" },
   { key: "vacancy",    icon: "🚪", label: "공실 관리" },
   { key: "certified",  icon: "📨", label: "내용증명" },
+  { key: "repairs",    icon: "🔨", label: "수리 이력" },
+  { key: "ledger",     icon: "📒", label: "간편 장부" },
   { key: "reports",    icon: "📊", label: "리포트" },
   { key: "tax",        icon: "🧾", label: "세금 관리" },
   { key: "settings",   icon: "⚙️", label: "설정" },
