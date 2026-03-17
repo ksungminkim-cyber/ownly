@@ -133,6 +133,7 @@ function AddressInput({ value, onChange, onSelect, error }) {
 export default function AIReportPage() {
   const router = useRouter();
   const { tenants } = useApp();
+  const [activeTab, setActiveTab] = useState("location"); // location | pricing
   const [inputAddr, setInputAddr] = useState("");
   const [confirmedAddr, setConfirmedAddr] = useState("");
   const [propType, setPropType] = useState("주거");
@@ -141,6 +142,13 @@ export default function AIReportPage() {
   const [error, setError] = useState("");
   const reportRef = useRef(null);
   const propTypes = ["주거", "상가", "오피스텔", "토지"];
+
+  // 프라이싱 탭 전용 state
+  const [pInputAddr, setPInputAddr] = useState("");
+  const [pPropType, setPPropType] = useState("주거");
+  const [pLoading, setPLoading] = useState(false);
+  const [pResult, setPResult] = useState(null);
+  const [pError, setPError] = useState("");
 
   const generate = async () => {
     if (!inputAddr.trim()) { setError("주소를 입력해주세요."); return; }
@@ -160,6 +168,24 @@ export default function AIReportPage() {
       setError(e.message || "분석 중 오류가 발생했습니다.");
     }
     setLoading(false);
+  };
+
+  const generatePricing = async () => {
+    if (!pInputAddr.trim()) { setPError("주소를 입력해주세요."); return; }
+    setPLoading(true); setPError(""); setPResult(null);
+    try {
+      const res = await fetch("/api/ai-pricing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: pInputAddr.trim(), propertyType: pPropType }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setPResult(data);
+    } catch (e) {
+      setPError(e.message || "분석 중 오류가 발생했습니다.");
+    }
+    setPLoading(false);
   };
 
   const handlePrint = () => {
@@ -187,36 +213,88 @@ export default function AIReportPage() {
       {/* 입력 영역 */}
       <div className="no-print">
         <button onClick={() => router.back()} style={{ background: "none", border: "none", color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 14, padding: 0 }}>← 뒤로가기</button>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#1a2744,#5b4fcf)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🤖</div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 900, color: C.navy, letterSpacing: "-.4px" }}>AI 입지 분석 리포트</h1>
+              <h1 style={{ fontSize: 22, fontWeight: 900, color: C.navy, letterSpacing: "-.4px" }}>AI 부동산 분석</h1>
               <span style={{ fontSize: 10, fontWeight: 800, color: C.purple, background: "rgba(91,79,207,0.1)", padding: "3px 8px", borderRadius: 6 }}>PRO</span>
             </div>
-            <p style={{ fontSize: 13, color: C.muted }}>유형별 맞춤 AI 분석 · 상권·학군·교통·수요·수익률을 전문가 수준으로 분석합니다</p>
+            <p style={{ fontSize: 13, color: C.muted }}>입지 분석 · 적정 임대료 산출 · 투자 전략까지 AI가 전문가 수준으로 분석합니다</p>
           </div>
         </div>
-        <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, marginBottom: 20, boxShadow: "0 2px 12px rgba(26,39,68,0.06)" }}>
-          <p style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 14 }}>분석 정보 입력</p>
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {propTypes.map(t => (
-              <button key={t} onClick={() => setPropType(t)}
-                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1.5px solid ${propType === t ? C.navy : C.border}`, background: propType === t ? C.navy : C.surface, color: propType === t ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                <span>{TYPE_ICONS[t]}</span> {t}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <AddressInput value={inputAddr} onChange={setInputAddr} onSelect={(addr) => setInputAddr(addr)} error={!!error} />
-            <button onClick={generate} disabled={loading}
-              style={{ padding: "13px 24px", borderRadius: 12, background: loading ? C.muted : `linear-gradient(135deg,${C.navy},${C.purple})`, color: "#fff", border: "none", cursor: loading ? "not-allowed" : "pointer", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", transition: "all .2s", flexShrink: 0, height: 50 }}>
-              {loading ? "분석 중…" : "분석하기"}
+
+        {/* 탭 */}
+        <div style={{ display: "flex", gap: 0, marginBottom: 20, background: C.faint, borderRadius: 12, padding: 4 }}>
+          {[
+            { key: "location", icon: "🗺️", label: "입지 분석 리포트", desc: "상권·학군·교통·수요 종합 분석" },
+            { key: "pricing",  icon: "💰", label: "적정 임대료 분석", desc: "시세 기반 적정 임대료 산출" },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              style={{
+                flex: 1, padding: "11px 16px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left",
+                background: activeTab === tab.key ? "#fff" : "transparent",
+                boxShadow: activeTab === tab.key ? "0 2px 8px rgba(26,39,68,0.1)" : "none",
+                transition: "all .2s",
+              }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 18 }}>{tab.icon}</span>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: activeTab === tab.key ? C.navy : C.muted }}>{tab.label}</p>
+                  <p style={{ fontSize: 11, color: C.muted }}>{tab.desc}</p>
+                </div>
+              </div>
             </button>
-          </div>
-          {error && <p style={{ fontSize: 12, color: C.rose, marginTop: 8, fontWeight: 600 }}>⚠️ {error}</p>}
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>💡 주소를 3글자 이상 입력하면 도로명주소 목록이 나타납니다. 선택 후 분석하기를 눌러주세요.</p>
+          ))}
         </div>
+
+        {/* ── 입지 분석 탭 입력 ── */}
+        {activeTab === "location" && (
+          <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, marginBottom: 20, boxShadow: "0 2px 12px rgba(26,39,68,0.06)" }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 14 }}>분석 정보 입력</p>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              {propTypes.map(t => (
+                <button key={t} onClick={() => setPropType(t)}
+                  style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1.5px solid ${propType === t ? C.navy : C.border}`, background: propType === t ? C.navy : C.surface, color: propType === t ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                  <span>{TYPE_ICONS[t]}</span> {t}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <AddressInput value={inputAddr} onChange={setInputAddr} onSelect={(addr) => setInputAddr(addr)} error={!!error} />
+              <button onClick={generate} disabled={loading}
+                style={{ padding: "13px 24px", borderRadius: 12, background: loading ? C.muted : `linear-gradient(135deg,${C.navy},${C.purple})`, color: "#fff", border: "none", cursor: loading ? "not-allowed" : "pointer", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", transition: "all .2s", flexShrink: 0, height: 50 }}>
+                {loading ? "분석 중…" : "분석하기"}
+              </button>
+            </div>
+            {error && <p style={{ fontSize: 12, color: C.rose, marginTop: 8, fontWeight: 600 }}>⚠️ {error}</p>}
+            <p style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>💡 주소를 3글자 이상 입력하면 도로명주소 목록이 나타납니다. 선택 후 분석하기를 눌러주세요.</p>
+          </div>
+        )}
+
+        {/* ── 프라이싱 탭 입력 ── */}
+        {activeTab === "pricing" && (
+          <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, marginBottom: 20, boxShadow: "0 2px 12px rgba(26,39,68,0.06)" }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 14 }}>임대료 분석 정보 입력</p>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              {propTypes.map(t => (
+                <button key={t} onClick={() => setPPropType(t)}
+                  style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1.5px solid ${pPropType === t ? C.emerald : C.border}`, background: pPropType === t ? C.emerald : C.surface, color: pPropType === t ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                  <span>{TYPE_ICONS[t]}</span> {t}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <AddressInput value={pInputAddr} onChange={setPInputAddr} onSelect={(addr) => setPInputAddr(addr)} error={!!pError} />
+              <button onClick={generatePricing} disabled={pLoading}
+                style={{ padding: "13px 24px", borderRadius: 12, background: pLoading ? C.muted : `linear-gradient(135deg,${C.emerald},#059669)`, color: "#fff", border: "none", cursor: pLoading ? "not-allowed" : "pointer", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", transition: "all .2s", flexShrink: 0, height: 50 }}>
+                {pLoading ? "분석 중…" : "분석하기"}
+              </button>
+            </div>
+            {pError && <p style={{ fontSize: 12, color: C.rose, marginTop: 8, fontWeight: 600 }}>⚠️ {pError}</p>}
+            <p style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>💡 주소를 입력하면 해당 지역의 적정 임대료 범위와 시장 포지션을 AI가 분석합니다.</p>
+          </div>
+        )}
       </div>
 
       {/* 로딩 */}
@@ -330,6 +408,116 @@ export default function AIReportPage() {
           </div>
         </div>
       )}
+
+      {/* ── 프라이싱 로딩 ── */}
+      {activeTab === "pricing" && pLoading && (
+        <div style={{ background: C.surface, borderRadius: 20, padding: 56, border: `1px solid ${C.border}`, textAlign: "center" }}>
+          <div style={{ fontSize: 44, marginBottom: 16, animation: "rot 2s linear infinite", display: "inline-block" }}>💰</div>
+          <p style={{ fontSize: 17, fontWeight: 800, color: C.navy, marginBottom: 8 }}>AI가 적정 임대료를 계산하고 있어요</p>
+          <p style={{ fontSize: 13, color: C.muted }}>인근 실거래가 · 시세 데이터 · 공실률 분석 중 (20~40초 소요)</p>
+        </div>
+      )}
+
+      {/* ── 프라이싱 결과 ── */}
+      {activeTab === "pricing" && pResult && !pLoading && (() => {
+        const pos = pResult.marketPosition || "적정";
+        const posColor = pos === "저평가" ? C.emerald : pos === "고평가" ? C.rose : C.amber;
+        const trendColor = pResult.priceTrend === "상승" ? C.emerald : pResult.priceTrend === "하락" ? C.rose : C.amber;
+        const vacColor   = pResult.vacancyRisk === "낮음" ? C.emerald : pResult.vacancyRisk === "높음" ? C.rose : C.amber;
+        const score = pResult.marketPositionScore || 0;
+
+        return (
+          <div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
+              <button onClick={() => { setPResult(null); setPInputAddr(""); }}
+                style={{ padding: "9px 18px", borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                다시 분석
+              </button>
+            </div>
+
+            {/* 핵심 임대료 범위 */}
+            <div style={{ background: `linear-gradient(135deg,${C.navy},#2d4270)`, borderRadius: 20, padding: "28px 32px", marginBottom: 16, color: "#fff" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "2px", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>AI 적정 임대료 분석 · {pResult.address}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, marginBottom: 20 }}>
+                <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 20px", textAlign: "center" }}>
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>💰 적정 월세 범위</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: C.emerald }}>{pResult.rentRange?.min?.toLocaleString()}~{pResult.rentRange?.max?.toLocaleString()}</p>
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>만원/월</p>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 20px", textAlign: "center" }}>
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>🏦 적정 보증금 범위</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: C.amber }}>{pResult.depositRange?.min?.toLocaleString()}~{pResult.depositRange?.max?.toLocaleString()}</p>
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>만원</p>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 20px", textAlign: "center" }}>
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>📍 현재 시장 포지션</p>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: posColor }}>{pos}</p>
+                  <div style={{ display: "flex", justifyContent: "center", gap: 3, marginTop: 8 }}>
+                    {[-2,-1,0,1,2].map(i => (
+                      <div key={i} style={{ width: 14, height: 6, borderRadius: 3, background: i <= score ? posColor : "rgba(255,255,255,0.15)" }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                {[
+                  { icon: "📈", label: "가격 추세", value: pResult.priceTrend, color: trendColor },
+                  { icon: "🚪", label: "공실 리스크", value: pResult.vacancyRisk, color: vacColor },
+                  { icon: "💵", label: "평균 월세", value: `${pResult.avgRent?.toLocaleString()}만원`, color: "#fff" },
+                ].map(item => (
+                  <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "10px 14px" }}>
+                    <span style={{ fontSize: 18 }}>{item.icon}</span>
+                    <div>
+                      <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{item.label}</p>
+                      <p style={{ fontSize: 14, fontWeight: 800, color: item.color }}>{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 전략 & 팁 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
+                <p style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 10 }}>🎯 임대 전략 제안</p>
+                <p style={{ fontSize: 13, color: "#4a4a6a", lineHeight: 1.85 }}>{pResult.strategy}</p>
+              </div>
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
+                <p style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 10 }}>🤝 협상 팁</p>
+                <p style={{ fontSize: 13, color: "#4a4a6a", lineHeight: 1.85, marginBottom: 12 }}>{pResult.negotiationTip}</p>
+                <p style={{ fontSize: 12, fontWeight: 700, color: trendColor }}>📅 {pResult.bestTiming}</p>
+                <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{pResult.trendReason}</p>
+              </div>
+            </div>
+
+            {/* 비교 사례 */}
+            {pResult.comparables?.length > 0 && (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 16 }}>
+                <div style={{ padding: "12px 20px", background: C.faint, borderBottom: `1px solid ${C.border}` }}>
+                  <p style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "1.5px", textTransform: "uppercase" }}>인근 유사 물건 비교</p>
+                </div>
+                {pResult.comparables.map((c, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderBottom: i < pResult.comparables.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{c.type}</p>
+                      <p style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{c.note}</p>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ fontSize: 14, fontWeight: 800, color: C.emerald }}>월세 {c.rent?.toLocaleString()}만원</p>
+                      <p style={{ fontSize: 11, color: C.muted }}>보증금 {c.deposit?.toLocaleString()}만원</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ textAlign: "center", padding: "12px 0", borderTop: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: 10, color: C.muted }}>본 분석은 Ownly by McLean AI 시스템이 생성했습니다 · {pResult.analysisDate}</p>
+              <p style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>※ 실제 거래는 공인중개사 및 감정평가사와 반드시 상담하시기 바랍니다</p>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
