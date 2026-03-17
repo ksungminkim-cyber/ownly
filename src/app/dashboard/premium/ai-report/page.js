@@ -440,100 +440,147 @@ export default function AIReportPage() {
 
       {/* ── 프라이싱 결과 ── */}
       {activeTab === "pricing" && pResult && !pLoading && (() => {
-        const pos = pResult.marketPosition || "적정";
-        const posColor = pos === "저평가" ? C.emerald : pos === "고평가" ? C.rose : C.amber;
+        const pos       = pResult.marketPosition || "적정";
+        const posColor  = pos === "저평가" ? C.emerald : pos === "고평가" ? C.rose : C.amber;
         const trendColor = pResult.priceTrend === "상승" ? C.emerald : pResult.priceTrend === "하락" ? C.rose : C.amber;
         const vacColor   = pResult.vacancyRisk === "낮음" ? C.emerald : pResult.vacancyRisk === "높음" ? C.rose : C.amber;
         const score = pResult.marketPositionScore || 0;
+        const TYPE_ICONS = { 주거:"🏠", 상가:"🏪", 오피스텔:"🏢", 토지:"🌳" };
 
         return (
           <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+              <div>
+                <p style={{ fontSize:11, fontWeight:800, color:C.muted, letterSpacing:"1.5px", textTransform:"uppercase" }}>OWNLY AI 적정 임대료 분석 리포트</p>
+                <p style={{ fontSize:13, color:C.muted }}>{pResult.address} · {pResult.analysisDate}</p>
+              </div>
               <button onClick={() => { setPResult(null); setPInputAddr(""); }}
-                style={{ padding: "9px 18px", borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                style={{ padding:"9px 18px", borderRadius:10, background:"transparent", border:`1px solid ${C.border}`, color:C.muted, fontSize:13, fontWeight:600, cursor:"pointer" }}>
                 다시 분석
               </button>
             </div>
 
-            {/* 핵심 임대료 범위 */}
-            <div style={{ background: `linear-gradient(135deg,${C.navy},#2d4270)`, borderRadius: 20, padding: "28px 32px", marginBottom: 16, color: "#fff" }}>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "2px", color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>AI 적정 임대료 분석 · {pResult.address}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, marginBottom: 20 }}>
-                <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 20px", textAlign: "center" }}>
-                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>💰 적정 월세 범위</p>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: C.emerald }}>{pResult.rentRange?.min?.toLocaleString()}~{pResult.rentRange?.max?.toLocaleString()}</p>
-                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>만원/월</p>
+            {/* ① 핵심 요약 헤더 */}
+            <div style={{ background:`linear-gradient(135deg,${C.navy},#2d4270)`, borderRadius:20, padding:"24px 28px", marginBottom:14, color:"#fff" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
+                <div>
+                  <div style={{ fontSize:10, fontWeight:800, letterSpacing:"2px", color:"rgba(255,255,255,0.4)", marginBottom:6 }}>
+                    {TYPE_ICONS[pResult.propertyType]} {pResult.propertyType} · AI 임대료 분석
+                  </div>
+                  <p style={{ fontSize:15, fontWeight:800, lineHeight:1.6 }}>{pResult.marketSummary}</p>
                 </div>
-                <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 20px", textAlign: "center" }}>
-                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>🏦 적정 보증금 범위</p>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: C.amber }}>{pResult.depositRange?.min?.toLocaleString()}~{pResult.depositRange?.max?.toLocaleString()}</p>
-                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>만원</p>
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 20px", textAlign: "center" }}>
-                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>📍 현재 시장 포지션</p>
-                  <p style={{ fontSize: 22, fontWeight: 900, color: posColor }}>{pos}</p>
-                  <div style={{ display: "flex", justifyContent: "center", gap: 3, marginTop: 8 }}>
-                    {[-2,-1,0,1,2].map(i => (
-                      <div key={i} style={{ width: 14, height: 6, borderRadius: 3, background: i <= score ? posColor : "rgba(255,255,255,0.15)" }} />
+                <div style={{ textAlign:"center", flexShrink:0, marginLeft:20 }}>
+                  <div style={{ fontSize:24, fontWeight:900, color:posColor }}>{pos}</div>
+                  <div style={{ display:"flex", gap:3, marginTop:6, justifyContent:"center" }}>
+                    {[-2,-1,0,1,2].map(i=>(
+                      <div key={i} style={{ width:12,height:5,borderRadius:3, background:i<=score?posColor:"rgba(255,255,255,0.15)" }} />
                     ))}
                   </div>
+                  <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", marginTop:4 }}>시장 포지션</div>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+
+              {/* 핵심 수치 5개 */}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10 }}>
                 {[
-                  { icon: "📈", label: "가격 추세", value: pResult.priceTrend, color: trendColor },
-                  { icon: "🚪", label: "공실 리스크", value: pResult.vacancyRisk, color: vacColor },
-                  { icon: "💵", label: "평균 월세", value: `${pResult.avgRent?.toLocaleString()}만원`, color: "#fff" },
-                ].map(item => (
-                  <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "10px 14px" }}>
-                    <span style={{ fontSize: 18 }}>{item.icon}</span>
-                    <div>
-                      <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{item.label}</p>
-                      <p style={{ fontSize: 14, fontWeight: 800, color: item.color }}>{item.value}</p>
-                    </div>
+                  { label:"월세 범위", value:`${pResult.rentRange?.min}~${pResult.rentRange?.max}만원`, sub:"월", color:C.emerald },
+                  { label:"보증금 범위", value:`${pResult.depositRange?.min?.toLocaleString()}~${pResult.depositRange?.max?.toLocaleString()}만원`, sub:"", color:C.amber },
+                  { label:"평당 임대료", value:`${pResult.rentPerPyeong || "-"}만원`, sub:"평당/월", color:"#a78bfa" },
+                  { label:"㎡당 임대료", value:`${pResult.rentPerSqm || "-"}만원`, sub:"㎡당/월", color:"#60a5fa" },
+                  { label:"평균 면적", value:`${pResult.avgArea || "-"}평`, sub:`(${pResult.avgArea ? Math.round(pResult.avgArea * 3.306) : "-"}㎡)`, color:"#fff" },
+                ].map(k=>(
+                  <div key={k.label} style={{ background:"rgba(255,255,255,0.08)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
+                    <p style={{ fontSize:10, color:"rgba(255,255,255,0.45)", marginBottom:6 }}>{k.label}</p>
+                    <p style={{ fontSize:14, fontWeight:900, color:k.color, lineHeight:1.2 }}>{k.value}</p>
+                    <p style={{ fontSize:10, color:"rgba(255,255,255,0.35)", marginTop:3 }}>{k.sub}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 전략 & 팁 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
-                <p style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 10 }}>🎯 임대 전략 제안</p>
-                <p style={{ fontSize: 13, color: "#4a4a6a", lineHeight: 1.85 }}>{pResult.strategy}</p>
-              </div>
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
-                <p style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 10 }}>🤝 협상 팁</p>
-                <p style={{ fontSize: 13, color: "#4a4a6a", lineHeight: 1.85, marginBottom: 12 }}>{pResult.negotiationTip}</p>
-                <p style={{ fontSize: 12, fontWeight: 700, color: trendColor }}>📅 {pResult.bestTiming}</p>
-                <p style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{pResult.trendReason}</p>
-              </div>
-            </div>
-
-            {/* 비교 사례 */}
-            {pResult.comparables?.length > 0 && (
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 16 }}>
-                <div style={{ padding: "12px 20px", background: C.faint, borderBottom: `1px solid ${C.border}` }}>
-                  <p style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "1.5px", textTransform: "uppercase" }}>인근 유사 물건 비교</p>
+            {/* ② 시세 구간 */}
+            {pResult.priceRange && (
+              <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:"18px 22px", marginBottom:14 }}>
+                <p style={{ fontSize:12, fontWeight:800, color:C.navy, letterSpacing:"1px", marginBottom:14 }}>📊 시세 구간 분석</p>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+                  {[
+                    { label:"하한가", desc:pResult.priceRange?.low, color:C.emerald, bg:"rgba(15,165,115,0.06)", border:"rgba(15,165,115,0.2)" },
+                    { label:"중간가", desc:pResult.priceRange?.mid, color:C.amber,   bg:"rgba(232,150,10,0.06)",  border:"rgba(232,150,10,0.2)" },
+                    { label:"상한가", desc:pResult.priceRange?.high, color:C.rose,   bg:"rgba(232,68,90,0.06)",   border:"rgba(232,68,90,0.2)" },
+                  ].map(r=>(
+                    <div key={r.label} style={{ background:r.bg, border:`1px solid ${r.border}`, borderRadius:12, padding:"14px 16px" }}>
+                      <p style={{ fontSize:11, fontWeight:800, color:r.color, marginBottom:6 }}>{r.label}</p>
+                      <p style={{ fontSize:12, color:"#4a4a6a", lineHeight:1.7 }}>{r.desc}</p>
+                    </div>
+                  ))}
                 </div>
-                {pResult.comparables.map((c, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderBottom: i < pResult.comparables.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{c.type}</p>
-                      <p style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{c.note}</p>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <p style={{ fontSize: 14, fontWeight: 800, color: C.emerald }}>월세 {c.rent?.toLocaleString()}만원</p>
-                      <p style={{ fontSize: 11, color: C.muted }}>보증금 {c.deposit?.toLocaleString()}만원</p>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
 
-            <div style={{ textAlign: "center", padding: "12px 0", borderTop: `1px solid ${C.border}` }}>
-              <p style={{ fontSize: 10, color: C.muted }}>본 분석은 Ownly by McLean AI 시스템이 생성했습니다 · {pResult.analysisDate}</p>
-              <p style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>※ 실제 거래는 공인중개사 및 감정평가사와 반드시 상담하시기 바랍니다</p>
+            {/* ③ 인근 유사 물건 비교 — 상세 */}
+            {pResult.comparables?.length > 0 && (
+              <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden", marginBottom:14 }}>
+                <div style={{ padding:"12px 20px", background:C.faint, borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <p style={{ fontSize:12, fontWeight:800, color:C.navy }}>🏘️ 인근 유사 물건 비교</p>
+                  <p style={{ fontSize:11, color:C.muted }}>AI 추정 데이터 · 실제 공시와 차이 있을 수 있음</p>
+                </div>
+                {/* 테이블 헤더 */}
+                <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1.5fr", gap:0, padding:"8px 20px", background:"#fafaf8", borderBottom:`1px solid ${C.border}` }}>
+                  {["물건 유형", "면적", "층/건축년", "월세", "보증금", "평당 임대료"].map(h=>(
+                    <p key={h} style={{ fontSize:10, fontWeight:800, color:C.muted, letterSpacing:".5px" }}>{h}</p>
+                  ))}
+                </div>
+                {pResult.comparables.map((comp, i) => {
+                  const rentPerPy = comp.area ? (comp.rent / comp.area).toFixed(1) : "-";
+                  return (
+                    <div key={i} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1.5fr", gap:0, padding:"13px 20px", borderBottom: i < pResult.comparables.length-1 ? `1px solid ${C.border}` : "none", alignItems:"center" }}>
+                      <div>
+                        <p style={{ fontSize:13, fontWeight:700, color:C.navy }}>{comp.type}</p>
+                        <p style={{ fontSize:10, color:C.muted, marginTop:2 }}>{comp.distance} · {comp.note}</p>
+                      </div>
+                      <p style={{ fontSize:13, fontWeight:600, color:C.navy }}>{comp.area ? `${comp.area}평` : "-"}<span style={{ fontSize:10, color:C.muted }}>({comp.area ? Math.round(comp.area*3.3)+"㎡" : ""})</span></p>
+                      <p style={{ fontSize:12, color:C.navy }}>{comp.floor || "-"}<br/><span style={{ fontSize:10, color:C.muted }}>{comp.builtYear ? comp.builtYear+"년" : ""}</span></p>
+                      <p style={{ fontSize:14, fontWeight:800, color:C.emerald }}>{comp.rent?.toLocaleString()}만원</p>
+                      <p style={{ fontSize:12, color:C.muted }}>{comp.deposit?.toLocaleString()}만원</p>
+                      <div style={{ background:`${C.indigo}10`, borderRadius:8, padding:"4px 10px", display:"inline-block" }}>
+                        <p style={{ fontSize:12, fontWeight:800, color:C.indigo }}>{rentPerPy}만원/평</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ④ 전략 & 팁 */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
+              <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:18 }}>
+                <p style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:10 }}>🎯 임대 전략 제안</p>
+                <p style={{ fontSize:13, color:"#4a4a6a", lineHeight:1.85 }}>{pResult.strategy}</p>
+              </div>
+              <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:18 }}>
+                <p style={{ fontSize:12, fontWeight:800, color:C.navy, marginBottom:10 }}>💡 시장 정보</p>
+                <div style={{ display:"flex", gap:16, marginBottom:10 }}>
+                  <div>
+                    <p style={{ fontSize:10, color:C.muted, marginBottom:3 }}>가격 추세</p>
+                    <p style={{ fontSize:13, fontWeight:800, color:trendColor }}>{pResult.priceTrend}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize:10, color:C.muted, marginBottom:3 }}>공실 리스크</p>
+                    <p style={{ fontSize:13, fontWeight:800, color:vacColor }}>{pResult.vacancyRisk}</p>
+                  </div>
+                </div>
+                <p style={{ fontSize:12, color:"#4a4a6a", lineHeight:1.7, marginBottom:8 }}>{pResult.trendReason}</p>
+                <div style={{ background:`${C.emerald}08`, border:`1px solid ${C.emerald}20`, borderRadius:10, padding:"8px 12px" }}>
+                  <p style={{ fontSize:11, fontWeight:700, color:C.emerald, marginBottom:3 }}>🤝 협상 팁</p>
+                  <p style={{ fontSize:12, color:"#4a4a6a" }}>{pResult.negotiationTip}</p>
+                </div>
+                <p style={{ fontSize:11, color:C.muted, marginTop:8 }}>📅 {pResult.bestTiming}</p>
+              </div>
+            </div>
+
+            <div style={{ textAlign:"center", padding:"12px 0", borderTop:`1px solid ${C.border}` }}>
+              <p style={{ fontSize:10, color:C.muted }}>본 분석은 Ownly by McLean AI 시스템이 생성했습니다 · ownly.kr · {pResult.analysisDate}</p>
+              <p style={{ fontSize:9, color:C.muted, marginTop:2 }}>※ AI 추정 데이터로 실제 거래 시 공인중개사 및 감정평가사와 반드시 상담하시기 바랍니다</p>
             </div>
           </div>
         );
