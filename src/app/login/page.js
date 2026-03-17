@@ -46,7 +46,6 @@ export default function AuthPage() {
         if (error) throw error;
         setMsg("sent");
       }
-      }
     } catch (e) {
       setErrors({ submit: e.message === "Invalid login credentials" ? "이메일 또는 비밀번호가 올바르지 않습니다" : e.message });
     } finally { setLoading(false); }
