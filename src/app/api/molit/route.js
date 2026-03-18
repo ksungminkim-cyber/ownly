@@ -68,7 +68,7 @@ function getMonths(count = 5) {
 
 // ─── API 단일 호출 ────────────────────────────────────────
 async function fetchOne(endpoint, apiKey, lawdCd, dealYmd) {
-  const url = `https://apis.data.go.kr/1613000/RTMSDataSvc/${endpoint}?serviceKey=${encodeURIComponent(apiKey)}&LAWD_CD=${lawdCd}&DEAL_YMD=${dealYmd}&pageNo=1&numOfRows=100&_type=json`;
+  const url = `https://apis.data.go.kr/1613000/RTMSDataSvc/${endpoint}?serviceKey=${apiKey}&LAWD_CD=${lawdCd}&DEAL_YMD=${dealYmd}&pageNo=1&numOfRows=100&_type=json`;
   try {
     const res = await fetch(url, {
       headers: { "Accept": "application/json, text/json" },

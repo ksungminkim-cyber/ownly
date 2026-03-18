@@ -55,12 +55,31 @@ function buildSamplesText(samples, isRent) {
 }
 
 function buildPrompt(address, propertyType, molitData) {
-  const hasData = molitData && molitData.totalCount > 0;
-  const isRent  = hasData ? molitData.isRent : true;
+  const hasData   = molitData && molitData.totalCount > 0;
+  const isRent    = hasData ? molitData.isRent : true;
+  const isTradeOnly = ["상가","토지","공장"].includes(propertyType);
 
-  const dataSection = hasData
-    ? `=== 국토교통부 실거래가 공식 데이터 ===\n${buildStatsText(molitData)}\n\n=== 실거래 샘플 (최신순) ===\n${buildSamplesText(molitData.samples || [], isRent)}`
-    : `=== 데이터 없음 ===\n- 해당 지역/기간 실거래가 미조회\n- 모든 수치는 AI 추정값임을 명시하세요`;
+  // 유형별 데이터 섹션 구성
+  let dataSection;
+  if (hasData) {
+    dataSection = `=== 국토교통부 실거래가 공식 데이터 ===\n${buildStatsText(molitData)}\n\n=== 실거래 샘플 (최신순) ===\n${buildSamplesText(molitData.samples || [], isRent)}`;
+  } else if (isTradeOnly) {
+    const yieldMap = { "상가": "3~5%", "토지": "1.5~3%", "공장": "4~6%" };
+    dataSection = `=== ${propertyType} 임대료 분석 방법 ===
+- ${propertyType}은 국토교통부 전월세 실거래가가 공개되지 않습니다.
+- 대신 아래 방식으로 반드시 구체적인 수치를 추정하세요:
+  1) 해당 지역 ${propertyType}의 실제 매매 시세 (평당 얼마인지)
+  2) 통상 임대 수익률 ${yieldMap[propertyType]} 적용하여 연간 임대료 역산
+  3) 12로 나누어 월 임대료 계산
+  4) 해당 지역 상권 특성 반영 (유동인구, 공실률, 접근성)
+- 마포구 서교동 기준으로 구체적인 수치를 반드시 제시하세요.
+- "정확한 데이터 없음"이라며 0이나 "-"로 채우지 마세요.`;
+  } else {
+    dataSection = `=== 실거래가 조회 실패 ===
+- API 응답 대기 중이거나 해당 기간 데이터가 없습니다.
+- AI 지식 기반으로 해당 주소 인근의 최근 시세를 추정하여 구체적 수치를 제시하세요.
+- 반드시 실제 숫자를 넣으세요. 0이나 "-"는 금지합니다.`;
+  }
 
   return `⚠️ 반드시 순수 한국어, JSON만 출력.
 
