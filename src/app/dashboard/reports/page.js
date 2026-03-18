@@ -1,54 +1,65 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { SectionLabel, CustomTooltip } from "../../../components/shared";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
-import { C, REVENUE } from "../../../lib/constants";
+import { C } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 import PlanGate from "../../../components/PlanGate";
 
 export default function ReportsPage() {
-  const { tenants } = useApp();
+  const { tenants, payments } = useApp();
   const [period, setPeriod] = useState("6m");
-
-  return <PlanGate feature="reports"><ReportsContent tenants={tenants} period={period} setPeriod={setPeriod} /></PlanGate>;
+  return <PlanGate feature="reports"><ReportsContent tenants={tenants} payments={payments} period={period} setPeriod={setPeriod} /></PlanGate>;
 }
 
-function downloadReportPDF(tenants, total, expense, net, period) {
+// 기간 설정 — 현재 기준 N개월 전까지
+function getPeriodMonths(period) {
+  const n = period === "3m" ? 3 : period === "1y" ? 12 : 6;
+  const months = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
+  }
+  return months;
+}
+
+function monthLabel(year, month) {
+  return `${month}월`;
+}
+
+function downloadReportPDF(tenants, chartData, total, net, period) {
   const periodLabel = { "3m": "최근 3개월", "6m": "최근 6개월", "1y": "최근 1년" }[period] || period;
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+  const expense = total - net;
   const rows = tenants.map((t) => {
-    const annualRent = t.rent * 12;
+    const annualRent = (t.rent || 0) * 12;
     const yld = t.dep > 0 ? ((annualRent / t.dep) * 100).toFixed(1) : "N/A";
-    return `<tr><td>${t.sub || ""}</td><td>${t.addr || ""}</td><td>${t.name}</td><td>${t.rent}만원</td><td>${(t.dep / 10000).toFixed(1)}억</td><td>${yld}%</td></tr>`;
+    return `<tr><td>${t.sub || ""}</td><td>${t.addr || ""}</td><td>${t.name}</td><td>${t.rent || 0}만원</td><td>${((t.dep || 0) / 10000).toFixed(1)}억</td><td>${yld}%</td></tr>`;
   }).join("");
-
   const w = window.open("", "_blank");
   w.document.write(`<!DOCTYPE html><html><head>
 <meta charset="utf-8"><title>수익 리포트</title>
 <style>
-  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-  body { font-family: 'Pretendard', sans-serif; max-width: 720px; margin: 60px auto; padding: 0 40px; color: #1a1a2e; }
+  body { font-family: 'Apple SD Gothic Neo', sans-serif; max-width: 720px; margin: 60px auto; padding: 0 40px; color: #1a1a2e; }
   .header { border-bottom: 3px double #1a2744; padding-bottom: 20px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; }
   .title { font-size: 26px; font-weight: 900; color: #1a2744; }
   .subtitle { font-size: 12px; color: #8a8a9a; margin-top: 4px; }
-  .date { font-size: 12px; color: #8a8a9a; }
   .summary { display: flex; gap: 16px; margin-bottom: 28px; }
   .card { flex: 1; border: 1px solid #e8e6e0; border-radius: 12px; padding: 16px 20px; }
   .card-label { font-size: 10px; font-weight: 700; color: #8a8a9a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
   .card-value { font-size: 22px; font-weight: 900; }
   .income { color: #1a2744; } .expense { color: #e8445a; } .profit { color: #0fa573; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  th { background: #1a2744; color: #fff; font-size: 11px; font-weight: 700; padding: 10px 14px; text-align: left; letter-spacing: .5px; }
-  td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid #f0efe9; color: #1a2744; }
-  tr:last-child td { border-bottom: none; }
+  th { background: #1a2744; color: #fff; font-size: 11px; font-weight: 700; padding: 10px 14px; text-align: left; }
+  td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid #f0efe9; }
   h3 { font-size: 14px; font-weight: 800; color: #1a2744; margin-bottom: 12px; }
   .footer { margin-top: 40px; text-align: right; font-size: 11px; color: #8a8a9a; }
-  @media print { body { margin: 20px; } }
 </style>
 </head><body>
 <div class="header">
   <div><div class="title">수익 리포트</div><div class="subtitle">${periodLabel} · Ownly by McLean</div></div>
-  <div class="date">${today}</div>
+  <div style="font-size:12px;color:#8a8a9a">${today}</div>
 </div>
 <div class="summary">
   <div class="card"><div class="card-label">총 수입</div><div class="card-value income">${total}만원</div></div>
@@ -66,19 +77,51 @@ function downloadReportPDF(tenants, total, expense, net, period) {
   w.document.close();
 }
 
-function ReportsContent({ tenants, period, setPeriod }) {
+function ReportsContent({ tenants, payments, period, setPeriod }) {
+  const periodMonths = useMemo(() => getPeriodMonths(period), [period]);
 
-  const total   = REVENUE.reduce((s, m) => s + m.income,  0);
-  const expense = REVENUE.reduce((s, m) => s + m.expense, 0);
+  // 월별 수입 집계 — 실제 payments에서 paid 상태만
+  const chartData = useMemo(() => {
+    return periodMonths.map(({ year, month }) => {
+      // 해당 월 수납된 금액 합산
+      const monthPayments = payments.filter(p =>
+        p.month === month &&
+        (p.year === year || !p.year) &&  // year 없으면 month만 비교
+        p.status === "paid"
+      );
+      const income = monthPayments.reduce((s, p) => s + (p.amt || 0), 0);
+
+      // 지출: 현재 Ownly에 수리이력 비용 데이터가 없으면 0 표시
+      // (추후 repairs 테이블 연동 시 여기서 집계)
+      const expense = 0;
+
+      return { m: monthLabel(year, month), income, expense, net: income - expense, year, month };
+    });
+  }, [payments, periodMonths]);
+
+  const total   = chartData.reduce((s, m) => s + m.income, 0);
+  const expense = chartData.reduce((s, m) => s + m.expense, 0);
   const net     = total - expense;
+  const periodLabel = { "3m": "최근 3개월", "6m": "최근 6개월", "1y": "최근 1년" }[period];
+
+  // 예상 수입 (세입자 월세 합계 × 기간)
+  const expectedMonthly = tenants.reduce((s, t) => s + (t.rent || 0), 0);
+  const expectedTotal   = expectedMonthly * periodMonths.length;
+  const collectRate     = expectedTotal > 0 ? Math.round((total / expectedTotal) * 100) : 0;
+
+  // 데이터 없음 체크
+  const hasData = total > 0;
 
   return (
     <div className="page-in page-padding" style={{ maxWidth: 960 }}>
+      {/* 헤더 */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 26, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>REVENUE REPORT</SectionLabel>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744", letterSpacing: "-.4px" }}>수익 리포트</h1>
-          <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>최근 6개월 · 순수익 <span style={{ color: "#0fa573", fontWeight: 700 }}>{net}만원</span></p>
+          <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>
+            {periodLabel} · {hasData ? <>순수익 <span style={{ color: "#0fa573", fontWeight: 700 }}>{net.toLocaleString()}만원</span></> : "수납 데이터 없음"}
+          </p>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {[{ k: "3m", l: "3개월" }, { k: "6m", l: "6개월" }, { k: "1y", l: "1년" }].map((p) => (
@@ -86,18 +129,18 @@ function ReportsContent({ tenants, period, setPeriod }) {
               {p.l}
             </button>
           ))}
-          <button onClick={() => downloadReportPDF(tenants, total, expense, net, period)} style={{ padding: "6px 16px", borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${C.indigo}`, background: C.indigo, color: "#fff" }}>
+          <button onClick={() => downloadReportPDF(tenants, chartData, total, net, period)} style={{ padding: "6px 16px", borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${C.indigo}`, background: C.indigo, color: "#fff" }}>
             📄 PDF
           </button>
         </div>
       </div>
 
-      {/* 요약 카드 3개 */}
-      <div className="dash-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 13, marginBottom: 22 }}>
+      {/* 요약 카드 */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 13, marginBottom: 22 }}>
         {[
-          { l: "총 수입", v: total   + "만원", c: C.indigo,  sub: "6개월 합산" },
-          { l: "총 지출", v: expense + "만원", c: C.rose,    sub: "수리·관리비 등" },
-          { l: "순수익",  v: net     + "만원", c: C.emerald, sub: "수익률 " + (total > 0 ? Math.round((net / total) * 100) : 0) + "%" },
+          { l: "총 수입",    v: `${total.toLocaleString()}만원`,   c: C.indigo,  sub: `${periodLabel} 수납 합산` },
+          { l: "수납률",     v: `${collectRate}%`,                  c: collectRate >= 90 ? C.emerald : collectRate >= 70 ? C.amber : C.rose, sub: `예상 ${expectedTotal.toLocaleString()}만원 중` },
+          { l: "순수익",     v: `${net.toLocaleString()}만원`,      c: C.emerald, sub: `월평균 ${periodMonths.length > 0 ? Math.round(net / periodMonths.length).toLocaleString() : 0}만원` },
         ].map((k) => (
           <div key={k.l} style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 15, padding: "19px 22px" }}>
             <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 7 }}>{k.l}</p>
@@ -107,30 +150,43 @@ function ReportsContent({ tenants, period, setPeriod }) {
         ))}
       </div>
 
+      {/* 데이터 없을 때 안내 */}
+      {!hasData && (
+        <div style={{ background: "#fffbf0", border: "1px solid #f0d070", borderRadius: 14, padding: "16px 20px", marginBottom: 18, display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <span style={{ fontSize: 18 }}>💡</span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>수납 기록이 없습니다</p>
+            <p style={{ fontSize: 12, color: "#78350f", lineHeight: 1.7 }}>
+              수금 현황 페이지에서 월세를 수납 처리하면 여기에 차트와 통계가 자동으로 표시됩니다.<br/>
+              세입자 등록 후 매월 수납 상태를 기록해 주세요.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 차트 */}
-      <div className="dash-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
         <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 17, padding: "22px 24px" }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#1a2744", marginBottom: 16 }}>월별 수입 vs 지출</h3>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#1a2744", marginBottom: 16 }}>월별 수납 현황</h3>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={REVENUE}>
-              <CartesianGrid strokeDasharray="3 3" stroke={"#ebe9e3"} vertical={false} />
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ebe9e3" vertical={false} />
               <XAxis dataKey="m" tick={{ fill: C.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: C.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="income"  name="수입" fill={C.indigo} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" name="지출" fill={C.rose}   radius={[4, 4, 0, 0]} />
+              <Bar dataKey="income" name="수납액" fill={C.indigo} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 17, padding: "22px 24px" }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#1a2744", marginBottom: 16 }}>순수익 추이</h3>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#1a2744", marginBottom: 16 }}>누적 수입 추이</h3>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={REVENUE.map((m) => ({ ...m, net: m.income - m.expense }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke={"#ebe9e3"} vertical={false} />
+            <LineChart data={chartData.map((m, i) => ({ ...m, cumulative: chartData.slice(0, i + 1).reduce((s, x) => s + x.income, 0) }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ebe9e3" vertical={false} />
               <XAxis dataKey="m" tick={{ fill: C.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: C.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="net" name="순수익" stroke={C.emerald} strokeWidth={2.5} dot={{ fill: C.emerald, r: 4, strokeWidth: 0 }} />
+              <Line type="monotone" dataKey="cumulative" name="누적 수입" stroke={C.emerald} strokeWidth={2.5} dot={{ fill: C.emerald, r: 4, strokeWidth: 0 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -141,40 +197,62 @@ function ReportsContent({ tenants, period, setPeriod }) {
         <div style={{ padding: "16px 20px", borderBottom: "1px solid #ebe9e3" }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "#1a2744" }}>물건별 수익 분석</h3>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#0a0a10" }}>
-              {["물건", "세입자", "월세", "보증금", "연 수익률"].map((h) => (
-                <th key={h} style={{ padding: "9px 16px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {tenants.map((t) => {
-              const annualRent = t.rent * 12;
-              const yld = t.dep > 0 ? ((annualRent / t.dep) * 100).toFixed(1) : "N/A";
-              return (
-                <tr key={t.id} className="trow" style={{ borderTop: "1px solid #ebe9e3" }}>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : C.indigo, background: t.pType === "상가" ? C.amber + "18" : C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{t.sub}</span>
-                    <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{t.addr}</p>
-                  </td>
-                  <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#1a2744" }}>{t.name}</td>
-                  <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{t.rent}만원</td>
-                  <td style={{ padding: "12px 16px", fontSize: 12, color: "#8a8a9a" }}>{(t.dep / 10000).toFixed(1)}억</td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: yld !== "N/A" && parseFloat(yld) >= 5 ? C.emerald : C.amber }}>{yld}%</span>
-                      <div style={{ width: 64, height: 4, borderRadius: 4, background: "#f8f7f4", overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: Math.min(100, yld !== "N/A" ? parseFloat(yld) * 7 : 0) + "%", borderRadius: 4, background: t.c }} />
+        {tenants.length === 0 ? (
+          <div style={{ padding: "32px 20px", textAlign: "center", color: C.muted, fontSize: 13 }}>
+            등록된 세입자가 없습니다.
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#0a0a10" }}>
+                {["물건", "세입자", "월세", "보증금", "연 수익률"].map((h) => (
+                  <th key={h} style={{ padding: "9px 16px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tenants.map((t) => {
+                const annualRent = (t.rent || 0) * 12;
+                const yld = t.dep > 0 ? ((annualRent / t.dep) * 100).toFixed(1) : "N/A";
+                // 해당 세입자의 기간 내 실제 수납액
+                const actualCollected = payments
+                  .filter(p => p.tid === t.id && p.status === "paid" &&
+                    periodMonths.some(pm => pm.month === p.month && (pm.year === p.year || !p.year)))
+                  .reduce((s, p) => s + (p.amt || 0), 0);
+                const expectedInPeriod = (t.rent || 0) * periodMonths.length;
+                const pRate = expectedInPeriod > 0 ? Math.round(actualCollected / expectedInPeriod * 100) : 0;
+
+                return (
+                  <tr key={t.id} className="trow" style={{ borderTop: "1px solid #ebe9e3" }}>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : C.indigo, background: t.pType === "상가" ? C.amber + "18" : C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{t.sub}</span>
+                      <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{t.addr}</p>
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#1a2744" }}>{t.name}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{(t.rent || 0).toLocaleString()}만원</p>
+                      {actualCollected > 0 && (
+                        <p style={{ fontSize: 10, color: C.emerald, marginTop: 1 }}>실 수납 {actualCollected.toLocaleString()}만원</p>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 12, color: "#8a8a9a" }}>{((t.dep || 0) / 10000).toFixed(1)}억</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: yld !== "N/A" && parseFloat(yld) >= 5 ? C.emerald : C.amber }}>{yld}%</span>
+                        <div style={{ width: 64, height: 4, borderRadius: 4, background: "#f8f7f4", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: Math.min(100, yld !== "N/A" ? parseFloat(yld) * 7 : 0) + "%", borderRadius: 4, background: yld !== "N/A" && parseFloat(yld) >= 5 ? C.emerald : C.amber }} />
+                        </div>
+                        {expectedInPeriod > 0 && (
+                          <span style={{ fontSize: 10, color: pRate >= 90 ? C.emerald : pRate >= 70 ? C.amber : C.rose }}>수납 {pRate}%</span>
+                        )}
                       </div>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
