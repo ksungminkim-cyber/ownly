@@ -89,8 +89,9 @@ export default function LandingPage() {
       </div>
 
       {/* 기능 카드 */}
-      <div className="stagger" style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+      <style>{`@media(max-width:640px){.features-grid{grid-template-columns:1fr 1fr!important}}`}</style>
+      <div className="stagger features-grid" style={{
+        display: "grid", gridTemplateColumns: "repeat(3,1fr)",
         gap: 14, maxWidth: 960, width: "100%", marginTop: 56, position: "relative", zIndex: 1
       }}>
         {features.map((f) => (
