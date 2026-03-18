@@ -380,19 +380,16 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
 
       {/* ─── 하단 고정 결제 바 ─── */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderTop: "1px solid #e8e6e0", padding: "12px 20px", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* 플랜 선택 */}
           <select onChange={(e) => setSelectedPlan(e.target.value)} value={selectedPlan}
-            style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid #e8e6e0", fontSize: 13, fontWeight: 600, color: "#1a2744", background: "#fff", cursor: "pointer", appearance: "none", paddingRight: 28 }}>
+            style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid #e8e6e0", fontSize: 13, fontWeight: 600, color: "#1a2744", background: "#fff", cursor: "pointer" }}>
             {Object.values(PLANS).filter(p => p.price > 0).map(p => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
-          {/* 기간 토글 */}
           <button onClick={() => setIsAnnual(!isAnnual)}
             style={{ padding: "8px 14px", borderRadius: 9, border: "1px solid #e8e6e0", fontSize: 13, fontWeight: 600, cursor: "pointer", background: isAnnual ? "#1a2744" : "#fff", color: isAnnual ? "#fff" : "#1a2744", whiteSpace: "nowrap" }}>
             {isAnnual ? "연간 (20% 할인)" : "월간"}
@@ -402,7 +399,7 @@ export default function LandingPage() {
           {(() => {
             const plan = Object.values(PLANS).find(p => p.id === selectedPlan) || Object.values(PLANS)[1];
             const monthly = plan?.price || 0;
-            const price   = isAnnual ? Math.round(monthly * 0.8) : monthly;
+            const price = isAnnual ? Math.round(monthly * 0.8) : monthly;
             return (
               <div style={{ textAlign: "right" }}>
                 <p style={{ fontSize: 16, fontWeight: 900, color: "#1a2744", lineHeight: 1.1 }}>
@@ -410,7 +407,7 @@ export default function LandingPage() {
                   <span style={{ fontSize: 12, fontWeight: 500, color: "#8a8a9a" }}> / 월</span>
                   {isAnnual && <span style={{ fontSize: 10, fontWeight: 800, color: "#0fa573", marginLeft: 4 }}>-20%</span>}
                 </p>
-                <p style={{ fontSize: 10, color: "#8a8a9a" }}>{isAnnual ? `연 ₩${(price*12).toLocaleString()} · VAT 포함` : "VAT 포함"}</p>
+                <p style={{ fontSize: 10, color: "#8a8a9a" }}>{isAnnual ? `연 ₩${(price * 12).toLocaleString()} · VAT 포함` : "VAT 포함"}</p>
               </div>
             );
           })()}
@@ -420,5 +417,6 @@ export default function LandingPage() {
           </button>
         </div>
       </div>
+    </div>
   );
 }
