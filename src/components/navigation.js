@@ -46,18 +46,18 @@ const NAV_ICONS = {
   reports: "📊", tax: "🧾", settings: "⚙️", pricing: "💎", community: "💬",
 };
 
-const PLAN_ORDER = { free: 0, starter: 1, starter_plus: 2, pro: 3 };
+const PLAN_ORDER = { free: 0, plus: 1, pro: 2 };
 
 const PREMIUM_NAV = [
-  { key: "premium/roi", icon: "💰", label: "수익률 계산기", plan: "starter_plus" },
-  { key: "premium/rent-increase", icon: "📈", label: "임대료 인상 계산기", plan: "starter_plus" },
-  { key: "premium/deposit-return", icon: "🔑", label: "보증금 반환 계산기", plan: "starter_plus" },
-  { key: "premium/vacancy", icon: "📉", label: "공실 손실 계산기", plan: "starter_plus" },
-  { key: "premium/lease-check", icon: "⚖️", label: "임대차 3법", plan: "starter_plus" },
+  { key: "premium/roi", icon: "💰", label: "수익률 계산기", plan: "plus" },
+  { key: "premium/rent-increase", icon: "📈", label: "임대료 인상 계산기", plan: "plus" },
+  { key: "premium/deposit-return", icon: "🔑", label: "보증금 반환 계산기", plan: "plus" },
+  { key: "premium/vacancy", icon: "📉", label: "공실 손실 계산기", plan: "plus" },
+  { key: "premium/lease-check", icon: "⚖️", label: "임대차 3법", plan: "plus" },
   { key: "premium/map-search", icon: "🗺️", label: "주변 매물 조회", plan: "pro" },
   { key: "premium/ai-report", icon: "🤖", label: "AI 입지 분석", plan: "pro" },
   { key: "premium/kakao-alert", icon: "💬", label: "카카오 수금 알림", plan: "pro" },
-  { key: "premium/global-reports", icon: "🌐", label: "글로벌 리포트", plan: "starter_plus" },
+  { key: "premium/global-reports", icon: "🌐", label: "글로벌 리포트", plan: "plus" },
 ];
 
 const BOTTOM_TABS = [
@@ -264,8 +264,8 @@ export function Sidebar({ onLogout }) {
 
   const planMeta = {
     free:         { label: "무료 플랜",    color: "#8a8a9a", bg: "rgba(138,138,154,0.08)", dot: "#b0aead" },
-    starter:      { label: "스타터 플랜",  color: "#1a2744", bg: "rgba(26,39,68,0.06)",    dot: "#1a2744" },
-    starter_plus: { label: "스타터+ 플랜", color: "#0fa573", bg: "rgba(15,165,115,0.08)",  dot: "#0fa573" },
+    
+    plus: { label: "플러스 플랜", color: "#4f46e5", bg: "rgba(79,70,229,0.08)", dot: "#4f46e5" },
     pro:          { label: "프로 플랜",    color: "#c9920a", bg: "rgba(201,146,10,0.08)",   dot: "#c9920a" },
   };
   const pm           = planMeta[userPlan || "free"] || planMeta.free;

@@ -7,7 +7,7 @@ import { C, PLANS } from "../lib/constants";
 export default function LandingPage() {
   const router = useRouter();
   const [isAnnual, setIsAnnual] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState("starter");
+  const [selectedPlan, setSelectedPlan] = useState("plus");
 
   const features = [
     { icon: "🏠", title: "주거·상가 통합 관리", desc: "아파트·빌라·오피스텔·상가·토지 등 모든 임대 유형을 한 플랫폼에서 관리합니다." },
@@ -140,28 +140,27 @@ export default function LandingPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 20, padding: "0 0 20px", alignItems: "stretch" }}>
           {Object.values(PLANS).map((plan) => {
-            const isStarter     = plan.id === "starter";
-            const isStarterPlus = plan.id === "starter_plus";
+            const isPlus = plan.id === "plus";
             const isPro         = plan.id === "pro";
             return (
               <div key={plan.id} style={{
-                background: isStarter ? "linear-gradient(160deg, rgba(26,39,68,0.04), #ffffff)" : "#ffffff",
-                border: `1.5px solid ${isStarter ? "rgba(26,39,68,0.2)" : isPro ? "rgba(201,146,10,0.25)" : "#ebe9e3"}`,
+                background: isPlus ? "linear-gradient(160deg, rgba(79,70,229,0.04), #ffffff)" : "#ffffff",
+                border: `1.5px solid ${isPlus ? "rgba(79,70,229,0.25)" : isPro ? "rgba(201,146,10,0.25)" : "#ebe9e3"}`,
                 borderRadius: 20, padding: "28px 24px 24px",
                 position: "relative", display: "flex", flexDirection: "column",
-                boxShadow: isStarter ? "0 8px 32px rgba(26,39,68,0.1)" : "0 2px 10px rgba(26,39,68,0.05)"
+                boxShadow: isPlus ? "0 8px 32px rgba(79,70,229,0.12)" : "0 2px 10px rgba(26,39,68,0.05)"
               }}>
                 {plan.badge && (
                   <div style={{
                     position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)",
-                    background: isStarter ? "linear-gradient(135deg,#1a2744,#2d4270)" : "linear-gradient(135deg,#c9920a,#e8960a)",
+                    background: isPlus ? "linear-gradient(135deg,#4f46e5,#7c3aed)" : "linear-gradient(135deg,#c9920a,#e8960a)",
                     color: "#fff", fontSize: 11, fontWeight: 800,
                     padding: "4px 14px", borderRadius: 20, whiteSpace: "nowrap"
                   }}>{plan.badge}</div>
                 )}
 
                 {/* 플랜명 & 가격 */}
-                <p style={{ fontSize: 13, fontWeight: 800, color: isPro ? "#c9920a" : isStarter ? "#1a2744" : "#8a8a9a", marginBottom: 6, letterSpacing: "1px" }}>{plan.name.toUpperCase()}</p>
+                <p style={{ fontSize: 13, fontWeight: 800, color: isPro ? "#c9920a" : isPlus ? "#4f46e5" : "#8a8a9a", marginBottom: 6, letterSpacing: "1px" }}>{plan.name.toUpperCase()}</p>
                 {(() => {
                   const monthly  = plan.price;
                   const annual   = Math.round(monthly * 0.8);
@@ -199,15 +198,13 @@ export default function LandingPage() {
                   style={{
                     width: "100%", padding: "13px", borderRadius: 12, border: "none",
                     cursor: "pointer", fontWeight: 800, fontSize: 14, marginTop: "auto",
-                    background: isStarter
-                      ? "linear-gradient(135deg, #1a2744, #2d4270)"
-                      : isStarterPlus
-                        ? "linear-gradient(135deg, #4f46e5, #7c3aed)"
-                        : isPro
-                          ? "linear-gradient(135deg, #c9920a, #e8960a)"
-                          : "#f0efe9",
+                    background: isPlus
+                      ? "linear-gradient(135deg, #4f46e5, #7c3aed)"
+                      : isPro
+                        ? "linear-gradient(135deg, #c9920a, #e8960a)"
+                        : "#f0efe9",
                     color: plan.price === 0 ? "#6a6a7a" : "#fff",
-                    boxShadow: isStarter ? "0 4px 16px rgba(26,39,68,0.25)" : isStarterPlus ? "0 4px 16px rgba(124,58,237,0.25)" : isPro ? "0 4px 16px rgba(201,146,10,0.25)" : "none",
+                    boxShadow: isPlus ? "0 4px 16px rgba(79,70,229,0.25)" : isPro ? "0 4px 16px rgba(201,146,10,0.25)" : "none",
                   }}
                 >
                   {plan.price === 0 ? "무료로 시작" : "구독 시작하기"}

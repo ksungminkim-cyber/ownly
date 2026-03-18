@@ -5,7 +5,7 @@ import { C, PLANS } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 import { toast } from "../../../components/shared";
 
-const PLAN_ORDER = { free: 0, starter: 1, starter_plus: 2, pro: 3 };
+const PLAN_ORDER = { free: 0, plus: 1, pro: 2 };
 
 export default function PricingPage() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export default function PricingPage() {
   const PLAN_THEME = {
     free:         { accent: "#8a8a9a", border: "#ebe9e3", btnBg: "#f0efe9", btnColor: "#6a6a7a", shadow: "none" },
     starter:      { accent: "#3b6bca", border: "#dce6f5", btnBg: "linear-gradient(135deg,#3b6bca,#2d5ab8)", btnColor: "#fff", shadow: "0 6px 24px rgba(59,107,202,0.2)" },
-    starter_plus: { accent: "#0fa573", border: "#b8e8d6", btnBg: "linear-gradient(135deg,#0fa573,#0d8a60)", btnColor: "#fff", shadow: "0 8px 32px rgba(15,165,115,0.2)" },
+    plus: { accent: "#4f46e5", border: "#c4c1fa", btnBg: "linear-gradient(135deg,#4f46e5,#7c3aed)", btnColor: "#fff", shadow: "0 8px 32px rgba(79,70,229,0.2)" },
     pro:          { accent: "#c9920a", border: "#f0d88a", btnBg: "linear-gradient(135deg,#c9920a,#e8960a)", btnColor: "#fff", shadow: "0 8px 32px rgba(201,146,10,0.22)" },
   };
 
@@ -81,7 +81,7 @@ export default function PricingPage() {
     { label: "📱 카카오 알림",    vals: [false, false, false, true] },
   ];
 
-  const planAccentColors = { free: "#8a8a9a", starter: "#3b6bca", starter_plus: "#0fa573", pro: "#c9920a" };
+  const planAccentColors = { free: "#8a8a9a", plus: "#4f46e5", pro: "#c9920a" };
 
   return (
     <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif", maxWidth: 1060, margin: "0 auto", padding: isMobile ? "24px 16px 48px" : "36px 24px 60px" }}>
@@ -114,7 +114,7 @@ export default function PricingPage() {
               }}>
                 {plan.badge && (
                   <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)",
-                    background: plan.id === "starter_plus" ? "linear-gradient(135deg,#0fa573,#0d8a60)" : "linear-gradient(135deg,#c9920a,#e8960a)",
+                    background: plan.id === "plus" ? "linear-gradient(135deg,#4f46e5,#7c3aed)" : "linear-gradient(135deg,#c9920a,#e8960a)",
                     color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
                     ⭐ {plan.badge}
                   </div>
@@ -161,7 +161,7 @@ export default function PricingPage() {
             const planLevel = PLAN_ORDER[plan.id] ?? 0;
             const isDowngrade = planLevel < currentLevel && plan.id !== "free";
             const th = PLAN_THEME[plan.id];
-            const isHighlighted = plan.id === "starter_plus";
+            const isHighlighted = plan.id === "plus";
             return (
               <div key={plan.id} style={{
                 background: "var(--surface)", border: `1.5px solid ${isCurrent ? th.accent : th.border}`,
@@ -172,7 +172,7 @@ export default function PricingPage() {
               }}>
                 {plan.badge && (
                   <div style={{ position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)",
-                    background: plan.id === "starter_plus" ? "linear-gradient(135deg,#0fa573,#0d8a60)" : "linear-gradient(135deg,#c9920a,#e8960a)",
+                    background: plan.id === "plus" ? "linear-gradient(135deg,#4f46e5,#7c3aed)" : "linear-gradient(135deg,#c9920a,#e8960a)",
                     color: "#fff", fontSize: 11, fontWeight: 800, padding: "4px 16px", borderRadius: 20, whiteSpace: "nowrap" }}>
                     ⭐ {plan.badge}
                   </div>
@@ -289,7 +289,7 @@ export default function PricingPage() {
 }
 
 // 플랜 색상 맵 (비교표 헤더용)
-const planAccentColors = { free: "#8a8a9a", starter: "#3b6bca", starter_plus: "#0fa573", pro: "#c9920a" };
+const planAccentColors = { free: "#8a8a9a", plus: "#4f46e5", pro: "#c9920a" };
 
 async function loadTossPayments(clientKey) {
   if (window.TossPayments) return window.TossPayments(clientKey);

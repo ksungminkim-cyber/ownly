@@ -38,7 +38,7 @@ export async function POST(req) {
         customerKey,
         amount: PLANS_PRICE[planId],
         orderId: `ownly_${planId}_${Date.now()}`,
-        orderName: `Ownly ${planId === "starter" ? "스타터" : "프로"} 월 구독`,
+        orderName: `Ownly ${planId === "plus" ? "플러스" : "프로"} 월 구독`,
         customerEmail: billing.customerEmail || "",
         taxFreeAmount: 0,
       }),

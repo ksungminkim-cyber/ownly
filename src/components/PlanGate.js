@@ -43,7 +43,7 @@ export default function PlanGate({ feature, children }) {
           {label}은 유료 플랜 전용이에요
         </p>
         <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.7 }}>
-          스타터 플랜(월 9,900원)부터 모든 기능을<br />
+          플러스 플랜(월 19,900원)부터 모든 기능을<br />
           제한 없이 사용할 수 있어요.
         </p>
       </div>
@@ -70,7 +70,7 @@ export default function PlanGate({ feature, children }) {
       <p style={{ color: C.muted, fontSize: 12 }}>
         현재 플랜:{" "}
         <strong style={{ color: C.text }}>
-          {userPlan === "free" ? "무료" : userPlan === "starter" ? "스타터" : "프로"}
+          {userPlan === "free" ? "무료" : userPlan === "plus" ? "플러스" : "프로"}
         </strong>
       </p>
     </div>

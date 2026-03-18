@@ -9,8 +9,8 @@ const ADMIN_EMAILS = ["k.sungminkim@gmail.com"];
 
 const PLAN_META = {
   free:         { label: "무료",    color: "#8a8a9a", bg: "#f0efe9" },
-  starter:      { label: "스타터",  color: "#3b6bca", bg: "#dce6f5" },
-  starter_plus: { label: "스타터+", color: "#0fa573", bg: "#d0f0e6" },
+  
+  plus: { label: "플러스", color: "#4f46e5", bg: "#e5e4fd" },
   pro:          { label: "프로",    color: "#c9920a", bg: "#fdf0cc" },
 };
 
@@ -76,8 +76,8 @@ function AdminContent({ currentUser }) {
       sql: "UPDATE public.subscriptions\nSET plan = 'pro',\n    status = 'active',\n    current_period_end = NULL\nWHERE user_id = 'YOUR_USER_ID';",
     },
     {
-      title: "③ 특정 유저 → 스타터+ 설정",
-      sql: "UPDATE public.subscriptions\nSET plan = 'starter_plus',\n    status = 'active',\n    current_period_end = NULL\nWHERE user_id = 'YOUR_USER_ID';",
+      title: "③ 특정 유저 → 플러스 설정",
+      sql: "UPDATE public.subscriptions\nSET plan = 'plus',\n    status = 'active',\n    current_period_end = NULL\nWHERE user_id = 'YOUR_USER_ID';",
     },
     {
       title: "④ 구독 레코드 없는 유저에게 생성",
@@ -204,7 +204,7 @@ function AdminContent({ currentUser }) {
           { l: "전체 유저", v: users.length, c: "#1a2744", bg: "#f0f2f8" },
           { l: "활성 구독", v: subs.filter(s => s.status === "active").length, c: "#0fa573", bg: "#edfaf5" },
           { l: "무료", v: subs.filter(s => s.plan === "free").length, c: "#8a8a9a", bg: "#f8f7f4" },
-          { l: "스타터·스타터+", v: subs.filter(s => s.plan === "starter" || s.plan === "starter_plus").length, c: "#3b6bca", bg: "#eef3fd" },
+          { l: "플러스", v: subs.filter(s => s.plan === "plus").length, c: "#4f46e5", bg: "#eeeefe" },
           { l: "프로", v: subs.filter(s => s.plan === "pro").length, c: "#c9920a", bg: "#fdf6e3" },
         ].map(k => (
           <div key={k.l} style={{ background: k.bg, border: "1px solid " + k.c + "22", borderRadius: 14, padding: "16px 18px" }}>

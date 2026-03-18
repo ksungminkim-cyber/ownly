@@ -1,168 +1,109 @@
 export const runtime = "edge";
 
-const SYSTEM_PROMPT = `당신은 대한민국 부동산 임대료 감정평가 전문가입니다.
+function buildPricingPrompt(address, propertyType) {
+  const typeMap = {
+    "주거": "residential (apartment/villa/house)",
+    "상가": "commercial (retail store/shop)",
+    "오피스텔": "officetel (studio/office)",
+    "토지": "land"
+  };
+  const typeEn = typeMap[propertyType] || "residential";
 
-[절대 규칙]
-1. 반드시 순수한 한국어로만 응답하세요. 한자, 영어, 외래어 절대 금지.
-2. JSON 형식으로만 응답하고 문자열 값 안에 줄바꿈 문자를 포함하지 마세요.
-3. 제공된 실거래가 데이터를 최우선으로 사용하세요.
-4. 데이터에 없는 내용은 반드시 "추정"이라고 명시하세요.
-5. 모르거나 불확실한 수치는 범위로만 제시하세요.
-6. floor 필드는 숫자만 ("1", "2" 형식, "층" 절대 붙이지 마세요).
-7. rentPerPy: 반드시 월세(만원) ÷ 면적(평) 계산값. 예: 200만원 / 20평 = 10만원/평.`;
+  return `⚠️ CRITICAL: Respond ONLY in Korean language. No Chinese characters, no English words, no Vietnamese words. All text must be pure Korean (한글).
+⚠️ CRITICAL: Output ONLY valid JSON. No markdown, no backticks, no explanation text outside JSON.
 
-function buildStatsText(molitData) {
-  const { stats, totalCount, months, apiTypes, isRent, notes, propertyType } = molitData;
-  if (!stats) return "- 조회 결과 없음";
+You are a Korean real estate rent pricing expert with 15+ years of experience.
+Analyze this address and estimate appropriate rent prices based on current Korean market data.
 
-  const lines = [
-    `- 조회 API: ${apiTypes.join(", ")}`,
-    `- 조회 기간: ${months[months.length-1]} ~ ${months[0]}`,
-    `- 총 거래 건수: ${totalCount}건`,
-  ];
+Address: "${address}"
+Property type: ${propertyType} (${typeEn})
 
-  if (isRent) {
-    if (stats.avgRent > 0) {
-      lines.push(`- 평균 월세: ${stats.avgRent}만원 (범위: ${stats.minRent}~${stats.maxRent}만원)`);
-      lines.push(`- 평균 보증금: ${stats.avgDeposit}만원 (범위: ${stats.minDeposit}~${stats.maxDeposit}만원)`);
-    }
-    if (stats.avgRentPerPy) lines.push(`- 평당 평균 월세: ${stats.avgRentPerPy}만원/평 (범위: ${stats.minRentPerPy}~${stats.maxRentPerPy}만원/평)`);
-    if (stats.avgAreaPy)    lines.push(`- 평균 전용면적: ${stats.avgAreaPy}평 (${stats.avgAreaSqm}㎡)`);
-    lines.push(`- 거래 유형: 월세 ${stats.wolseCount}건 / 전세 ${stats.jeonseCount}건`);
-  } else {
-    // 매매 역산
-    lines.push(`- ※ ${propertyType}은 전월세 실거래가 미공개 → 매매가 기준 수익률 역산`);
-    if (stats.avgPrice > 0) lines.push(`- 평균 매매가: ${stats.avgPrice.toLocaleString()}만원 (범위: ${stats.minPrice.toLocaleString()}~${stats.maxPrice.toLocaleString()}만원)`);
-    if (stats.avgPricePerPy) lines.push(`- 평당 평균 매매가: ${stats.avgPricePerPy.toLocaleString()}만원/평`);
-    if (stats.avgRent > 0) lines.push(`- 역산 평균 월 임대료: ${stats.avgRent}만원 (수익률 역산)`);
-    if (stats.avgRentPerPy) lines.push(`- 역산 평당 임대료: ${stats.avgRentPerPy}만원/평`);
-    if (stats.avgAreaPy)    lines.push(`- 평균 면적: ${stats.avgAreaPy}평`);
-  }
-
-  if (notes.length) lines.push(`- 데이터 주의: ${notes.join(" / ")}`);
-  return lines.join("\n");
+Output this exact JSON structure (replace all placeholder values with real Korean market data):
+{
+  "rentRange": { "min": 80, "max": 120, "unit": "만원/월" },
+  "depositRange": { "min": 3000, "max": 5000, "unit": "만원" },
+  "marketPosition": "적정",
+  "marketPositionScore": 0,
+  "avgRent": 100,
+  "avgDeposit": 4000,
+  "pricePerSqm": 3,
+  "comparables": [
+    { "type": "인근 유사 물건 1", "rent": 90, "deposit": 3000, "note": "반경 300m 내 유사 면적" },
+    { "type": "인근 유사 물건 2", "rent": 100, "deposit": 4000, "note": "동일 건물 유형" },
+    { "type": "인근 유사 물건 3", "rent": 115, "deposit": 5000, "note": "리모델링 완료 물건" }
+  ],
+  "strategy": "해당 지역 시세와 물건 특성을 고려한 임대 전략을 2-3문장으로 작성하세요.",
+  "vacancyRisk": "보통",
+  "bestTiming": "임대 최적 시기를 1문장으로 작성하세요.",
+  "negotiationTip": "협상 팁을 1-2문장으로 작성하세요.",
+  "priceTrend": "보합",
+  "trendReason": "가격 추세 이유를 1문장으로 작성하세요."
 }
 
-function buildSamplesText(samples, isRent) {
-  if (!samples.length) return "없음";
-  return samples.slice(0, 8).map((s, i) => {
-    if (isRent) {
-      return `  ${i+1}. ${s.name}(${s.dong}) / ${s.areaPy}평(${s.areaSqm}㎡) / ${s.floor ? s.floor+"층" : "-"} / ${s.builtYear ? s.builtYear+"년" : "-"} / ${s.type} / 월세${s.rent}만원 보증금${s.deposit}만원 / 평당${s.rentPerPy||"-"}만원 / ${s.contract}`;
-    } else {
-      return `  ${i+1}. ${s.name}(${s.dong}) / ${s.areaPy}평(${s.areaSqm}㎡) / ${s.floor ? s.floor+"층" : "-"} / 매매가${s.price?.toLocaleString()}만원 / 역산월세${s.estRent}만원 / 평당역산${s.rentPerPy||"-"}만원 / ${s.contract}`;
-    }
-  }).join("\n");
-}
-
-function buildPrompt(address, propertyType, molitData) {
-  const hasData   = molitData && molitData.totalCount > 0;
-  const isRent    = hasData ? molitData.isRent : true;
-  const isTradeOnly = ["상가","토지","공장"].includes(propertyType);
-
-  // 유형별 데이터 섹션 구성
-  let dataSection;
-  if (hasData) {
-    dataSection = `=== 국토교통부 실거래가 공식 데이터 ===\n${buildStatsText(molitData)}\n\n=== 실거래 샘플 (최신순) ===\n${buildSamplesText(molitData.samples || [], isRent)}`;
-  } else if (isTradeOnly) {
-    const yieldMap = { "상가": "3~5%", "토지": "1.5~3%", "공장": "4~6%" };
-    dataSection = `=== ${propertyType} 임대료 분석 방법 ===
-- ${propertyType}은 국토교통부 전월세 실거래가가 공개되지 않습니다.
-- 대신 아래 방식으로 반드시 구체적인 수치를 추정하세요:
-  1) 해당 지역 ${propertyType}의 실제 매매 시세 (평당 얼마인지)
-  2) 통상 임대 수익률 ${yieldMap[propertyType]} 적용하여 연간 임대료 역산
-  3) 12로 나누어 월 임대료 계산
-  4) 해당 지역 상권 특성 반영 (유동인구, 공실률, 접근성)
-- 마포구 서교동 기준으로 구체적인 수치를 반드시 제시하세요.
-- "정확한 데이터 없음"이라며 0이나 "-"로 채우지 마세요.`;
-  } else {
-    dataSection = `=== 실거래가 조회 실패 ===
-- API 응답 대기 중이거나 해당 기간 데이터가 없습니다.
-- AI 지식 기반으로 해당 주소 인근의 최근 시세를 추정하여 구체적 수치를 제시하세요.
-- 반드시 실제 숫자를 넣으세요. 0이나 "-"는 금지합니다.`;
-  }
-
-  return `⚠️ 반드시 순수 한국어, JSON만 출력.
-
-분석 대상: "${address}" (${propertyType})
-
-${dataSection}
-
-아래 JSON으로만 응답하세요:
-{"rentRange":{"min":0,"max":0,"unit":"만원/월"},"depositRange":{"min":0,"max":0,"unit":"만원"},"marketPosition":"적정","marketPositionScore":0,"avgRent":0,"avgDeposit":0,"rentPerPy":0,"avgAreaPy":0,"dataSource":"${hasData ? "국토교통부 실거래가" : "AI 추정"}","dataPeriod":"${hasData ? molitData.months?.[molitData.months.length-1]+"~"+molitData.months?.[0] : "-"}","dataCount":${hasData ? molitData.totalCount : 0},"isRentData":${isRent},"comparables":[{"name":"-","dong":"-","areaPy":0,"areaSqm":0,"floor":"1","builtYear":"2015","rent":0,"deposit":0,"rentPerPy":0,"type":"월세","contract":"-"},{"name":"-","dong":"-","areaPy":0,"areaSqm":0,"floor":"2","builtYear":"2018","rent":0,"deposit":0,"rentPerPy":0,"type":"월세","contract":"-"},{"name":"-","dong":"-","areaPy":0,"areaSqm":0,"floor":"3","builtYear":"2020","rent":0,"deposit":0,"rentPerPy":0,"type":"월세","contract":"-"}],"priceRange":{"low":"하한가 조건 설명","mid":"중간가 조건 설명","high":"상한가 조건 설명"},"strategy":"실거래 기반 전략 2문장","vacancyRisk":"보통","bestTiming":"최적 임대 시기 1문장","negotiationTip":"협상 팁 1문장","priceTrend":"보합","trendReason":"추세 근거 1문장","dataNote":"${hasData && !isRent ? molitData.notes?.[0] || "매매가 기반 역산" : hasData ? "실거래가 기반 분석" : "⚠️ 실거래가 없음 — AI 추정값"}","marketSummary":"시장 요약 2문장"}
-
-[필수 규칙]
-- comparables: 위 실거래 샘플에서 실제 데이터 사용 (없으면 빈 배열 [])
-- rentPerPy: 가장 중요한 핵심값. avgRentPerPy 그대로 사용. 없으면 샘플에서 (월세÷평형) 계산
-- rentRange: 참고용 범위값. avgRent 기준 ±20% 범위로 설정 (min=avgRent×0.8, max=avgRent×1.2)
-- avgRent: 위 통계 avgRent 그대로 사용
-- avgAreaPy: 위 통계 avgAreaPy 그대로 사용 — 면적별 시나리오 계산에 필수
-- 데이터 부족(10건 미만)이면 dataNote에 "데이터 부족, 신뢰도 낮음" 명시
-- marketPosition: "고평가", "적정", "저평가" 중 하나
-- vacancyRisk: "낮음", "보통", "높음" 중 하나
-- priceTrend: "상승", "보합", "하락" 중 하나
-- marketPositionScore: -2~2 정수
-- floor: 숫자만 (예: "1", "2") — "층" 절대 붙이지 마세요`;
+Rules:
+- marketPosition must be exactly one of: "고평가", "적정", "저평가"
+- marketPositionScore must be integer between -2 and 2
+- vacancyRisk must be exactly one of: "낮음", "보통", "높음"
+- priceTrend must be exactly one of: "상승", "보합", "하락"
+- All numeric values (rent, deposit, etc.) must be actual numbers, not strings
+- All string values must be in Korean only
+- Return ONLY the JSON object, nothing else`;
 }
 
 export async function POST(req) {
   try {
-    const { address, propertyType = "주거", lawdCd } = await req.json();
+    const { address, propertyType = "주거" } = await req.json();
     if (!address) return Response.json({ error: "주소를 입력해주세요." }, { status: 400 });
 
     const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) return Response.json({ error: "Groq API 키 없음" }, { status: 500 });
+    if (!apiKey) return Response.json({ error: "API 키가 설정되지 않았습니다." }, { status: 500 });
 
-    // 1단계: 실거래가 조회
-    let molitData = null;
-    if (lawdCd) {
-      try {
-        const baseUrl = new URL(req.url).origin;
-        const r = await fetch(`${baseUrl}/api/molit`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lawdCd, propertyType }),
-        });
-        if (r.ok) molitData = await r.json();
-      } catch (e) { console.warn("국토부 조회 실패:", e.message); }
-    }
-
-    // 2단계: AI 분석
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user",   content: buildPrompt(address, propertyType, molitData) },
+          {
+            role: "system",
+            content: "You are a Korean real estate pricing expert. You MUST output ONLY valid JSON with no markdown formatting, no backticks, no text outside the JSON. All string values inside the JSON must be in Korean (한글) only."
+          },
+          { role: "user", content: buildPricingPrompt(address, propertyType) }
         ],
-        temperature: 0.2,
-        max_tokens: 2000,
+        temperature: 0.3,
+        max_tokens: 1500,
+        response_format: { type: "json_object" },
       }),
     });
 
     const data = await res.json();
-    if (!res.ok) return Response.json({ error: `AI 오류: ${data?.error?.message}` }, { status: res.status });
+    if (!res.ok) return Response.json({ error: `분석 오류: ${data?.error?.message}` }, { status: res.status });
 
-    let text = data?.choices?.[0]?.message?.content || "";
-    text = text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
-    const js = text.indexOf("{"), je = text.lastIndexOf("}");
-    if (js === -1 || je === -1) return Response.json({ error: "AI 응답 형식 오류. 다시 시도해주세요." }, { status: 500 });
+    let text = data?.choices?.[0]?.message?.content;
+    if (!text) return Response.json({ error: "AI 응답이 비어있습니다." }, { status: 500 });
 
-    text = text.slice(js, je+1).replace(/[\u0000-\u001F\u007F]/g, ch => ({"\n":"\\n","\r":"\\r","\t":"\\t"}[ch]||""));
+    // 안전한 파싱
+    text = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    const jsonStart = text.indexOf("{");
+    const jsonEnd   = text.lastIndexOf("}");
+    if (jsonStart === -1 || jsonEnd === -1) {
+      return Response.json({ error: "AI가 올바른 형식으로 응답하지 않았습니다. 다시 시도해주세요." }, { status: 500 });
+    }
+    text = text.slice(jsonStart, jsonEnd + 1);
+    // 제어문자 정리
+    text = text.replace(/[\u0000-\u001F\u007F]/g, (ch) => {
+      const safe = { "\n": "\\n", "\r": "\\r", "\t": "\\t" };
+      return safe[ch] || "";
+    });
 
     const result = JSON.parse(text);
-    result.address      = address;
+    result.address = address;
     result.propertyType = propertyType;
     result.analysisDate = new Date().toLocaleDateString("ko-KR");
-    result.hasRealData  = !!(molitData && molitData.totalCount > 0);
-    result.rawStats     = molitData?.stats || null;
-    result.molitNotes   = molitData?.notes || [];
-    result.apiTypes     = molitData?.apiTypes || [];
     return Response.json(result);
 
   } catch (err) {
     console.error("임대료 분석 오류:", err.message);
-    return Response.json({ error: "오류: " + err.message }, { status: 500 });
+    return Response.json({ error: "분석 중 오류: " + err.message }, { status: 500 });
   }
 }

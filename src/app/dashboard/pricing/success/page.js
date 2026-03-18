@@ -37,7 +37,7 @@ function PricingSuccessContent() {
     run();
   }, []);
 
-  const plan = PLANS[params.get("plan")] || PLANS.starter;
+  const plan = PLANS[params.get("plan")] || PLANS.plus;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f4f0", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>

@@ -24,7 +24,7 @@ const PREMIUM_FEATURES = [
     desc: "취득세·종소세·건보료 감안한\n실질 수익률 시뮬레이션",
     badge: "STARTER+",
     badgeColor: "#0fa573",
-    plan: "starter_plus",
+    plan: "plus",
     tag: "인기",
     tagColor: "#0fa573",
   },
@@ -35,7 +35,7 @@ const PREMIUM_FEATURES = [
     desc: "공실 기간별 기회비용·\n손실액 자동 계산",
     badge: "STARTER+",
     badgeColor: "#0fa573",
-    plan: "starter_plus",
+    plan: "plus",
     tag: null,
   },
   {
@@ -45,7 +45,7 @@ const PREMIUM_FEATURES = [
     desc: "계약갱신청구권·전월세상한제\n자동 적용 여부 확인",
     badge: "STARTER+",
     badgeColor: "#0fa573",
-    plan: "starter_plus",
+    plan: "plus",
     tag: null,
   },
   {
@@ -82,7 +82,7 @@ const PREMIUM_FEATURES = [
   },
 ];
 
-const PLAN_ORDER = { free: 0, starter: 1, starter_plus: 2, pro: 3 };
+const PLAN_ORDER = { free: 0, plus: 1, pro: 2 };
 
 export default function DashboardPage() {
   const router = useRouter();
