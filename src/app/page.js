@@ -113,8 +113,9 @@ export default function LandingPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 20, padding: "0 0 20px", alignItems: "stretch" }}>
           {Object.values(PLANS).map((plan) => {
-            const isStarter = plan.id === "starter";
-            const isPro = plan.id === "pro";
+            const isStarter     = plan.id === "starter";
+            const isStarterPlus = plan.id === "starter_plus";
+            const isPro         = plan.id === "pro";
             return (
               <div key={plan.id} style={{
                 background: isStarter ? "linear-gradient(160deg, rgba(26,39,68,0.04), #ffffff)" : "#ffffff",
@@ -157,11 +158,13 @@ export default function LandingPage() {
                     cursor: "pointer", fontWeight: 800, fontSize: 14, marginTop: "auto",
                     background: isStarter
                       ? "linear-gradient(135deg, #1a2744, #2d4270)"
-                      : isPro
-                        ? "linear-gradient(135deg, #c9920a, #e8960a)"
-                        : "#f0efe9",
+                      : isStarterPlus
+                        ? "linear-gradient(135deg, #4f46e5, #7c3aed)"
+                        : isPro
+                          ? "linear-gradient(135deg, #c9920a, #e8960a)"
+                          : "#f0efe9",
                     color: plan.price === 0 ? "#6a6a7a" : "#fff",
-                    boxShadow: isStarter ? "0 4px 16px rgba(26,39,68,0.25)" : isPro ? "0 4px 16px rgba(201,146,10,0.25)" : "none",
+                    boxShadow: isStarter ? "0 4px 16px rgba(26,39,68,0.25)" : isStarterPlus ? "0 4px 16px rgba(124,58,237,0.25)" : isPro ? "0 4px 16px rgba(201,146,10,0.25)" : "none",
                   }}
                 >
                   {plan.price === 0 ? "무료로 시작" : "구독 시작하기"}
