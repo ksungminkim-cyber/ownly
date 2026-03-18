@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import React from "react";
 import { Spinner, AuthInput } from "../../components/shared";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
@@ -15,6 +16,15 @@ export default function AuthPage() {
   const [form, setForm] = useState({ email: "", pw: "", name: "", phone: "", agree: false });
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null);
+
+  // URL 에러 파라미터 처리
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (err === "naver_denied") setErrors({ submit: "네이버 로그인이 취소되었습니다." });
+    else if (err === "naver_failed") setErrors({ submit: "네이버 로그인 중 오류가 발생했습니다. 다시 시도해주세요." });
+    else if (err === "naver_state_mismatch") setErrors({ submit: "보안 오류가 발생했습니다. 다시 시도해주세요." });
+  }, []);
   const [errors, setErrors] = useState({});
   const [msg, setMsg] = useState("");
 
@@ -183,6 +193,26 @@ export default function AuthPage() {
                 </svg>
               )}
               카카오로 {tab === "login" ? "로그인" : "가입"}
+            </button>
+
+            {/* 네이버 로그인 */}
+            <button
+              onClick={() => { setSocialLoading("naver"); window.location.href = "/api/auth/naver"; }}
+              disabled={!!socialLoading}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                padding: "13px", borderRadius: 14, background: "#03C75A",
+                border: "1.5px solid #03C75A", color: "#fff", fontWeight: 700, fontSize: 14,
+                cursor: "pointer", opacity: socialLoading === "naver" ? 0.7 : 1,
+                transition: "all .15s",
+              }}
+            >
+              {socialLoading === "naver" ? <Spinner color="#fff" /> : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" fill="#fff"/>
+                </svg>
+              )}
+              네이버로 {tab === "login" ? "로그인" : "가입"}
             </button>
           </div>
 
