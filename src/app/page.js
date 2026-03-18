@@ -1,5 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { C, PLANS } from "../lib/constants";
 
 export default function LandingPage() {
@@ -76,6 +77,11 @@ export default function LandingPage() {
               boxShadow: "0 2px 8px rgba(26,39,68,0.06)"
             }}
           >로그인</button>
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <Link href="/features" style={{ fontSize: 13, color: "#8a8a9a", textDecoration: "none", borderBottom: "1px solid #d0cfc8", paddingBottom: 1 }}>
+            모든 기능 살펴보기 →
+          </Link>
         </div>
       </div>
 
@@ -220,34 +226,89 @@ export default function LandingPage() {
       {/* ─── 법적 푸터 ─── */}
       <footer style={{
         width: "100%", borderTop: "1px solid #e8e6e0",
-        marginTop: 60, padding: "32px 20px",
+        marginTop: 60, padding: "40px 20px 32px",
         position: "relative", zIndex: 1
       }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 8,
-              background: "linear-gradient(135deg, #1a2744, #2d4270)",
-              display: "flex", alignItems: "center", justifyContent: "center"
-            }}>
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
-                <polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.9"/>
-              </svg>
+
+          {/* 푸터 상단 — 로고 + 링크 그리드 */}
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 32, marginBottom: 32 }}>
+            {/* 로고 + 설명 */}
+            <div style={{ minWidth: 200 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #1a2744, #2d4270)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+                    <polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.9"/>
+                  </svg>
+                </div>
+                <span style={{ fontFamily: "'Pretendard',sans-serif", fontSize: 16, fontWeight: 900, color: "#1a2744", letterSpacing: "-0.3px" }}>온리</span>
+              </div>
+              <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.7, maxWidth: 200 }}>임대인을 위한<br/>올인원 임대 자산 관리 플랫폼</p>
             </div>
-            <span style={{ fontFamily: "'Pretendard',sans-serif", fontSize: 16, fontWeight: 900, color: "#1a2744", letterSpacing: "-0.3px" }}>온리</span>
+
+            {/* 링크 그룹들 */}
+            <div style={{ display: "flex", gap: 48, flexWrap: "wrap" }}>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#1a2744", letterSpacing: "1px", textTransform: "uppercase", marginBottom: 12 }}>서비스</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Link href="/features" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
+                    onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
+                    기능 소개
+                  </Link>
+                  <Link href="/login" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
+                    onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
+                    무료 시작하기
+                  </Link>
+                  <Link href="/dashboard/pricing" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
+                    onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
+                    요금제
+                  </Link>
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#1a2744", letterSpacing: "1px", textTransform: "uppercase", marginBottom: 12 }}>지원</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Link href="/legal/faq" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
+                    onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
+                    자주 묻는 질문
+                  </Link>
+                  <Link href="/legal/notice" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
+                    onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
+                    공지사항
+                  </Link>
+                  <a href="mailto:inquiry@mclean21.com" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
+                    onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
+                    문의하기
+                  </a>
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 800, color: "#1a2744", letterSpacing: "1px", textTransform: "uppercase", marginBottom: 12 }}>법적</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Link href="/legal/terms" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
+                    onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
+                    서비스 이용약관
+                  </Link>
+                  <Link href="/legal/privacy" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
+                    onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
+                    개인정보처리방침
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 2, display: "flex", flexWrap: "wrap", gap: "0 24px" }}>
-            <span>상호명: (주)맥클린</span>
-            <span>대표: 김성민</span>
-            <span>사업자등록번호: 137-81-52231</span>
-            <span>통신판매업신고: 제0000-서울00-0000호</span>
+
+          {/* 푸터 하단 — 사업자 정보 */}
+          <div style={{ borderTop: "1px solid #ebe9e3", paddingTop: 20 }}>
+            <div style={{ fontSize: 11, color: "#a0a0b0", lineHeight: 1.9, display: "flex", flexWrap: "wrap", gap: "0 20px" }}>
+              <span>상호명: (주)맥클린</span>
+              <span>대표: 김성민</span>
+              <span>사업자등록번호: 137-81-52231</span>
+              <span>통신판매업신고: 제0000-서울00-0000호</span>
+              <span>이메일: inquiry@mclean21.com</span>
+            </div>
+            <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 8 }}>© 2025 McLean Inc. All rights reserved.</p>
           </div>
-          <div style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 2, display: "flex", flexWrap: "wrap", gap: "0 24px", marginTop: 4 }}>
-            <span>이메일: inquiry@mclean21.com</span>
-            <span style={{ cursor: "pointer", textDecoration: "underline" }}>서비스 이용약관</span>
-            <span style={{ cursor: "pointer", textDecoration: "underline" }}>개인정보처리방침</span>
-          </div>
-          <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 12, opacity: 0.6 }}>© 2025 McLean Inc. All rights reserved.</p>
         </div>
       </footer>
     </div>
