@@ -6,12 +6,12 @@ export default function LandingPage() {
   const router = useRouter();
 
   const features = [
-    { icon: "🏠", title: "주거·상가 통합 관리", desc: "아파트·빌라·오피스텔·상가 유형별 맞춤 계약 관리." },
-    { icon: "💰", title: "수금 자동 추적",      desc: "매월 자동 레코드, 미납 즉시 감지, 클릭 하나로 처리." },
-    { icon: "📊", title: "수익률 리포트",       desc: "물건별 연 수익률 자동 계산, 월별 차트 분석." },
-    { icon: "📝", title: "계약·내용증명",       desc: "계약서 관리부터 내용증명 PDF 발행까지 원스톱." },
-    { icon: "🧾", title: "세금 시뮬레이터",     desc: "종합소득세·부가세 자동 추정. 2025년 세법 기준." },
-    { icon: "📅", title: "만료 알림",           desc: "만료 D-90/60/30, 미납 즉시 감지 알림." },
+    { icon: "🏠", title: "주거·상가 통합 관리", desc: "아파트·빌라·오피스텔·상가·토지 등 모든 임대 유형을 한 플랫폼에서 관리합니다." },
+    { icon: "💰", title: "임대료 수금 자동화",  desc: "월세·보증금 수금 현황을 자동 추적하고 미납 즉시 알림. 임대료 관리가 쉬워집니다." },
+    { icon: "📊", title: "임대 수익률 분석",    desc: "물건별 연 수익률 자동 계산, 월별 수익 차트. 임대 자산 수익 현황을 한눈에 파악합니다." },
+    { icon: "📝", title: "계약서·내용증명",     desc: "임대차 계약서 관리부터 법적 효력의 내용증명 PDF 발행까지 원스톱으로 처리합니다." },
+    { icon: "🧾", title: "세금 신고 시뮬레이터", desc: "임대소득 종합소득세·부가세를 자동 추정합니다. 임대사업자 세금 신고에 도움이 됩니다." },
+    { icon: "🤖", title: "AI 입지·임대료 분석", desc: "국토부 실거래가 기반으로 지역 적정 임대료와 입지를 AI가 분석합니다." },
   ];
 
   return (
@@ -50,7 +50,7 @@ export default function LandingPage() {
 
         <h1 style={{ fontSize: "clamp(28px,5vw,52px)", fontWeight: 900, lineHeight: 1.15, marginBottom: 16 }}>
           <span className="gradient-text">임대인을 위한</span><br />
-          <span style={{ color: "#1a2744" }}>스마트 임대 관리 앱</span>
+          <span style={{ color: "#1a2744" }}>임대 자산 관리 플랫폼</span>
         </h1>
         <p style={{ fontSize: 15, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 32, maxWidth: 480, margin: "0 auto 32px" }}>
           주거·상가 임대 물건을 한 앱으로. 수금 추적, 계약 관리, 세금 시뮬레이션, 내용증명까지.
