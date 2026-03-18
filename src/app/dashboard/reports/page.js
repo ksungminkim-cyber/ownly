@@ -83,19 +83,30 @@ function ReportsContent({ tenants, payments, period, setPeriod }) {
   // 월별 수입 집계 — 실제 payments에서 paid 상태만
   const chartData = useMemo(() => {
     return periodMonths.map(({ year, month }) => {
-      // 해당 월 수납된 금액 합산
+      // 해당 월 수납된 월세 합산
       const monthPayments = payments.filter(p =>
         p.month === month &&
-        (p.year === year || !p.year) &&  // year 없으면 month만 비교
+        (p.year === year || !p.year) &&
         p.status === "paid"
       );
-      const income = monthPayments.reduce((s, p) => s + (p.amt || 0), 0);
+      const rentIncome = monthPayments.reduce((s, p) => s + (p.amt || 0), 0);
 
-      // 지출: 현재 Ownly에 수리이력 비용 데이터가 없으면 0 표시
-      // (추후 repairs 테이블 연동 시 여기서 집계)
-      const expense = 0;
+      // 관리비: maintenance_paid=true인 건 × 세입자별 관리비 금액
+      const maintIncome = payments
+        .filter(p =>
+          p.month === month &&
+          (p.year === year || !p.year) &&
+          p.maintenance_paid
+        )
+        .reduce((s, p) => {
+          const tenant = tenants.find(t => t.id === p.tid);
+          return s + (tenant?.maintenance || 0);
+        }, 0);
 
-      return { m: monthLabel(year, month), income, expense, net: income - expense, year, month };
+      const income = rentIncome + maintIncome;
+      const expense = 0; // 추후 수리이력 연동 시 반영
+
+      return { m: monthLabel(year, month), income, rentIncome, maintIncome, expense, net: income - expense, year, month };
     });
   }, [payments, periodMonths]);
 
@@ -105,7 +116,7 @@ function ReportsContent({ tenants, payments, period, setPeriod }) {
   const periodLabel = { "3m": "최근 3개월", "6m": "최근 6개월", "1y": "최근 1년" }[period];
 
   // 예상 수입 (세입자 월세 합계 × 기간)
-  const expectedMonthly = tenants.reduce((s, t) => s + (t.rent || 0), 0);
+  const expectedMonthly = tenants.reduce((s, t) => s + (t.rent || 0) + (t.maintenance || 0), 0);
   const expectedTotal   = expectedMonthly * periodMonths.length;
   const collectRate     = expectedTotal > 0 ? Math.round((total / expectedTotal) * 100) : 0;
 
@@ -138,7 +149,10 @@ function ReportsContent({ tenants, payments, period, setPeriod }) {
       {/* 요약 카드 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 13, marginBottom: 22 }}>
         {[
-          { l: "총 수입",    v: `${total.toLocaleString()}만원`,   c: C.indigo,  sub: `${periodLabel} 수납 합산` },
+          { l: "총 수입",    v: `${total.toLocaleString()}만원`,   c: C.indigo,  sub: (() => {
+            const totalMaint = chartData.reduce((s,m)=>s+m.maintIncome,0);
+            return totalMaint > 0 ? `월세+관리비 합산 (관리비 ${totalMaint}만원 포함)` : `${periodLabel} 월세 수납 합산`;
+          })() },
           { l: "수납률",     v: `${collectRate}%`,                  c: collectRate >= 90 ? C.emerald : collectRate >= 70 ? C.amber : C.rose, sub: `예상 ${expectedTotal.toLocaleString()}만원 중` },
           { l: "순수익",     v: `${net.toLocaleString()}만원`,      c: C.emerald, sub: `월평균 ${periodMonths.length > 0 ? Math.round(net / periodMonths.length).toLocaleString() : 0}만원` },
         ].map((k) => (
@@ -174,7 +188,8 @@ function ReportsContent({ tenants, payments, period, setPeriod }) {
               <XAxis dataKey="m" tick={{ fill: C.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: C.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="income" name="수납액" fill={C.indigo} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="rentIncome"  name="월세"   fill={C.indigo} radius={[4, 4, 0, 0]} stackId="a" />
+              <Bar dataKey="maintIncome" name="관리비" fill="#a78bfa"  radius={[4, 4, 0, 0]} stackId="a" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -215,11 +230,16 @@ function ReportsContent({ tenants, payments, period, setPeriod }) {
                 const annualRent = (t.rent || 0) * 12;
                 const yld = t.dep > 0 ? ((annualRent / t.dep) * 100).toFixed(1) : "N/A";
                 // 해당 세입자의 기간 내 실제 수납액
-                const actualCollected = payments
+                const rentCollected = payments
                   .filter(p => p.tid === t.id && p.status === "paid" &&
                     periodMonths.some(pm => pm.month === p.month && (pm.year === p.year || !p.year)))
                   .reduce((s, p) => s + (p.amt || 0), 0);
-                const expectedInPeriod = (t.rent || 0) * periodMonths.length;
+                const maintCollected = payments
+                  .filter(p => p.tid === t.id && p.maintenance_paid &&
+                    periodMonths.some(pm => pm.month === p.month && (pm.year === p.year || !p.year)))
+                  .reduce((s, p) => s + (t.maintenance || 0), 0);
+                const actualCollected = rentCollected + maintCollected;
+                const expectedInPeriod = ((t.rent || 0) + (t.maintenance || 0)) * periodMonths.length;
                 const pRate = expectedInPeriod > 0 ? Math.round(actualCollected / expectedInPeriod * 100) : 0;
 
                 return (
@@ -231,6 +251,9 @@ function ReportsContent({ tenants, payments, period, setPeriod }) {
                     <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#1a2744" }}>{t.name}</td>
                     <td style={{ padding: "12px 16px" }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{(t.rent || 0).toLocaleString()}만원</p>
+                      {t.maintenance > 0 && (
+                        <p style={{ fontSize: 10, color: "#a78bfa", marginTop: 1 }}>관리비 {t.maintenance}만원 별도</p>
+                      )}
                       {actualCollected > 0 && (
                         <p style={{ fontSize: 10, color: C.emerald, marginTop: 1 }}>실 수납 {actualCollected.toLocaleString()}만원</p>
                       )}
