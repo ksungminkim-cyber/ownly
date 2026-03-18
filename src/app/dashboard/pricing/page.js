@@ -84,7 +84,7 @@ export default function PricingPage() {
   const planAccentColors = { free: "#8a8a9a", plus: "#4f46e5", pro: "#c9920a" };
 
   return (
-    <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif", maxWidth: 1060, margin: "0 auto", padding: isMobile ? "24px 16px 48px" : "36px 24px 60px" }}>
+    <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif", maxWidth: 960, margin: "0 auto", padding: isMobile ? "24px 16px 48px" : "36px 24px 60px" }}>
 
       {/* 헤더 */}
       <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 48 }}>
@@ -155,7 +155,7 @@ export default function PricingPage() {
         </div>
       ) : (
         // 데스크탑: 4열 그리드
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, alignItems: "stretch", marginBottom: 56 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, alignItems: "stretch", marginBottom: 56, maxWidth: 900, margin: "0 auto 56px" }}>
           {planList.map((plan) => {
             const isCurrent = currentPlan === plan.id;
             const planLevel = PLAN_ORDER[plan.id] ?? 0;
@@ -220,13 +220,13 @@ export default function PricingPage() {
       )}
 
       {/* 기능 비교표 */}
-      <div style={{ marginBottom: 48 }}>
+      <div style={{ marginBottom: 48, maxWidth: 900, margin: "0 auto 48px" }}>
         <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)", marginBottom: 6, textAlign: "center" }}>플랜별 기능 비교</h2>
         <p style={{ fontSize: 13, color: "#8a8a9a", textAlign: "center", marginBottom: 20 }}>어떤 기능이 포함되어 있는지 한눈에 확인하세요</p>
 
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
           {/* 헤더 */}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "80px repeat(4,1fr)" : "1fr repeat(4, 100px)", borderBottom: "2px solid var(--border)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "80px repeat(3,1fr)" : "1fr repeat(3, 120px)", borderBottom: "2px solid var(--border)" }}>
             <div style={{ padding: isMobile ? "10px 8px" : "14px 20px", fontSize: 10, color: "#a0a0b0", fontWeight: 800, textTransform: "uppercase" }}>기능</div>
             {planList.map((p) => (
               <div key={p.id} style={{ padding: "10px 4px", textAlign: "center" }}>
@@ -237,7 +237,7 @@ export default function PricingPage() {
           </div>
           {/* 비교 행 */}
           {COMPARE_ROWS.map((row, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "80px repeat(4,1fr)" : "1fr repeat(4, 100px)",
+            <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "80px repeat(3,1fr)" : "1fr repeat(3, 120px)",
               borderBottom: i < COMPARE_ROWS.length - 1 ? "1px solid var(--border)" : "none",
               background: i % 2 === 0 ? "var(--surface2)" : "var(--surface)" }}>
               <div style={{ padding: isMobile ? "10px 8px" : "12px 20px", fontSize: isMobile ? 11 : 13, color: "var(--text)", fontWeight: 600, lineHeight: 1.3 }}>{row.label}</div>
