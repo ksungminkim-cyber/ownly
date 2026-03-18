@@ -50,11 +50,11 @@ export default function LandingPage() {
         </div>
 
         <h1 style={{ fontSize: "clamp(28px,5vw,52px)", fontWeight: 900, lineHeight: 1.15, marginBottom: 16 }}>
-          <span className="gradient-text">임대인을 위한</span><br />
-          <span style={{ color: "#1a2744" }}>임대 자산 관리 플랫폼</span>
+          <span className="gradient-text">내 임대 물건,</span><br />
+          <span style={{ color: "#1a2744" }}>온리 하나로.</span>
         </h1>
         <p style={{ fontSize: 15, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 32, maxWidth: 480, margin: "0 auto 32px" }}>
-          주거·상가 임대 물건을 한 앱으로. 수금 추적, 계약 관리, 세금 시뮬레이션, 내용증명까지.
+          수금부터 계약·세금·내용증명까지. 임대 관리에 필요한 모든 것, 하나의 앱에서.
         </p>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
@@ -243,7 +243,7 @@ export default function LandingPage() {
                 </div>
                 <span style={{ fontFamily: "'Pretendard',sans-serif", fontSize: 16, fontWeight: 900, color: "#1a2744", letterSpacing: "-0.3px" }}>온리</span>
               </div>
-              <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.7, maxWidth: 200 }}>임대인을 위한<br/>올인원 임대 자산 관리 플랫폼</p>
+              <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.7, maxWidth: 200 }}>내 임대 물건, 온리 하나로.<br/>수금·계약·세금·내용증명</p>
             </div>
 
             {/* 링크 그룹들 */}

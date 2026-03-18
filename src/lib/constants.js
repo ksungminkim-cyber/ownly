@@ -160,7 +160,7 @@ export const PLANS = {
     tossProductId: "ownly_pro_monthly",
     color: C.gold,
     emoji: "🚀",
-    tagline: "전문 임대인을 위한 올인원 솔루션",
+    tagline: "내 임대 물건, 온리 하나로",
     badge: "최강",
     limits: {
       properties: Infinity,

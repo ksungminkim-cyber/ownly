@@ -34,7 +34,7 @@ export default async function OGImage() {
 
         {/* 헤드라인 */}
         <h1 style={{ fontSize: 52, fontWeight: 900, color: "#fff", textAlign: "center", margin: "0 0 16px", lineHeight: 1.2 }}>
-          임대인을 위한<br />
+          내 임대 물건,<br />
           <span style={{ background: "linear-gradient(135deg, #818cf8, #a855f7)", WebkitBackgroundClip: "text", color: "transparent" }}>
             스마트 임대 관리
           </span>

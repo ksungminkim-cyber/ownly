@@ -111,7 +111,7 @@ export default function AuthPage() {
             임대 관리,<br/>더 스마트하게
           </h2>
           <p style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
-            물건 관리부터 수금, 계약, 세금까지<br/>임대인을 위한 올인원 관리 플랫폼
+            내 임대 물건, 온리 하나로.<br/>수금·계약·세금·내용증명까지
           </p>
         </div>
         <div style={{ position: "relative" }}>

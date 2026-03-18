@@ -14,7 +14,7 @@ export const metadata = {
     default: "온리(Ownly) - 임대 자산 관리 플랫폼",
     template: "%s | 온리(Ownly)",
   },
-  description: "온리(Ownly) — 주거·상가 임대 물건을 한 앱으로. 수금 추적, 계약 관리, 세금 시뮬레이션, 내용증명까지. 임대인을 위한 올인원 임대 자산 관리 플랫폼.",
+  description: "내 임대 물건, 온리 하나로. 수금부터 계약·세금·내용증명까지, 임대 관리에 필요한 모든 것.",
   keywords: ["온리", "Ownly", "임대 관리", "임대장부", "임대인", "수금 관리", "계약 관리", "임대료 관리", "상가 임대", "주거 임대", "세금 시뮬레이터", "내용증명", "부동산 관리", "월세 관리", "임대 관리 플랫폼", "임대 자산 관리", "임대인 커뮤니티", "부동산 투자", "공실 관리", "임대차 3법", "부동산 리포트", "수익률 계산기", "임대사업자", "다주택자 관리", "월세 관리 앱", "임대인 관리 프로그램", "부동산 임대 관리", "임대차 계약 관리", "임대료 자동 수금", "임대인 세금 신고", "건물주 관리 앱", "임대 수익률 계산", "공실 관리 시스템", "임대차 신고", "전월세 관리", "보증금 관리"],
   authors: [{ name: "McLean", url: "https://www.ownly.kr" }],
   icons: {
@@ -31,7 +31,7 @@ export const metadata = {
     siteName: "온리(Ownly)",
     title: "온리(Ownly) - 임대 자산 관리 플랫폼",
     description: "온리(Ownly) — 주거·상가 임대 물건을 한 앱으로. 수금 추적, 계약 관리, 세금 시뮬레이션까지.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "온리(Ownly) - 스마트 임대 관리 앱" }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "온리(Ownly) - 내 임대 물건, 온리 하나로" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -62,7 +62,7 @@ export default function RootLayout({ children }) {
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web, iOS, Android",
             url: "https://www.ownly.kr",
-            description: "임대인을 위한 올인원 임대 자산 관리 플랫폼. 수금 추적, 계약 관리, 세금 시뮬레이션, 내용증명, 공실 관리까지.",
+            description: "내 임대 물건, 온리 하나로. 수금부터 계약·세금·내용증명까지 임대 관리의 모든 것.",
             offers: { "@type": "Offer", price: "0", priceCurrency: "KRW", availability: "https://schema.org/InStock" },
             publisher: { "@type": "Organization", name: "McLean", url: "https://www.ownly.kr" },
             featureList: ["수금 현황 관리", "계약서 관리", "내용증명 PDF 발행", "세금 시뮬레이터", "수익률 계산기", "공실 관리", "AI 입지 분석"],
