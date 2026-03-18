@@ -92,8 +92,10 @@ ${dataSection}
 
 [필수 규칙]
 - comparables: 위 실거래 샘플에서 실제 데이터 사용 (없으면 빈 배열 [])
-- avgRent, rentRange: 위 통계 avgRent/minRent/maxRent 값 그대로 사용
-- rentPerPy: avgRentPerPy 값 그대로 사용 (없으면 실제 계산: 월세/평형)
+- rentPerPy: 가장 중요한 핵심값. avgRentPerPy 그대로 사용. 없으면 샘플에서 (월세÷평형) 계산
+- rentRange: 참고용 범위값. avgRent 기준 ±20% 범위로 설정 (min=avgRent×0.8, max=avgRent×1.2)
+- avgRent: 위 통계 avgRent 그대로 사용
+- avgAreaPy: 위 통계 avgAreaPy 그대로 사용 — 면적별 시나리오 계산에 필수
 - 데이터 부족(10건 미만)이면 dataNote에 "데이터 부족, 신뢰도 낮음" 명시
 - marketPosition: "고평가", "적정", "저평가" 중 하나
 - vacancyRisk: "낮음", "보통", "높음" 중 하나

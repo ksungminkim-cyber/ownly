@@ -597,55 +597,63 @@ export default function AIReportPage() {
                 </div>
               </div>
 
-              {/* 핵심 수치 5개 */}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10 }}>
-                {[
-                  { label:"월세 범위", value: (() => {
-                    const mn = pResult.rentRange?.min, mx = pResult.rentRange?.max;
-                    if (!mn && !mx) return "데이터 없음";
-                    if (mn === mx) return `${mn?.toLocaleString()}만원`;
-                    return `${mn?.toLocaleString()}~${mx?.toLocaleString()}만원`;
-                  })(), sub:"월", color: (pResult.rentRange?.min||0) > 0 ? C.emerald : C.muted },
-                  { label:"보증금 범위", value: (() => {
-                    const mn = pResult.depositRange?.min, mx = pResult.depositRange?.max;
-                    if (!mn && !mx) return "-";
-                    if (mn === mx) return `${mn?.toLocaleString()}만원`;
-                    return `${mn?.toLocaleString()}~${mx?.toLocaleString()}만원`;
-                  })(), sub:"", color: (pResult.depositRange?.min||0) > 0 ? C.amber : C.muted },
-                  { label:"평당 임대료", value: (() => {
-                    // 우선순위: rawStats(실거래) > AI rentPerPy > comparables 역산
-                    const fromStats = pResult.rawStats?.avgRentPerPy;
-                    const fromAI    = pResult.rentPerPy;
-                    const fromComps = (() => {
-                      const valid = (pResult.comparables||[]).filter(x=>x.rent>0&&(x.areaPy||x.areaPyeong));
-                      if (!valid.length) return null;
-                      const vals = valid.map(x=>x.rent/(x.areaPy||x.areaPyeong));
-                      return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
-                    })();
-                    const v = fromStats || (fromAI && fromAI < 200 ? fromAI : null) || fromComps;
-                    return v ? `${v}만원` : "-";
-                  })(), sub:"평당/월", color:"#a78bfa" },
-                  { label:"㎡당 임대료", value: (() => {
-                    const fromStats = pResult.rawStats?.avgRentPerPy;
-                    const fromAI    = pResult.rentPerPy;
-                    const fromComps = (() => {
-                      const valid = (pResult.comparables||[]).filter(x=>x.rent>0&&(x.areaPy||x.areaPyeong));
-                      if (!valid.length) return null;
-                      const vals = valid.map(x=>x.rent/(x.areaPy||x.areaPyeong));
-                      return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
-                    })();
-                    const py = fromStats || (fromAI && fromAI < 200 ? fromAI : null) || fromComps;
-                    return py ? `${(py/3.306).toFixed(2)}만원` : "-";
-                  })(), sub:"㎡당/월", color:"#60a5fa" },
-                  { label:"평균 면적", value:`${pResult.avgArea || "-"}평`, sub:`(${pResult.avgArea ? Math.round(pResult.avgArea * 3.306) : "-"}㎡)`, color:"#fff" },
-                ].map(k=>(
-                  <div key={k.label} style={{ background:"rgba(255,255,255,0.08)", borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
-                    <p style={{ fontSize:10, color:"rgba(255,255,255,0.45)", marginBottom:6 }}>{k.label}</p>
-                    <p style={{ fontSize:14, fontWeight:900, color:k.color, lineHeight:1.2 }}>{k.value}</p>
-                    <p style={{ fontSize:10, color:"rgba(255,255,255,0.35)", marginTop:3 }}>{k.sub}</p>
+              {/* 핵심 지표 — 평당 임대료 중심 */}
+              {(() => {
+                // 평당 임대료 계산 (우선순위: rawStats > AI > comparables)
+                const fromStats = pResult.rawStats?.avgRentPerPy;
+                const fromAI    = pResult.rentPerPy;
+                const fromComps = (() => {
+                  const valid = (pResult.comparables||[]).filter(x=>x.rent>0&&(x.areaPy||x.areaPyeong));
+                  if (!valid.length) return null;
+                  const vals = valid.map(x=>x.rent/(x.areaPy||x.areaPyeong));
+                  return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
+                })();
+                const perPy = fromStats || (fromAI && fromAI < 200 ? fromAI : null) || fromComps;
+                const perSqm = perPy ? Math.round(perPy/3.306*10)/10 : null;
+                // 보증금 평당 역산 (avgDeposit / avgAreaPy)
+                const avgDep = pResult.avgDeposit || pResult.depositRange?.min;
+                const avgArea = pResult.avgAreaPy || pResult.rawStats?.avgAreaPy;
+                const depPerPy = avgDep && avgArea ? Math.round(avgDep/avgArea) : null;
+
+                return (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:14 }}>
+                    {/* 평당 월세 — 핵심 */}
+                    <div style={{ background:"rgba(255,255,255,0.1)", borderRadius:14, padding:"18px 16px", borderLeft:"3px solid #a78bfa" }}>
+                      <p style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginBottom:6, letterSpacing:"1px" }}>평당 월세</p>
+                      <p style={{ fontSize:22, fontWeight:900, color:perPy ? "#c4b5fd" : "rgba(255,255,255,0.3)", lineHeight:1.1 }}>
+                        {perPy ? `${perPy}만원` : "-"}
+                      </p>
+                      <p style={{ fontSize:10, color:"rgba(255,255,255,0.4)", marginTop:4 }}>
+                        {perSqm ? `㎡당 ${perSqm}만원` : "평/월"}
+                      </p>
+                    </div>
+                    {/* 평당 보증금 */}
+                    <div style={{ background:"rgba(255,255,255,0.07)", borderRadius:14, padding:"18px 16px" }}>
+                      <p style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginBottom:6, letterSpacing:"1px" }}>평당 보증금</p>
+                      <p style={{ fontSize:22, fontWeight:900, color:depPerPy ? C.amber : "rgba(255,255,255,0.3)", lineHeight:1.1 }}>
+                        {depPerPy ? `${depPerPy.toLocaleString()}만원` : "-"}
+                      </p>
+                      <p style={{ fontSize:10, color:"rgba(255,255,255,0.4)", marginTop:4 }}>평/보증금</p>
+                    </div>
+                    {/* 면적 기준 월세 시나리오 */}
+                    <div style={{ background:"rgba(255,255,255,0.07)", borderRadius:14, padding:"14px 16px" }}>
+                      <p style={{ fontSize:10, color:"rgba(255,255,255,0.5)", marginBottom:8, letterSpacing:"1px" }}>면적별 예상 월세</p>
+                      {perPy ? (
+                        <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                          {[10,20,30].map(py => (
+                            <div key={py} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                              <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)", fontWeight:600 }}>{py}평 ({Math.round(py*3.3)}㎡)</span>
+                              <span style={{ fontSize:12, fontWeight:800, color:"rgba(255,255,255,0.9)" }}>{Math.round(perPy*py).toLocaleString()}만원</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ fontSize:11, color:"rgba(255,255,255,0.3)" }}>평당 데이터 필요</p>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })()}
             </div>
 
             {/* ② 시세 구간 */}
@@ -667,7 +675,72 @@ export default function AIReportPage() {
               </div>
             )}
 
-            {/* ③ 인근 유사 물건 비교 — 상세 */}
+            {/* ③ 면적별 임대료 시나리오 테이블 */}
+            {(() => {
+              const fromStats = pResult.rawStats?.avgRentPerPy;
+              const fromAI    = pResult.rentPerPy;
+              const fromComps = (() => {
+                const valid = (pResult.comparables||[]).filter(x=>x.rent>0&&(x.areaPy||x.areaPyeong));
+                if (!valid.length) return null;
+                const vals = valid.map(x=>x.rent/(x.areaPy||x.areaPyeong));
+                return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
+              })();
+              const perPy = fromStats || (fromAI && fromAI < 200 ? fromAI : null) || fromComps;
+              if (!perPy) return null;
+
+              const avgDep = pResult.avgDeposit || pResult.depositRange?.min;
+              const avgArea = pResult.avgAreaPy || pResult.rawStats?.avgAreaPy || 20;
+              const depPerPy = avgDep && avgArea ? Math.round(avgDep/avgArea) : null;
+
+              const SCENARIOS = [5,10,15,20,25,30,40,50];
+              return (
+                <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden", marginBottom:14 }}>
+                  <div style={{ padding:"12px 20px", background:C.faint, borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <div>
+                      <p style={{ fontSize:12, fontWeight:800, color:C.navy }}>📐 면적별 임대료 시나리오</p>
+                      <p style={{ fontSize:11, color:C.muted, marginTop:2 }}>평당 {perPy}만원 기준 자동 계산 — 컨디션·층수·건축연도에 따라 ±20~30% 차이 가능</p>
+                    </div>
+                    <span style={{ fontSize:10, fontWeight:700, color:"#a78bfa", background:"rgba(167,139,250,0.1)", padding:"3px 10px", borderRadius:20 }}>평당 {perPy}만원/월</span>
+                  </div>
+                  <div style={{ overflowX:"auto" }}>
+                    <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                      <thead>
+                        <tr style={{ background:C.faint }}>
+                          {["면적", "예상 월세", "± 범위 (±25%)", "예상 보증금", "연간 임대료"].map(h => (
+                            <th key={h} style={{ padding:"8px 16px", fontSize:10, fontWeight:800, color:C.muted, letterSpacing:".5px", textAlign: h==="면적" ? "left" : "right", borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {SCENARIOS.map((py, i) => {
+                          const sqm      = Math.round(py * 3.3);
+                          const rent     = Math.round(perPy * py);
+                          const rentLow  = Math.round(rent * 0.75);
+                          const rentHigh = Math.round(rent * 1.25);
+                          const dep      = depPerPy ? Math.round(depPerPy * py) : null;
+                          const annual   = rent * 12;
+                          const isAvg    = avgArea && Math.abs(py - avgArea) < 3;
+                          return (
+                            <tr key={py} style={{ background: isAvg ? "rgba(167,139,250,0.05)" : "transparent", borderBottom: i < SCENARIOS.length-1 ? `1px solid ${C.border}` : "none" }}>
+                              <td style={{ padding:"10px 16px", fontSize:13, fontWeight: isAvg ? 800 : 500, color:C.navy, whiteSpace:"nowrap" }}>
+                                {py}평 <span style={{ fontSize:11, color:C.muted, fontWeight:400 }}>({sqm}㎡)</span>
+                                {isAvg && <span style={{ fontSize:9, fontWeight:800, color:"#7c3aed", background:"rgba(124,58,237,0.1)", padding:"1px 6px", borderRadius:10, marginLeft:6 }}>평균</span>}
+                              </td>
+                              <td style={{ padding:"10px 16px", fontSize:14, fontWeight:800, color:"#7c3aed", textAlign:"right" }}>{rent.toLocaleString()}만원</td>
+                              <td style={{ padding:"10px 16px", fontSize:11, color:C.muted, textAlign:"right" }}>{rentLow.toLocaleString()} ~ {rentHigh.toLocaleString()}만원</td>
+                              <td style={{ padding:"10px 16px", fontSize:12, color: dep ? C.amber : C.muted, textAlign:"right" }}>{dep ? `${dep.toLocaleString()}만원` : "-"}</td>
+                              <td style={{ padding:"10px 16px", fontSize:12, color:C.navy, textAlign:"right" }}>{annual.toLocaleString()}만원</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ④ 인근 유사 물건 비교 — 상세 */}
             {pResult.comparables?.length > 0 && (
               <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden", marginBottom:14 }}>
                 <div style={{ padding:"12px 20px", background:C.faint, borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
