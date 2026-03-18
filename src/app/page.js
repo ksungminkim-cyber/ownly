@@ -92,7 +92,7 @@ export default function LandingPage() {
       <style>{`@media(max-width:640px){.features-grid{grid-template-columns:1fr 1fr!important}}`}</style>
       <div className="stagger features-grid" style={{
         display: "grid", gridTemplateColumns: "repeat(3,1fr)",
-        gap: 14, maxWidth: 960, width: "100%", marginTop: 56, position: "relative", zIndex: 1
+        gap: 14, maxWidth: 960, width: "100%", marginTop: 56, position: "relative", zIndex: 1, marginLeft: "auto", marginRight: "auto"
       }}>
         {features.map((f) => (
           <div key={f.title} className="hover-lift" style={{
@@ -108,7 +108,7 @@ export default function LandingPage() {
       </div>
 
       {/* ─── 구독 플랜 섹션 ─── */}
-      <div style={{ width: "100%", maxWidth: 960, marginTop: 80, position: "relative", zIndex: 1 }}>
+      <div style={{ width: "100%", maxWidth: 960, marginTop: 80, position: "relative", zIndex: 1, marginLeft: "auto", marginRight: "auto" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <p style={{ fontSize: 11, fontWeight: 800, color: "#1a2744", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8, opacity: 0.5 }}>PRICING</p>
           <h2 style={{ fontSize: "clamp(22px,3vw,34px)", fontWeight: 900, color: "#1a2744", margin: 0 }}>나에게 맞는 플랜 선택</h2>
@@ -139,7 +139,7 @@ export default function LandingPage() {
           )}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 20, padding: "0 0 20px", alignItems: "stretch" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20, padding: "0 0 20px", alignItems: "start" }}>
           {Object.values(PLANS).map((plan) => {
             const isPlus = plan.id === "plus";
             const isPro         = plan.id === "pro";
@@ -293,7 +293,7 @@ export default function LandingPage() {
       {/* ─── 법적 푸터 ─── */}
       <footer style={{
         width: "100%", borderTop: "1px solid #e8e6e0",
-        marginTop: 60, padding: "40px 20px 32px",
+        marginTop: 60, padding: "40px 20px 80px",
         position: "relative", zIndex: 1
       }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>

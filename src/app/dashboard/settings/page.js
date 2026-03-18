@@ -72,7 +72,7 @@ export default function SettingsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
             { icon: "✉️", label: "이메일 문의",      sub: "inquiry@mclean21.com · 평일 1~3일 내 답변",   action: () => window.open("mailto:inquiry@mclean21.com?subject=[Ownly] 문의사항", "_blank") },
-            { icon: "📖", label: "이용 가이드",      sub: "기능 사용법 및 자주 묻는 질문",            action: () => window.open("https://ownly.kr", "_blank") },
+            { icon: "📖", label: "이용 가이드",      sub: "기능 사용법 및 자주 묻는 질문",            action: () => window.open("https://ownly.kr/legal/faq", "_blank") },
             { icon: "💳", label: "플랜 업그레이드",  sub: "더 많은 기능을 사용해보세요",              action: () => window.location.href = "/dashboard/pricing" },
             { icon: "🐛", label: "버그 신고",        sub: "문제가 발생했나요? 알려주세요",            action: () => window.open("mailto:inquiry@mclean21.com?subject=[Ownly] 버그 신고", "_blank") },
           ].map(({ icon, label, sub, action }) => (

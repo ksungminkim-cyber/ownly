@@ -356,12 +356,76 @@ export function Sidebar({ onLogout }) {
         <SectionHeader label="문서·기록" open={docsOpen} onToggle={() => setDocsOpen(o => !o)} />
         {docsOpen && (
           <div style={{ animation: "sb-fade .15s ease" }}>
-            <NavItem icon="📨" label="내용증명"   path="/dashboard/certified" />
+            {/* 내용증명 — plus+ */}
+            {(() => {
+              const ok = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER["plus"];
+              return (
+                <div onClick={() => router.push(ok ? "/dashboard/certified" : "/dashboard/pricing")}
+                  className={"nav-item" + (pathname.includes("/certified") ? " active" : "")}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 10px", borderRadius:10, marginBottom:1, cursor:"pointer",
+                    borderLeft: `2.5px solid ${pathname.includes("/certified") ? "#5b4fcf" : "transparent"}`,
+                    opacity: ok ? 1 : 0.45 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                    <span style={{ fontSize:15 }}>📨</span>
+                    <span style={{ fontSize:14, fontWeight: pathname.includes("/certified") ? 700 : 500, color: pathname.includes("/certified") ? "#5b4fcf" : ok ? "#4a5568" : "#9ca3af" }}>내용증명</span>
+                  </div>
+                  {!ok && <span style={{ fontSize:9 }}>🔒</span>}
+                </div>
+              );
+            })()}
             <NavItem icon="🔨" label="수리 이력"   path="/dashboard/repairs" />
             <NavItem icon="📒" label="간편 장부"   path="/dashboard/ledger" />
-            <NavItem icon="📄" label="수익 리포트" path="/dashboard/report-pdf" />
-            <NavItem icon="📊" label="리포트"      path="/dashboard/reports" />
-            <NavItem icon="🧾" label="세금 관리"   path="/dashboard/tax" />
+            {/* 수익 리포트 — plus+ */}
+            {(() => {
+              const ok = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER["plus"];
+              return (
+                <div onClick={() => router.push(ok ? "/dashboard/report-pdf" : "/dashboard/pricing")}
+                  className={"nav-item" + (pathname.includes("/report-pdf") ? " active" : "")}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 10px", borderRadius:10, marginBottom:1, cursor:"pointer",
+                    borderLeft: `2.5px solid ${pathname.includes("/report-pdf") ? "#5b4fcf" : "transparent"}`,
+                    opacity: ok ? 1 : 0.45 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                    <span style={{ fontSize:15 }}>📄</span>
+                    <span style={{ fontSize:14, fontWeight: pathname.includes("/report-pdf") ? 700 : 500, color: pathname.includes("/report-pdf") ? "#5b4fcf" : ok ? "#4a5568" : "#9ca3af" }}>수익 리포트</span>
+                  </div>
+                  {!ok && <span style={{ fontSize:9 }}>🔒</span>}
+                </div>
+              );
+            })()}
+            {/* 리포트 — plus+ */}
+            {(() => {
+              const ok = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER["plus"];
+              return (
+                <div onClick={() => router.push(ok ? "/dashboard/reports" : "/dashboard/pricing")}
+                  className={"nav-item" + (pathname.includes("/dashboard/reports") ? " active" : "")}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 10px", borderRadius:10, marginBottom:1, cursor:"pointer",
+                    borderLeft: `2.5px solid ${pathname.includes("/dashboard/reports") ? "#5b4fcf" : "transparent"}`,
+                    opacity: ok ? 1 : 0.45 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                    <span style={{ fontSize:15 }}>📊</span>
+                    <span style={{ fontSize:14, fontWeight: pathname.includes("/dashboard/reports") ? 700 : 500, color: pathname.includes("/dashboard/reports") ? "#5b4fcf" : ok ? "#4a5568" : "#9ca3af" }}>리포트</span>
+                  </div>
+                  {!ok && <span style={{ fontSize:9 }}>🔒</span>}
+                </div>
+              );
+            })()}
+            {/* 세금 관리 — plus+ */}
+            {(() => {
+              const ok = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER["plus"];
+              return (
+                <div onClick={() => router.push(ok ? "/dashboard/tax" : "/dashboard/pricing")}
+                  className={"nav-item" + (pathname.includes("/tax") ? " active" : "")}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 10px", borderRadius:10, marginBottom:1, cursor:"pointer",
+                    borderLeft: `2.5px solid ${pathname.includes("/tax") ? "#5b4fcf" : "transparent"}`,
+                    opacity: ok ? 1 : 0.45 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                    <span style={{ fontSize:15 }}>🧾</span>
+                    <span style={{ fontSize:14, fontWeight: pathname.includes("/tax") ? 700 : 500, color: pathname.includes("/tax") ? "#5b4fcf" : ok ? "#4a5568" : "#9ca3af" }}>세금 관리</span>
+                  </div>
+                  {!ok && <span style={{ fontSize:9 }}>🔒</span>}
+                </div>
+              );
+            })()}
           </div>
         )}
 
