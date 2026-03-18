@@ -1,10 +1,13 @@
 "use client";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { C, PLANS } from "../lib/constants";
 
 export default function LandingPage() {
   const router = useRouter();
+  const [isAnnual, setIsAnnual] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("starter");
 
   const features = [
     { icon: "🏠", title: "주거·상가 통합 관리", desc: "아파트·빌라·오피스텔·상가·토지 등 모든 임대 유형을 한 플랫폼에서 관리합니다." },
@@ -109,6 +112,30 @@ export default function LandingPage() {
           <p style={{ fontSize: 11, fontWeight: 800, color: "#1a2744", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8, opacity: 0.5 }}>PRICING</p>
           <h2 style={{ fontSize: "clamp(22px,3vw,34px)", fontWeight: 900, color: "#1a2744", margin: 0 }}>나에게 맞는 플랜 선택</h2>
           <p style={{ color: "#8a8a9a", fontSize: 14, marginTop: 8 }}>모든 플랜은 언제든지 변경·취소 가능합니다</p>
+
+          {/* 월간 / 연간 토글 */}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginTop: 20, background: "#f5f4f0", borderRadius: 40, padding: "5px 6px" }}>
+            <button onClick={() => setIsAnnual(false)}
+              style={{ padding: "7px 20px", borderRadius: 30, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "all .2s",
+                background: !isAnnual ? "#fff" : "transparent",
+                color: !isAnnual ? "#1a2744" : "#8a8a9a",
+                boxShadow: !isAnnual ? "0 2px 8px rgba(26,39,68,0.1)" : "none" }}>
+              월간 결제
+            </button>
+            <button onClick={() => setIsAnnual(true)}
+              style={{ padding: "7px 20px", borderRadius: 30, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "all .2s", display: "flex", alignItems: "center", gap: 6,
+                background: isAnnual ? "#1a2744" : "transparent",
+                color: isAnnual ? "#fff" : "#8a8a9a",
+                boxShadow: isAnnual ? "0 2px 8px rgba(26,39,68,0.2)" : "none" }}>
+              연간 결제
+              <span style={{ fontSize: 10, fontWeight: 800, background: isAnnual ? "rgba(255,255,255,0.2)" : "#0fa573", color: "#fff", padding: "2px 7px", borderRadius: 20 }}>20% 할인</span>
+            </button>
+          </div>
+          {isAnnual && (
+            <p style={{ fontSize: 12, color: "#0fa573", fontWeight: 600, marginTop: 8 }}>
+              🎉 연간 결제 시 2.4개월치 무료 — 12개월 한 번에 결제
+            </p>
+          )}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 20, padding: "0 0 20px", alignItems: "stretch" }}>
@@ -135,10 +162,26 @@ export default function LandingPage() {
 
                 {/* 플랜명 & 가격 */}
                 <p style={{ fontSize: 13, fontWeight: 800, color: isPro ? "#c9920a" : isStarter ? "#1a2744" : "#8a8a9a", marginBottom: 6, letterSpacing: "1px" }}>{plan.name.toUpperCase()}</p>
-                <p style={{ fontSize: plan.price === 0 ? 32 : 28, fontWeight: 900, color: "#1a2744", margin: "0 0 4px" }}>
-                  {plan.price === 0 ? "무료" : `₩${plan.price.toLocaleString()}`}
-                </p>
-                <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 20 }}>{plan.price === 0 ? "영구 무료" : "월 구독 · VAT 포함"}</p>
+                {(() => {
+                  const monthly  = plan.price;
+                  const annual   = Math.round(monthly * 0.8);
+                  const showPrice = isAnnual && monthly > 0 ? annual : monthly;
+                  return (
+                    <>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 6, margin: "0 0 4px" }}>
+                        <p style={{ fontSize: monthly === 0 ? 32 : 28, fontWeight: 900, color: "#1a2744", margin: 0 }}>
+                          {monthly === 0 ? "무료" : `₩${showPrice.toLocaleString()}`}
+                        </p>
+                        {isAnnual && monthly > 0 && (
+                          <span style={{ fontSize: 13, color: "#8a8a9a", textDecoration: "line-through" }}>₩{monthly.toLocaleString()}</span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 20 }}>
+                        {monthly === 0 ? "영구 무료" : isAnnual ? `연 ₩${(annual*12).toLocaleString()} · VAT 포함` : "월 구독 · VAT 포함"}
+                      </p>
+                    </>
+                  );
+                })()}
 
                 {/* 기능 목록 — flex: 1 로 늘여서 버튼을 항상 하단에 */}
                 <div style={{ marginBottom: 24, flex: 1 }}>
@@ -222,6 +265,29 @@ export default function LandingPage() {
             <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744", marginBottom: 8 }}>지금 바로 시작해보세요</p>
             <p style={{ fontSize: 14, color: "#8a8a9a", marginBottom: 20 }}>무료 플랜으로 시작, 언제든 업그레이드 가능</p>
             <a href="/login" style={{ display: "inline-block", padding: "14px 32px", borderRadius: 12, background: "linear-gradient(135deg,#1a2744,#2d4270)", color: "#fff", fontSize: 15, fontWeight: 800, textDecoration: "none" }}>무료로 온리 시작하기 →</a>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── B2B 문의 섹션 ─── */}
+      <div style={{ width: "100%", background: "#1a2744", padding: "48px 20px", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 24 }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.4)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8 }}>ENTERPRISE</p>
+            <h3 style={{ fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 6, letterSpacing: "-.3px" }}>
+              법인·공인중개사·자산관리사 대상 별도 문의
+            </h3>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.7 }}>
+              다수 물건 보유 법인 · 공인중개사 사무소 · 자산관리회사<br/>
+              세금계산서 발행 · 연간 계약 · 팀 계정 협의 가능
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
+            <a href="mailto:inquiry@mclean21.com?subject=온리 기업 구독 문의"
+              style={{ padding: "14px 28px", borderRadius: 12, background: "#fff", color: "#1a2744", fontWeight: 800, fontSize: 14, textDecoration: "none", textAlign: "center", whiteSpace: "nowrap" }}>
+              영업팀에 문의하기 →
+            </a>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textAlign: "center" }}>inquiry@mclean21.com</p>
           </div>
         </div>
       </div>
@@ -315,5 +381,44 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+
+      {/* ─── 하단 고정 결제 바 ─── */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderTop: "1px solid #e8e6e0", padding: "12px 20px", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* 플랜 선택 */}
+          <select onChange={(e) => setSelectedPlan(e.target.value)} value={selectedPlan}
+            style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid #e8e6e0", fontSize: 13, fontWeight: 600, color: "#1a2744", background: "#fff", cursor: "pointer", appearance: "none", paddingRight: 28 }}>
+            {Object.values(PLANS).filter(p => p.price > 0).map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          {/* 기간 토글 */}
+          <button onClick={() => setIsAnnual(!isAnnual)}
+            style={{ padding: "8px 14px", borderRadius: 9, border: "1px solid #e8e6e0", fontSize: 13, fontWeight: 600, cursor: "pointer", background: isAnnual ? "#1a2744" : "#fff", color: isAnnual ? "#fff" : "#1a2744", whiteSpace: "nowrap" }}>
+            {isAnnual ? "연간 (20% 할인)" : "월간"}
+          </button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {(() => {
+            const plan = Object.values(PLANS).find(p => p.id === selectedPlan) || Object.values(PLANS)[1];
+            const monthly = plan?.price || 0;
+            const price   = isAnnual ? Math.round(monthly * 0.8) : monthly;
+            return (
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 16, fontWeight: 900, color: "#1a2744", lineHeight: 1.1 }}>
+                  ₩{price.toLocaleString()}
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "#8a8a9a" }}> / 월</span>
+                  {isAnnual && <span style={{ fontSize: 10, fontWeight: 800, color: "#0fa573", marginLeft: 4 }}>-20%</span>}
+                </p>
+                <p style={{ fontSize: 10, color: "#8a8a9a" }}>{isAnnual ? `연 ₩${(price*12).toLocaleString()} · VAT 포함` : "VAT 포함"}</p>
+              </div>
+            );
+          })()}
+          <button onClick={() => router.push("/login")}
+            style={{ padding: "10px 24px", borderRadius: 11, background: "linear-gradient(135deg, #1a2744, #2d4270)", color: "#fff", fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 4px 16px rgba(26,39,68,0.25)" }}>
+            구독 시작하기
+          </button>
+        </div>
+      </div>
   );
 }
