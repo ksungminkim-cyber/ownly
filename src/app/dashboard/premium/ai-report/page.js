@@ -348,11 +348,37 @@ export default function AIReportPage() {
 
       {/* 로딩 */}
       {loading && (
-        <div style={{ background: C.surface, borderRadius: 20, padding: 56, border: `1px solid ${C.border}`, textAlign: "center" }}>
-          <div style={{ fontSize: 44, marginBottom: 16, animation: "rot 2s linear infinite", display: "inline-block" }}>🤖</div>
-          <p style={{ fontSize: 17, fontWeight: 800, color: C.navy, marginBottom: 8 }}>AI가 입지를 심층 분석하고 있어요</p>
-          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.7 }}>{propType} 유형 맞춤 분석 중<br/>교통·생활·수요·수익률·개발호재·리스크 7개 항목 (20~40초 소요)</p>
-          <style>{`@keyframes rot { from{transform:rotate(0)} to{transform:rotate(360deg)} }`}</style>
+        <div style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          {/* 상단 진행 바 */}
+          <div style={{ height: 2, background: "#f0efe9", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: "40%", background: `linear-gradient(90deg, transparent, ${C.navy}, transparent)`, animation: "scan 1.8s ease-in-out infinite" }} />
+          </div>
+          <div style={{ padding: "52px 40px 48px", display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+            {/* 아이콘 */}
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: C.navy, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20, position: "relative" }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                <path d="M11 8v6M8 11h6"/>
+              </svg>
+              <div style={{ position: "absolute", inset: -4, borderRadius: 20, border: `1.5px solid ${C.navy}`, animation: "ripple 2s ease-out infinite", opacity: 0 }} />
+            </div>
+            {/* 텍스트 */}
+            <p style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 6, letterSpacing: "-.3px" }}>입지 분석 중</p>
+            <p style={{ fontSize: 13, color: C.muted, marginBottom: 32 }}>{confirmedAddr || inputAddr}</p>
+            {/* 분석 항목 */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", maxWidth: 420 }}>
+              {["교통", "학군", "생활편의", "임대수요", "수익률", "개발호재", "리스크"].map((item, i) => (
+                <span key={item} style={{ fontSize: 11, fontWeight: 600, color: C.navy, background: `${C.navy}0d`, padding: "4px 10px", borderRadius: 20, animation: `fadein .3s ease ${i * .07}s both` }}>
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+          <style>{`
+            @keyframes scan { 0%{left:-40%} 100%{left:100%} }
+            @keyframes ripple { 0%{transform:scale(1);opacity:.5} 100%{transform:scale(1.8);opacity:0} }
+            @keyframes fadein { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+          `}</style>
         </div>
       )}
 
@@ -460,61 +486,61 @@ export default function AIReportPage() {
 
       {/* ── 프라이싱 로딩 ── */}
       {activeTab === "pricing" && pLoading && (
-        <div style={{ background: C.surface, borderRadius: 20, padding: "44px 32px", border: `1px solid ${C.border}`, textAlign: "center" }}>
-          {/* 메인 아이콘 */}
-          <div style={{ fontSize: 48, marginBottom: 20, animation: "rot 2.5s linear infinite", display: "inline-block" }}>💰</div>
-          <p style={{ fontSize: 18, fontWeight: 900, color: C.navy, marginBottom: 6 }}>적정 임대료 분석 중</p>
-          <p style={{ fontSize: 13, color: C.muted, marginBottom: 28 }}>{pInputAddr}</p>
-
-          {/* 단계 표시 */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 0, marginBottom: 28, maxWidth: 480, margin: "0 auto 28px" }}>
-            {[
-              { step: 0, icon: "📍", label: "지역 코드 조회" },
-              { step: 1, icon: "🏛️", label: "국토부 실거래가 수집" },
-              { step: 2, icon: "🤖", label: "AI 분석 중" },
-            ].map((s, i) => {
-              const isDone    = pLoadingStep > s.step;
-              const isActive  = pLoadingStep === s.step;
-              const isPending = pLoadingStep < s.step;
-              return (
-                <div key={s.step} style={{ display: "flex", alignItems: "center", flex: 1 }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 20, marginBottom: 8, transition: "all .4s",
-                      background: isDone ? C.emerald : isActive ? C.navy : "#f0efe9",
-                      boxShadow: isActive ? `0 0 0 4px ${C.navy}22` : "none",
-                      animation: isActive ? "pulse-ring 1.5s infinite" : "none",
-                    }}>
-                      {isDone ? "✓" : s.icon}
+        <div style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          {/* 상단 진행 바 */}
+          <div style={{ height: 2, background: "#f0efe9", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: "40%", background: `linear-gradient(90deg, transparent, ${C.emerald}, transparent)`, animation: "scan2 1.8s ease-in-out infinite" }} />
+          </div>
+          <div style={{ padding: "44px 40px 40px", display: "flex", alignItems: "flex-start", gap: 32 }}>
+            {/* 왼쪽: 아이콘 + 텍스트 */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: C.emerald, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>임대료 분석</p>
+              <p style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 4, letterSpacing: "-.3px" }}>적정 임대료 산출 중</p>
+              <p style={{ fontSize: 13, color: C.muted, marginBottom: 24, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pInputAddr}</p>
+              {/* 단계 진행 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {[
+                  { step: 0, label: "지역 코드 조회", sub: "행정구역 코드 추출" },
+                  { step: 1, label: "실거래가 수집", sub: "국토교통부 최근 5개월" },
+                  { step: 2, label: "AI 분석", sub: "데이터 해석 및 리포트 생성" },
+                ].map((s) => {
+                  const isDone   = pLoadingStep > s.step;
+                  const isActive = pLoadingStep === s.step;
+                  return (
+                    <div key={s.step} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      {/* 상태 인디케이터 */}
+                      <div style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all .3s",
+                        background: isDone ? C.emerald : isActive ? C.navy : "#e8e6e0",
+                        border: isActive ? `3px solid ${C.navy}30` : "none",
+                        animation: isActive ? "breathe 1.2s ease-in-out infinite" : "none",
+                      }}>
+                        {isDone && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        {isActive && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />}
+                      </div>
+                      <div style={{ flex: 1, opacity: isDone ? 0.5 : 1 }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: isDone ? C.muted : isActive ? C.navy : C.muted }}>{s.label}</p>
+                        <p style={{ fontSize: 11, color: C.muted }}>{s.sub}</p>
+                      </div>
                     </div>
-                    <p style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color: isDone ? C.emerald : isActive ? C.navy : C.muted, textAlign: "center", lineHeight: 1.4 }}>{s.label}</p>
-                    {isActive && <p style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>진행 중...</p>}
-                    {isDone && <p style={{ fontSize: 10, color: C.emerald, marginTop: 2 }}>완료</p>}
-                  </div>
-                  {i < 2 && (
-                    <div style={{ height: 2, width: 32, flexShrink: 0, background: isDone ? C.emerald : "#e8e6e0", marginBottom: 28, transition: "background .4s" }} />
-                  )}
+                  );
+                })}
+              </div>
+            </div>
+            {/* 오른쪽: 시각적 요소 */}
+            <div style={{ width: 120, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+              {["월세 범위", "보증금", "평당 임대료", "시장 포지션", "공실 리스크"].map((item, i) => (
+                <div key={item} style={{ height: 28, background: `${C.navy}08`, borderRadius: 8, overflow: "hidden", position: "relative", animation: `fadein2 .4s ease ${i * .1}s both` }}>
+                  <div style={{ position: "absolute", top: 0, left: 0, height: "100%", background: `linear-gradient(90deg, ${C.navy}18, ${C.navy}06)`, borderRadius: 8, animation: `shimmer 2s ease ${i * .2}s infinite`, width: "60%" }} />
+                  <p style={{ position: "relative", fontSize: 10, color: C.muted, fontWeight: 600, padding: "7px 10px" }}>{item}</p>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-
-          {/* 단계별 설명 */}
-          <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "12px 20px", display: "inline-block" }}>
-            <p style={{ fontSize: 12, color: C.muted }}>
-              {pLoadingStep === 0 && "주소에서 행정구역 코드를 추출하고 있어요"}
-              {pLoadingStep === 1 && "국토교통부 실거래가 데이터를 수집하고 있어요 (최근 5개월)"}
-              {pLoadingStep === 2 && "수집된 데이터를 AI가 분석하고 있어요 (20~40초 소요)"}
-            </p>
-          </div>
-
           <style>{`
-            @keyframes pulse-ring {
-              0%   { box-shadow: 0 0 0 0 rgba(26,39,68,0.3); }
-              70%  { box-shadow: 0 0 0 10px rgba(26,39,68,0); }
-              100% { box-shadow: 0 0 0 0 rgba(26,39,68,0); }
-            }
+            @keyframes scan2 { 0%{left:-40%} 100%{left:100%} }
+            @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+            @keyframes fadein2 { from{opacity:0;transform:translateX(8px)} to{opacity:1;transform:translateX(0)} }
+            @keyframes shimmer { 0%{opacity:1} 50%{opacity:.4} 100%{opacity:1} }
           `}</style>
         </div>
       )}
