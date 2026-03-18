@@ -146,9 +146,10 @@ export default function AIReportPage() {
   // 프라이싱 탭 전용 state
   const [pInputAddr, setPInputAddr] = useState("");
   const [pPropType, setPPropType] = useState("주거");
-  const [pLoading, setPLoading] = useState(false);
-  const [pResult, setPResult] = useState(null);
-  const [pError, setPError] = useState("");
+  const [pLoading, setPLoading]       = useState(false);
+  const [pLoadingStep, setPLoadingStep] = useState(0); // 0=지역조회 1=실거래 2=AI분석
+  const [pResult, setPResult]           = useState(null);
+  const [pError, setPError]             = useState("");
 
   const generate = async () => {
     if (!inputAddr.trim()) { setError("주소를 입력해주세요."); return; }
@@ -184,9 +185,10 @@ export default function AIReportPage() {
       setPError(`이번 달 AI 임대료 분석을 ${usage.limit}회 모두 사용했습니다. 플랜을 업그레이드하세요.`);
       return;
     }
-    setPLoading(true); setPError(""); setPResult(null);
+    setPLoading(true); setPLoadingStep(0); setPError(""); setPResult(null);
     try {
-      // 1단계: 카카오 API로 법정동코드 추출
+      // 1단계: 지역 코드 추출
+      setPLoadingStep(0);
       let lawdCd = null;
       try {
         const geoRes = await fetch("/api/geocode", {
@@ -201,6 +203,7 @@ export default function AIReportPage() {
       }
 
       // 2단계: 실거래가 기반 AI 분석
+      setPLoadingStep(1);
       const res = await fetch("/api/ai-pricing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -208,6 +211,7 @@ export default function AIReportPage() {
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
+      setPLoadingStep(2);
       setPResult(data);
       await recordAiUsage("aiPricing");
     } catch (e) {
@@ -451,10 +455,62 @@ export default function AIReportPage() {
 
       {/* ── 프라이싱 로딩 ── */}
       {activeTab === "pricing" && pLoading && (
-        <div style={{ background: C.surface, borderRadius: 20, padding: 56, border: `1px solid ${C.border}`, textAlign: "center" }}>
-          <div style={{ fontSize: 44, marginBottom: 16, animation: "rot 2s linear infinite", display: "inline-block" }}>💰</div>
-          <p style={{ fontSize: 17, fontWeight: 800, color: C.navy, marginBottom: 8 }}>AI가 적정 임대료를 계산하고 있어요</p>
-          <p style={{ fontSize: 13, color: C.muted }}>인근 실거래가 · 시세 데이터 · 공실률 분석 중 (20~40초 소요)</p>
+        <div style={{ background: C.surface, borderRadius: 20, padding: "44px 32px", border: `1px solid ${C.border}`, textAlign: "center" }}>
+          {/* 메인 아이콘 */}
+          <div style={{ fontSize: 48, marginBottom: 20, animation: "rot 2.5s linear infinite", display: "inline-block" }}>💰</div>
+          <p style={{ fontSize: 18, fontWeight: 900, color: C.navy, marginBottom: 6 }}>적정 임대료 분석 중</p>
+          <p style={{ fontSize: 13, color: C.muted, marginBottom: 28 }}>{pInputAddr}</p>
+
+          {/* 단계 표시 */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 0, marginBottom: 28, maxWidth: 480, margin: "0 auto 28px" }}>
+            {[
+              { step: 0, icon: "📍", label: "지역 코드 조회" },
+              { step: 1, icon: "🏛️", label: "국토부 실거래가 수집" },
+              { step: 2, icon: "🤖", label: "AI 분석 중" },
+            ].map((s, i) => {
+              const isDone    = pLoadingStep > s.step;
+              const isActive  = pLoadingStep === s.step;
+              const isPending = pLoadingStep < s.step;
+              return (
+                <div key={s.step} style={{ display: "flex", alignItems: "center", flex: 1 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 20, marginBottom: 8, transition: "all .4s",
+                      background: isDone ? C.emerald : isActive ? C.navy : "#f0efe9",
+                      boxShadow: isActive ? `0 0 0 4px ${C.navy}22` : "none",
+                      animation: isActive ? "pulse-ring 1.5s infinite" : "none",
+                    }}>
+                      {isDone ? "✓" : s.icon}
+                    </div>
+                    <p style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color: isDone ? C.emerald : isActive ? C.navy : C.muted, textAlign: "center", lineHeight: 1.4 }}>{s.label}</p>
+                    {isActive && <p style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>진행 중...</p>}
+                    {isDone && <p style={{ fontSize: 10, color: C.emerald, marginTop: 2 }}>완료</p>}
+                  </div>
+                  {i < 2 && (
+                    <div style={{ height: 2, width: 32, flexShrink: 0, background: isDone ? C.emerald : "#e8e6e0", marginBottom: 28, transition: "background .4s" }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 단계별 설명 */}
+          <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "12px 20px", display: "inline-block" }}>
+            <p style={{ fontSize: 12, color: C.muted }}>
+              {pLoadingStep === 0 && "주소에서 행정구역 코드를 추출하고 있어요"}
+              {pLoadingStep === 1 && "국토교통부 실거래가 데이터를 수집하고 있어요 (최근 5개월)"}
+              {pLoadingStep === 2 && "수집된 데이터를 AI가 분석하고 있어요 (20~40초 소요)"}
+            </p>
+          </div>
+
+          <style>{`
+            @keyframes pulse-ring {
+              0%   { box-shadow: 0 0 0 0 rgba(26,39,68,0.3); }
+              70%  { box-shadow: 0 0 0 10px rgba(26,39,68,0); }
+              100% { box-shadow: 0 0 0 0 rgba(26,39,68,0); }
+            }
+          `}</style>
         </div>
       )}
 
