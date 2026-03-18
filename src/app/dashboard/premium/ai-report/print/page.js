@@ -130,7 +130,7 @@ function PrintContent() {
 
       {/* 푸터 */}
       <div style={{ textAlign: "center", paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
-        <p style={{ fontSize: 10, color: C.muted, margin: "0 0 4px" }}>본 리포트는 Ownly by McLean AI 시스템이 생성했습니다 · ownly.kr · {report.analysisDate}</p>
+        <p style={{ fontSize: 10, color: C.muted, margin: "0 0 4px" }}>본 리포트는 Ownly AI 시스템이 생성했습니다 · ownly.kr · {report.analysisDate}</p>
         <p style={{ fontSize: 9, color: C.muted, margin: 0 }}>※ 본 분석은 참고용이며, 실제 투자 결정은 전문 감정평가사 및 부동산 전문가와 상담하시기 바랍니다</p>
       </div>
 

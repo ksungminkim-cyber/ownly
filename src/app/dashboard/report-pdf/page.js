@@ -103,7 +103,7 @@ export default function ReportPDFPage() {
         {/* 리포트 헤더 */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, paddingBottom:16, borderBottom:`2px solid ${C.navy}` }}>
           <div>
-            <h2 style={{ fontSize:22, fontWeight:900, color:C.navy, marginBottom:3 }}>Ownly by McLean — 임대 수익 보고서</h2>
+            <h2 style={{ fontSize:22, fontWeight:900, color:C.navy, marginBottom:3 }}>Ownly — 임대 수익 보고서</h2>
             <p style={{ fontSize:13, color:C.muted }}>{year}년 1월 1일 ~ {year}년 12월 31일 · 임차인 {tenants.length}명</p>
           </div>
           <div style={{ textAlign:"right" }}>
@@ -212,7 +212,7 @@ export default function ReportPDFPage() {
 
         {/* 푸터 */}
         <div style={{ textAlign:"center", padding:"16px 0 0", borderTop:`1px solid ${C.border}` }}>
-          <p style={{ fontSize:11, color:C.muted }}>본 보고서는 Ownly by McLean에서 자동 생성됐습니다 · ownly.kr · {new Date().toLocaleDateString("ko-KR")} 출력</p>
+          <p style={{ fontSize:11, color:C.muted }}>본 보고서는 Ownly에서 자동 생성됐습니다 · ownly.kr · {new Date().toLocaleDateString("ko-KR")} 출력</p>
           <p style={{ fontSize:10, color:C.muted, marginTop:3 }}>※ 이 보고서는 참고용이며, 정확한 세무 신고는 전문가와 상담하시기 바랍니다</p>
         </div>
       </div>

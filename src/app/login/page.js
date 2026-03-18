@@ -118,7 +118,7 @@ export default function AuthPage() {
           {["✓ 수금 자동 추적", "✓ 계약 만료 알림", "✓ 세금 시뮬레이터", "✓ 내용증명 발행"].map((f) => (
             <div key={f} style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{f}</div>
           ))}
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 24 }}>by McLean · 임대 자산 관리의 진짜 파트너</p>
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 24 }}>임대 자산 관리의 진짜 파트너</p>
         </div>
       </div>
 

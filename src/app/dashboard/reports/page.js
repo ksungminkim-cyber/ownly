@@ -58,7 +58,7 @@ function downloadReportPDF(tenants, chartData, total, net, period) {
 </style>
 </head><body>
 <div class="header">
-  <div><div class="title">수익 리포트</div><div class="subtitle">${periodLabel} · Ownly by McLean</div></div>
+  <div><div class="title">수익 리포트</div><div class="subtitle">${periodLabel} · Ownly</div></div>
   <div style="font-size:12px;color:#8a8a9a">${today}</div>
 </div>
 <div class="summary">

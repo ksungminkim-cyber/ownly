@@ -28,7 +28,7 @@ export default async function OGImage() {
           <div style={{ width: 72, height: 72, borderRadius: 20, background: "linear-gradient(135deg, #6366f1, #a855f7)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>🏠</div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <span style={{ fontSize: 48, fontWeight: 900, color: "#fff", letterSpacing: "-1px" }}>Ownly</span>
-            <span style={{ fontSize: 18, color: "#6366f1", fontWeight: 600 }}>by McLean</span>
+
           </div>
         </div>
 

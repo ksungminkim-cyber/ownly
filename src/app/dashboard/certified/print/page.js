@@ -117,7 +117,7 @@ export default function CertifiedPrintPage() {
 
       {/* 하단 안내 */}
       <div style={{ borderTop:"1px solid #d0d0d8", paddingTop:14, textAlign:"center" }}>
-        <p style={{ fontSize:10, color:"#a0a0b0" }}>본 내용증명은 Ownly by McLean(ownly.kr)에서 작성되었습니다 · {today}</p>
+        <p style={{ fontSize:10, color:"#a0a0b0" }}>본 내용증명은 Ownly(ownly.kr)에서 작성되었습니다 · {today}</p>
         <p style={{ fontSize:9, color:"#c0c0d0", marginTop:3 }}>※ 법적 효력을 위해 우체국 내용증명 우편으로 발송하시기 바랍니다</p>
       </div>
 

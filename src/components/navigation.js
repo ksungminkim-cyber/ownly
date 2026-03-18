@@ -32,7 +32,7 @@ function OwnlyLogo({ size = "md", onClick }) {
           color: "var(--text)", letterSpacing: "-0.5px", lineHeight: 1
         }}>온리</span>
         {size === "md" && (
-          <div style={{ fontSize: 9, color: "#a0a0b0", letterSpacing: "1.5px", fontWeight: 500, marginTop: 2 }}>Ownly by McLean</div>
+          <div style={{ fontSize: 9, color: "#a0a0b0", letterSpacing: "1.5px", fontWeight: 500, marginTop: 2 }}>임대 자산 관리 플랫폼</div>
         )}
       </div>
     </div>

@@ -478,7 +478,7 @@ export default function AIReportPage() {
 
           {/* 푸터 */}
           <div style={{ textAlign: "center", padding: "14px 0", borderTop: `1px solid ${C.border}` }}>
-            <p style={{ fontSize: 11, color: C.muted }}>본 리포트는 Ownly by McLean AI 시스템이 생성했습니다 · ownly.kr · {report.analysisDate}</p>
+            <p style={{ fontSize: 11, color: C.muted }}>본 리포트는 Ownly AI 시스템이 생성했습니다 · ownly.kr · {report.analysisDate}</p>
             <p style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>※ 본 분석은 참고용이며, 실제 투자 결정은 전문 감정평가사 및 부동산 전문가와 상담하시기 바랍니다</p>
           </div>
         </div>
