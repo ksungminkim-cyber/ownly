@@ -213,7 +213,7 @@ export default function KakaoAlertPage() {
                   {preview?.id === t.id && preview?.tab === tab && (
                     <div style={{ marginTop: 12, background: C.surface, border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: "1px" }}>{"\uc54c\ub9bc \uba54\uc2dc\uc9c0 \ubbf8\ub9ac\ubcf4\uae30"}</p>
-                      <pre style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.8, whiteSpace: "pre-wrap", fontFamily: "inherit" }}>{getPreviewMsg(t)}</pre>
+                      <pre style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.8, whiteSpace: "pre-wrap", fontFamily: "inherit", wordBreak: "break-word", overflowWrap: "break-word", maxHeight: "none", overflow: "visible" }}>{getPreviewMsg(t)}</pre>
                     </div>
                   )}
                 </div>

@@ -29,6 +29,7 @@ function isOwnerMgt(t) {
   return false;
 }
 
+// ✅ 실제 솔라피 템플릿 변수명과 정확히 일치
 function buildVariables(templateKey, t) {
   const todayStr = new Date().toLocaleDateString("ko-KR");
   const rent     = String(t.rent || 0);
@@ -37,22 +38,54 @@ function buildVariables(templateKey, t) {
   const addr     = t.addr || "\ud574\ub2f9 \ubb3c\uac74";
   const name     = t.name || "\uc784\ucc28\uc778";
   const endDate  = t.end_date || t.end || "\ubbf8\uc815";
-  const dLeft    = String(t.daysLeft || "");
+  const dLeft    = String(t.daysLeft ?? "");
+  const payDay   = String(t.pay_day || 5);
 
   if (templateKey === "unpaid") {
-    return { "#{name}": name, "#{address}": addr, "#{amount}": rent, "#{date}": todayStr };
+    return {
+      "#{이름}": name,
+      "#{주소}": addr,
+      "#{금액}": rent,
+      "#{날짜}": todayStr,
+    };
   }
   if (templateKey === "unpaid_with_mgt") {
-    return { "#{name}": name, "#{address}": addr, "#{rent}": rent, "#{maintenance}": mgt, "#{total}": total, "#{date}": todayStr };
+    return {
+      "#{이름}": name,
+      "#{주소}": addr,
+      "#{금액}": rent,
+      "#{관리비}": mgt,
+      "#{총금액}": total,
+      "#{날짜}": todayStr,
+    };
   }
   if (templateKey === "upcoming") {
-    return { "#{name}": name, "#{address}": addr, "#{amount}": rent, "#{dday}": dLeft };
+    return {
+      "#{이름}": name,
+      "#{주소}": addr,
+      "#{금액}": rent,
+      "#{D-day}": dLeft,
+      "#{납부일}": payDay,
+    };
   }
   if (templateKey === "upcoming_with_mgt") {
-    return { "#{name}": name, "#{address}": addr, "#{rent}": rent, "#{maintenance}": mgt, "#{total}": total, "#{dday}": dLeft };
+    return {
+      "#{이름}": name,
+      "#{주소}": addr,
+      "#{금액}": rent,
+      "#{관리비}": mgt,
+      "#{총금액}": total,
+      "#{D-day}": dLeft,
+      "#{납부일}": payDay,
+    };
   }
   if (templateKey === "expiring") {
-    return { "#{name}": name, "#{address}": addr, "#{end_date}": endDate, "#{dday}": dLeft };
+    return {
+      "#{이름}": name,
+      "#{주소}": addr,
+      "#{만료일}": endDate,
+      "#{D-day}": dLeft,
+    };
   }
   return {};
 }
@@ -78,7 +111,6 @@ export async function POST(req) {
     const variables = buildVariables(templateKey, tenant);
     const to = tenant.phone.replace(/-/g, "");
 
-    // 솔라피 v4 API - 올바른 파라미터 구조
     const body = {
       message: {
         to,
