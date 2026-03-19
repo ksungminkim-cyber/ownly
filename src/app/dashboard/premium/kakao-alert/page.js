@@ -35,23 +35,26 @@ export default function KakaoAlertPage() {
   const now   = new Date();
   const year  = now.getFullYear();
   const month = now.getMonth() + 1;
-  const today = now.getDate();
 
-  // \uc774\ubc88 \ub2ec \ub0a9\ubd80 \uc5ec\ubd80 payments \uae30\ubc18\uc73c\ub85c \ud310\ub2e8
-  const paidSet = new Set(
+  // ── 미납: status === "미납" OR 이번 달 payments 기록 없는 세입자
+  const paidTids = new Set(
     payments
       .filter(p => p.year === year && p.month === month && p.paid_date)
       .map(p => p.tid || p.tenant_id)
   );
+  const unpaid = tenants.filter(t =>
+    t.status === "\ubbf8\ub0a9" || !paidTids.has(t.id)
+  );
 
-  // \ubbf8\ub0a9: \uc774\ubc88 \ub2ec \ub0a9\ubd80 \uae30\ub85d \uc5c6\ub294 \uc138\uc785\uc790
-  const unpaid   = tenants.filter(t => !paidSet.has(t.id));
-  // \ub0a9\ubd80 \uc608\uc815: \ub0a9\ubd80\uc77c D-3~D-0 (2\uc77c~5\uc77c \uc0ac\uc774), \uc774\ubbf8 \ub0a9\ubd80\ud55c \uc138\uc785\uc790 \uc81c\uc678
-  const upcoming = tenants.filter(t => today >= 2 && today <= 5 && !paidSet.has(t.id));
-  // \uacc4\uc57d \ub9cc\ub8cc \uc784\ubc15: 30\uc77c \uc774\ub0b4
+  // ── 납부 예정: 이번 달 아직 납부 안 했고 status가 미납이 아닌 세입자 (납부 예정 상태)
+  const upcoming = tenants.filter(t =>
+    !paidTids.has(t.id) && t.status !== "\ubbf8\ub0a9"
+  );
+
+  // ── 계약 만료: end_date 기준 D-60 이내
   const expiring = tenants.filter(t => {
     const dl = daysLeft(t.end_date || t.end || "");
-    return dl > 0 && dl <= 30;
+    return dl >= 0 && dl <= 60;
   });
 
   const counts  = { unpaid: unpaid.length, upcoming: upcoming.length, expiring: expiring.length };
@@ -70,7 +73,7 @@ export default function KakaoAlertPage() {
       const res = await fetch("/api/kakao/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tab, tenant: { ...t, daysLeft: dl, payDay: "5" } }),
+        body: JSON.stringify({ tab, tenant: { ...t, daysLeft: dl } }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -99,10 +102,10 @@ export default function KakaoAlertPage() {
       return `[\uc628\ub9ac \uc218\uae08 \uc54c\ub9bc]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc774\ubc88 \ub2ec \uc6d4\uc138\uac00 \ubbf8\ub0a9 \uc0c1\ud0dc\uc785\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \ubbf8\ub0a9 \uae08\uc561: ${rent}\ub9cc\uc6d0\n\u25a0 \ub0a9\ubd80 \uc694\uccad\uc77c: ${todayStr}\uae4c\uc9c0`;
     }
     if (tab === "upcoming") {
-      if (hasMgt) return `[\uc628\ub9ac \ub0a9\ubd80 \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc6d4\uc138 \ubc0f \uad00\ub9ac\ube44 \ub0a9\ubd80\uc77c\uc774 ${5 - today + 1}\uc77c \ub0a8\uc558\uc2b5\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \uc6d4\uc138: ${rent}\ub9cc\uc6d0\n\u25a0 \uad00\ub9ac\ube44: ${mgt}\ub9cc\uc6d0\n\u25a0 \ud569\uacc4: ${total}\ub9cc\uc6d0\n\u25a0 \ub0a9\ubd80 \uc608\uc815\uc77c: \ub9e4\uc6d4 5\uc77c`;
-      return `[\uc628\ub9ac \ub0a9\ubd80 \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc6d4\uc138 \ub0a9\ubd80\uc77c\uc774 ${5 - today + 1}\uc77c \ub0a8\uc558\uc2b5\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \ub0a9\ubd80 \uae08\uc561: ${rent}\ub9cc\uc6d0\n\u25a0 \ub0a9\ubd80 \uc608\uc815\uc77c: \ub9e4\uc6d4 5\uc77c`;
+      if (hasMgt) return `[\uc628\ub9ac \ub0a9\ubd80 \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc774\ubc88 \ub2ec \uc6d4\uc138 \ubc0f \uad00\ub9ac\ube44 \ub0a9\ubd80\ub97c \uc694\uccad\ub4dc\ub9bd\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \uc6d4\uc138: ${rent}\ub9cc\uc6d0\n\u25a0 \uad00\ub9ac\ube44: ${mgt}\ub9cc\uc6d0\n\u25a0 \ud569\uacc4: ${total}\ub9cc\uc6d0`;
+      return `[\uc628\ub9ac \ub0a9\ubd80 \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc774\ubc88 \ub2ec \uc6d4\uc138 \ub0a9\ubd80\ub97c \uc694\uccad\ub4dc\ub9bd\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \ub0a9\ubd80 \uae08\uc561: ${rent}\ub9cc\uc6d0`;
     }
-    return `[\uc628\ub9ac \uacc4\uc57d \ub9cc\ub8cc \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc784\ub300\ucc28 \uacc4\uc57d \ub9cc\ub8cc\uc77c\uc774 ${dl}\uc77c \ub0a8\uc558\uc2b5\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \uacc4\uc57d \ub9cc\ub8cc\uc77c: ${t.end_date || t.end || "\ubbf8\uc815"}\n\u25a0 \uc794\uc5ec\uc77c: ${dl}\uc77c`;
+    return `[\uc628\ub9ac \uacc4\uc57d \ub9cc\ub8cc \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc784\ub300\ucc28 \uacc4\uc57d \ub9cc\ub8cc\uc77c\uc774 ${dl}\uc77c \ub0a8\uc558\uc2b5\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \uacc4\uc57d \ub9cc\ub8cc\uc77c: ${t.end_date || t.end || "\ubbf8\uc815"}\n\u25a0 \uc794\uc5ec\uc77c: D-${dl}\n\n\uac31\uc2e0 \uc5ec\ubd80\ub97c \uc870\uc18d\ud788 \uc54c\ub824\uc8fc\uc2dc\uba74 \uac10\uc0ac\ud558\uaca0\uc2b5\ub2c8\ub2e4.`;
   };
 
   const list = getList();
@@ -124,6 +127,7 @@ export default function KakaoAlertPage() {
         </div>
       </div>
 
+      {/* 탭 */}
       <div className="tab-scroll" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {TAB_ITEMS.map(tb => (
           <button key={tb.key} onClick={() => { setTab(tb.key); setPreview(null); }}
@@ -142,14 +146,17 @@ export default function KakaoAlertPage() {
         ))}
       </div>
 
+      {/* 리스트 */}
       <div style={{ background: C.surface, border: "1px solid var(--border)", borderRadius: 20, padding: 20, marginBottom: 20, boxShadow: "0 2px 12px rgba(26,39,68,0.06)" }}>
         {list.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0" }}>
             <p style={{ fontSize: 36, marginBottom: 12 }}>{tab === "unpaid" ? "\ud83c\udf89" : "\u2705"}</p>
             <p style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", marginBottom: 6 }}>
-              {tab === "unpaid" ? "\ubbf8\ub0a9 \uac74\uc774 \uc5c6\uc5b4\uc694!" : tab === "upcoming" ? "\ub0a9\ubd80 \uc608\uc815 \uc138\uc785\uc790 \uc5c6\uc74c" : "\ub9cc\ub8cc \uc784\ubc15 \uacc4\uc57d \uc5c6\uc74c"}
+              {tab === "unpaid" ? "\ubbf8\ub0a9 \uac74\uc774 \uc5c6\uc5b4\uc694!" : tab === "upcoming" ? "\uc774\ubc88 \ub2ec \ubaa8\ub4e0 \ub0a9\ubd80 \uc644\ub8cc!" : "\ub9cc\ub8cc \uc784\ubc15 \uacc4\uc57d \uc5c6\uc74c"}
             </p>
-            <p style={{ fontSize: 13, color: C.muted }}>{tab === "unpaid" ? "\ubaa8\ub4e0 \uc138\uc785\uc790\uac00 \uc774\ubc88 \ub2ec \ub0a9\ubd80 \uc644\ub8cc\ub418\uc5c8\uc2b5\ub2c8\ub2e4" : ""}</p>
+            <p style={{ fontSize: 13, color: C.muted }}>
+              {tab === "unpaid" ? "\ubaa8\ub4e0 \uc138\uc785\uc790\uac00 \uc815\uc0c1 \ub0a9\ubd80 \uc911\uc785\ub2c8\ub2e4" : tab === "upcoming" ? "\ubaa8\ub4e0 \uc138\uc785\uc790\uac00 \uc774\ubc88 \ub2ec \ub0a9\ubd80\ub97c \uc644\ub8cc\ud588\uc2b5\ub2c8\ub2e4" : "60\uc77c \uc774\ub0b4 \ub9cc\ub8cc \uc608\uc815\uc778 \uacc4\uc57d\uc774 \uc5c6\uc2b5\ub2c8\ub2e4"}
+            </p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -160,6 +167,7 @@ export default function KakaoAlertPage() {
               const errMsg    = error[key];
               const dl        = daysLeft(t.end_date || t.end || "");
               const hasMgt    = isOwnerMgt(t) && (t.maintenance || 0) > 0;
+              const dispAmt   = (t.rent || 0) + (hasMgt ? (t.maintenance || 0) : 0);
 
               return (
                 <div key={t.id} style={{ border: `1px solid ${isSent ? C.emerald + "40" : "var(--border)"}`, borderRadius: 16, padding: 18, background: isSent ? "rgba(15,165,115,0.04)" : C.faint, transition: "all .3s" }}>
@@ -175,9 +183,11 @@ export default function KakaoAlertPage() {
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <p style={{ fontSize: 17, fontWeight: 900, color: tab === "expiring" ? C.amber : C.rose }}>
-                        {tab === "expiring" ? `D-${dl}` : `${((t.rent || 0) + (hasMgt ? t.maintenance || 0 : 0)).toLocaleString()}\ub9cc\uc6d0`}
+                        {tab === "expiring" ? `D-${dl}` : `${dispAmt.toLocaleString()}\ub9cc\uc6d0`}
                       </p>
-                      <p style={{ fontSize: 11, color: C.muted }}>{tab === "expiring" ? "\ub9cc\ub8cc\uae4c\uc9c0" : tab === "unpaid" ? "\ubbf8\ub0a9" : "\ub0a9\ubd80\uc608\uc815"}</p>
+                      <p style={{ fontSize: 11, color: C.muted }}>
+                        {tab === "expiring" ? `${t.end_date || t.end || ""}` : tab === "unpaid" ? "\ubbf8\ub0a9" : "\ub0a9\ubd80\uc608\uc815"}
+                      </p>
                     </div>
                   </div>
 
