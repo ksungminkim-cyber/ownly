@@ -229,7 +229,7 @@ export default function LandingPage() {
           </div>
 
           {/* 커뮤니티 피드 */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, alignItems: "flex-start" }}>
             {[
               { avatar: "🏢", name: "서울 강남 임대인", time: "방금 전", tag: "수금 관리", content: "월세 미납 알림이 바로 와서 세입자한테 문자 보내니까 다음날 바로 입금됐어요. 예전엔 수기로 체크하다 까먹었는데 이제 완전 편해졌습니다 👍", likes: 24 },
               { avatar: "🏠", name: "인천 다세대 2채 운영", time: "1시간 전", tag: "세금 시뮬", content: "종합소득세 신고 전에 세금 시뮬레이터 돌려봤는데 세무사 견적이랑 거의 비슷하게 나왔어요. 사전에 준비할 수 있어서 너무 좋습니다", likes: 18 },
