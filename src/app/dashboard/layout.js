@@ -10,18 +10,13 @@ import RealEstateTicker from "../../components/RealEstateTicker";
 function DashboardFooter() {
   const LINKS = [
     { label: "개인정보 처리방침", href: "/legal/privacy" },
-    { label: "서비스 이용약관",   href: "/legal/terms" },
-    { label: "공지사항",          href: "/legal/notice" },
-    { label: "자주 묻는 질문",    href: "/legal/faq" },
+    { label: "서비스 이용약관", href: "/legal/terms" },
+    { label: "공지사항", href: "/legal/notice" },
+    { label: "자주 묻는 질문", href: "/legal/faq" },
     { label: "이용자권리 및 유의사항", href: "/legal/rights" },
   ];
   return (
-    <footer style={{
-      borderTop: "1px solid var(--border)",
-      padding: "20px 28px",
-      background: "var(--bg)",
-      fontFamily: "'Pretendard','DM Sans',sans-serif",
-    }}>
+    <footer style={{ borderTop: "1px solid var(--border)", padding: "20px 28px", background: "var(--bg)", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0 4px", alignItems: "center", marginBottom: 10 }}>
         {LINKS.map((link, i) => (
           <span key={link.label} style={{ display: "flex", alignItems: "center" }}>
@@ -50,8 +45,7 @@ function DashboardFooter() {
         <span>이메일: inquiry@mclean21.com</span>
       </div>
       <p style={{ fontSize: 10.5, color: "#b0b0be", marginTop: 6, lineHeight: 1.7 }}>
-        Ownly(온리)에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다.
-        정확한 세무·법률 상담은 전문가에게 문의하시기 바랍니다.
+        Ownly(온리)에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다. 정확한 세무·법률 상담은 전문가에게 문의하시기 바랍니다.
       </p>
       <p style={{ fontSize: 10, color: "#c0c0cc", marginTop: 4 }}>
         © 2025 McLean Inc. All rights reserved.
@@ -72,32 +66,25 @@ function DashboardShell({ children }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}>
-      {/* 모바일 헤더 */}
       <MobileHeader onMoreClick={() => setDrawerOpen(true)} />
-
-      {/* 데스크탑: sidebar + main */}
       <div style={{ display: "flex" }}>
         <Sidebar onLogout={handleLogout} />
+        {/* ✅ overflowX: "hidden" 제거 — 카카오 미리보기 등 내용 짤림 방지 */}
         <main className="main-content" style={{
-          flex: 1, minHeight: "100vh", background: "var(--bg)",
-          minWidth: 0, display: "flex", flexDirection: "column", overflowX: "hidden"
+          flex: 1,
+          minHeight: "100vh",
+          background: "var(--bg)",
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
         }}>
           <div style={{ flex: 1 }}>{children}</div>
           <RealEstateTicker />
           <DashboardFooter />
         </main>
       </div>
-
-      {/* 모바일 하단 탭바 */}
       <BottomNav onMore={() => setDrawerOpen(true)} />
-
-      {/* 모바일 풀스크린 드로어 */}
-      <MobileDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onLogout={handleLogout}
-      />
-
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onLogout={handleLogout} />
       <Toast />
       {loading && <PageLoader />}
     </div>
