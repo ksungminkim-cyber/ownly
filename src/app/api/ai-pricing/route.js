@@ -2,50 +2,52 @@ export const runtime = "edge";
 
 function buildPricingPrompt(address, propertyType) {
   const typeMap = {
-    "주거": "주거용 (아파트/빌라/단독주택)",
-    "상가": "상업용 (상가/점포)",
-    "오피스텔": "오피스텔 (원룸/사무용)",
-    "토지": "토지"
+    "주거": "residential (apartment/villa/house)",
+    "상가": "commercial (retail store/shop)",
+    "오피스텔": "officetel (studio/office)",
+    "토지": "land"
   };
-  const typeKo = typeMap[propertyType] || "주거용";
+  const typeEn = typeMap[propertyType] || "residential";
 
-  return `당신은 15년 경력의 한국 부동산 임대 전문가입니다.
-아래 주소와 물건 유형을 보고 현재 시장 기준의 적정 임대료를 분석해주세요.
+  return `⚠️ CRITICAL: Respond ONLY in Korean language. No Chinese characters, no English words, no Vietnamese words. All text must be pure Korean (한글).
+⚠️ CRITICAL: Output ONLY valid JSON. No markdown, no backticks, no explanation text outside JSON.
 
-주소: ${address}
-물건 유형: ${typeKo}
+You are a Korean real estate rent pricing expert with 15+ years of experience.
+Analyze this address and estimate appropriate rent prices based on current Korean market data.
 
-반드시 아래 JSON 형식으로만 응답하세요. JSON 외 텍스트, 마크다운, 백틱 없이 순수 JSON만 출력하세요.
-모든 문자열은 반드시 한국어(한글)로 작성하세요.
+Address: "${address}"
+Property type: ${propertyType} (${typeEn})
 
+Output this exact JSON structure (replace all placeholder values with real Korean market data):
 {
-  "rentRange": { "min": 숫자, "max": 숫자, "unit": "만원/월" },
-  "depositRange": { "min": 숫자, "max": 숫자, "unit": "만원" },
+  "rentRange": { "min": 80, "max": 120, "unit": "만원/월" },
+  "depositRange": { "min": 3000, "max": 5000, "unit": "만원" },
   "marketPosition": "적정",
   "marketPositionScore": 0,
-  "avgRent": 숫자,
-  "avgDeposit": 숫자,
-  "pricePerSqm": 숫자,
+  "avgRent": 100,
+  "avgDeposit": 4000,
+  "pricePerSqm": 3,
   "comparables": [
-    { "type": "유사 물건 설명", "rent": 숫자, "deposit": 숫자, "note": "설명" },
-    { "type": "유사 물건 설명", "rent": 숫자, "deposit": 숫자, "note": "설명" },
-    { "type": "유사 물건 설명", "rent": 숫자, "deposit": 숫자, "note": "설명" }
+    { "type": "인근 유사 물건 1", "rent": 90, "deposit": 3000, "note": "반경 300m 내 유사 면적" },
+    { "type": "인근 유사 물건 2", "rent": 100, "deposit": 4000, "note": "동일 건물 유형" },
+    { "type": "인근 유사 물건 3", "rent": 115, "deposit": 5000, "note": "리모델링 완료 물건" }
   ],
-  "strategy": "2~3문장의 임대 전략",
+  "strategy": "해당 지역 시세와 물건 특성을 고려한 임대 전략을 2-3문장으로 작성하세요.",
   "vacancyRisk": "보통",
-  "bestTiming": "임대 최적 시기 1문장",
-  "negotiationTip": "협상 팁 1~2문장",
+  "bestTiming": "임대 최적 시기를 1문장으로 작성하세요.",
+  "negotiationTip": "협상 팁을 1-2문장으로 작성하세요.",
   "priceTrend": "보합",
-  "trendReason": "가격 추세 이유 1문장"
+  "trendReason": "가격 추세 이유를 1문장으로 작성하세요."
 }
 
-규칙:
-- marketPosition: "고평가", "적정", "저평가" 중 하나
-- marketPositionScore: -2~2 사이 정수
-- vacancyRisk: "낮음", "보통", "높음" 중 하나
-- priceTrend: "상승", "보합", "하락" 중 하나
-- 숫자값은 반드시 숫자형(문자열 아님)
-- 반드시 JSON만 출력 (다른 텍스트 절대 금지)`;
+Rules:
+- marketPosition must be exactly one of: "고평가", "적정", "저평가"
+- marketPositionScore must be integer between -2 and 2
+- vacancyRisk must be exactly one of: "낮음", "보통", "높음"
+- priceTrend must be exactly one of: "상승", "보합", "하락"
+- All numeric values (rent, deposit, etc.) must be actual numbers, not strings
+- All string values must be in Korean only
+- Return ONLY the JSON object, nothing else`;
 }
 
 export async function POST(req) {
@@ -67,45 +69,59 @@ export async function POST(req) {
         messages: [
           {
             role: "system",
-            content: "당신은 한국 부동산 임대 전문가입니다. 반드시 순수 JSON만 출력하세요. 마크다운, 백틱, JSON 외 텍스트 절대 금지."
+            content: "You are a Korean real estate pricing expert. You MUST output ONLY valid JSON with no markdown formatting, no backticks, no text outside the JSON. All string values inside the JSON must be in Korean (한글) only."
           },
           {
             role: "user",
             content: buildPricingPrompt(address, propertyType)
           }
         ],
-        temperature: 0.2,
+        temperature: 0.3,
         max_tokens: 1500,
+        response_format: { type: "json_object" },
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok) return Response.json({ error: `분석 오류: ${data?.error?.message}` }, { status: res.status });
+    const rawText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      return Response.json({ error: `Groq 응답 파싱 실패: ${rawText.substring(0, 300)}` }, { status: 500 });
+    }
+
+    if (!res.ok) {
+      const errMsg = data?.error?.message || data?.error || JSON.stringify(data);
+      return Response.json({ error: `분석 오류: ${errMsg}` }, { status: res.status });
+    }
 
     let text = data?.choices?.[0]?.message?.content;
     if (!text) return Response.json({ error: "AI 응답이 비어있습니다." }, { status: 500 });
 
-    // 마크다운 제거
     text = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-
-    // JSON 블록 추출
     const jsonStart = text.indexOf("{");
-    const jsonEnd   = text.lastIndexOf("}");
+    const jsonEnd = text.lastIndexOf("}");
     if (jsonStart === -1 || jsonEnd === -1) {
       return Response.json({ error: "AI가 올바른 형식으로 응답하지 않았습니다. 다시 시도해주세요." }, { status: 500 });
     }
     text = text.slice(jsonStart, jsonEnd + 1);
 
-    // 제어문자 정리
     text = text.replace(/[\u0000-\u001F\u007F]/g, (ch) => {
       const safe = { "\n": "\\n", "\r": "\\r", "\t": "\\t" };
       return safe[ch] || "";
     });
 
-    const result = JSON.parse(text);
-    result.address      = address;
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (parseErr) {
+      return Response.json({ error: `AI 응답 파싱 실패: ${parseErr.message}` }, { status: 500 });
+    }
+
+    result.address = address;
     result.propertyType = propertyType;
     result.analysisDate = new Date().toLocaleDateString("ko-KR");
+
     return Response.json(result);
 
   } catch (err) {
