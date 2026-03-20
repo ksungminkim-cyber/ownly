@@ -14,29 +14,29 @@ function dbToApp(row) {
   if (!row) return row;
   return {
     ...row,
-    pType:      row.p_type     || row.pType     || "주거",
-    sub:        row.sub_type   || row.sub        || "",
-    addr:       row.address    || row.addr       || "",
-    dep:        row.deposit    !== undefined ? row.deposit : (row.dep || 0),
-    end_date:   row.contract_end || row.end_date || "",
+    pType: row.p_type || row.pType || "주거",
+    sub: row.sub_type || row.sub || "",
+    addr: row.address || row.addr || "",
+    dep: row.deposit !== undefined ? row.deposit : (row.dep || 0),
+    end_date: row.contract_end || row.end_date || "",
     start_date: row.start_date || "",
     maintenance: row.maintenance || 0,
-    biz:        row.business_name || row.biz || "",
-    color:      row.color || "#6366f1",
-    contacts:   row.contacts || [],
+    biz: row.business_name || row.biz || "",
+    color: row.color || "#6366f1",
+    contacts: row.contacts || [],
+    area_pyeong: row.area_pyeong || null, // ✅ 평형 추가
   };
 }
 
 function appToDb(data) {
   const d = { ...data };
-  // 앱 필드명 → DB 컬럼명 변환
-  if ("pType"    in d) { d.p_type        = d.pType;    delete d.pType; }
-  if ("sub"      in d) { d.sub_type      = d.sub;      delete d.sub; }
-  if ("addr"     in d) { d.address       = d.addr;     delete d.addr; }
-  if ("dep"      in d) { d.deposit       = d.dep;      delete d.dep; }
-  if ("end_date" in d) { d.contract_end  = d.end_date; delete d.end_date; }
-  if ("biz"      in d) { d.business_name = d.biz;      delete d.biz; }
-  // 불필요한 앱 전용 필드 제거
+  if ("pType" in d) { d.p_type = d.pType; delete d.pType; }
+  if ("sub" in d) { d.sub_type = d.sub; delete d.sub; }
+  if ("addr" in d) { d.address = d.addr; delete d.addr; }
+  if ("dep" in d) { d.deposit = d.dep; delete d.dep; }
+  if ("end_date" in d) { d.contract_end = d.end_date; delete d.end_date; }
+  if ("biz" in d) { d.business_name = d.biz; delete d.biz; }
+  // area_pyeong은 컬럼명 그대로 사용
   delete d.color;
   delete d.contacts;
   return d;
@@ -46,9 +46,9 @@ function payDbToApp(row) {
   if (!row) return row;
   return {
     ...row,
-    tid:  row.tenant_id,
+    tid: row.tenant_id,
     paid: row.paid_date,
-    amt:  row.amount,
+    amt: row.amount,
     maintenance_paid: row.maintenance_paid || false,
     maintenance_paid_date: row.maintenance_paid_date || null,
   };
@@ -56,24 +56,24 @@ function payDbToApp(row) {
 
 function payAppToDb(data) {
   const d = { ...data };
-  if ("tid"  in d) { d.tenant_id = d.tid;  delete d.tid; }
+  if ("tid" in d) { d.tenant_id = d.tid; delete d.tid; }
   if ("paid" in d) { d.paid_date = d.paid; delete d.paid; }
-  if ("amt"  in d) { d.amount    = d.amt;  delete d.amt; }
+  if ("amt" in d) { d.amount = d.amt; delete d.amt; }
   if (!d.year) d.year = new Date().getFullYear();
   return d;
 }
 
 export function AppProvider({ children }) {
-  const [tenants,      setTenantsState]   = useState([]);
-  const [payments,     setPaymentsState]  = useState([]);
-  const [contracts,    setContractsState] = useState([]);
-  const [aiUsage,      setAiUsageState]   = useState([]);
-  const [vacancies,    setVacanciesState] = useState([]);
-  const [loading,      setLoading]        = useState(true);
-  const [user,         setUser]           = useState(null);
-  const [userPlan,     setUserPlan]       = useState("free");
-  const [subscription, setSubscription]   = useState(null);
-  const [planLoading,  setPlanLoading]    = useState(true);
+  const [tenants, setTenantsState] = useState([]);
+  const [payments, setPaymentsState] = useState([]);
+  const [contracts, setContractsState] = useState([]);
+  const [aiUsage, setAiUsageState] = useState([]);
+  const [vacancies, setVacanciesState] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [userPlan, setUserPlan] = useState("free");
+  const [subscription, setSubscription] = useState(null);
+  const [planLoading, setPlanLoading] = useState(true);
 
   const loadSubscription = useCallback(async (userId) => {
     try {
@@ -100,17 +100,22 @@ export function AppProvider({ children }) {
       setLoading(true);
       const userId = uid || (await supabase.auth.getUser()).data?.user?.id;
       if (!userId) {
-        setTenantsState([]); setPaymentsState([]); setContractsState([]); setVacanciesState([]);
+        setTenantsState([]);
+        setPaymentsState([]);
+        setContractsState([]);
+        setVacanciesState([]);
         return;
       }
+
       const tenantsRes = await supabase.from("tenants").select("*").eq("user_id", userId).order("created_at", { ascending: false });
       const tenantIds = (tenantsRes.data ?? []).map((t) => t.id);
+
       const [paymentsRes, contractsRes, vacanciesRes] = await Promise.all([
         tenantIds.length ? supabase.from("payments").select("*").in("tenant_id", tenantIds).order("created_at", { ascending: false }) : { data: [] },
         tenantIds.length ? supabase.from("contracts").select("*").in("tenant_id", tenantIds).order("created_at", { ascending: false }) : { data: [] },
         supabase.from("vacancies").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
       ]);
-      // ai_usage 이번 달 사용량 조회
+
       const now = new Date();
       const aiUsageRes = await supabase.from("ai_usage")
         .select("*").eq("user_id", userId)
@@ -123,7 +128,8 @@ export function AppProvider({ children }) {
       setAiUsageState(aiUsageRes.data ?? []);
     } catch (err) {
       console.error("데이터 로딩 오류:", err);
-      setTenantsState([]); setPaymentsState([]);
+      setTenantsState([]);
+      setPaymentsState([]);
     } finally {
       setLoading(false);
     }
@@ -131,14 +137,12 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     let realtimeChannel = null;
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
         loadSubscription(u.id);
         loadAllData(u.id);
-        // Realtime 구독 — tenants/payments/contracts 변경 시 자동 새로고침
         realtimeChannel = supabase
           .channel("ownly-realtime")
           .on("postgres_changes", { event: "*", schema: "public", table: "tenants", filter: `user_id=eq.${u.id}` }, () => loadAllData(u.id))
@@ -147,7 +151,8 @@ export function AppProvider({ children }) {
           .on("postgres_changes", { event: "*", schema: "public", table: "vacancies", filter: `user_id=eq.${u.id}` }, () => loadAllData(u.id))
           .subscribe();
       } else {
-        setPlanLoading(false); setLoading(false);
+        setPlanLoading(false);
+        setLoading(false);
       }
     });
 
@@ -158,8 +163,13 @@ export function AppProvider({ children }) {
         loadSubscription(u.id);
         loadAllData(u.id);
       } else {
-        setUserPlan("free"); setSubscription(null); setPlanLoading(false);
-        setTenantsState([]); setPaymentsState([]); setContractsState([]); setVacanciesState([]);
+        setUserPlan("free");
+        setSubscription(null);
+        setPlanLoading(false);
+        setTenantsState([]);
+        setPaymentsState([]);
+        setContractsState([]);
+        setVacanciesState([]);
         setLoading(false);
       }
     });
@@ -282,7 +292,6 @@ export function AppProvider({ children }) {
     return updated;
   };
 
-  // AI 사용 횟수 체크
   const checkAiUsage = useCallback((feature) => {
     const plan = PLANS[userPlan || "free"] || PLANS.free;
     const limit = plan.limits[feature];
@@ -297,7 +306,6 @@ export function AppProvider({ children }) {
     return { allowed: usedCount < limit, used: usedCount, limit };
   }, [userPlan, aiUsage]);
 
-  // AI 사용 기록
   const recordAiUsage = async (feature) => {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) return;
