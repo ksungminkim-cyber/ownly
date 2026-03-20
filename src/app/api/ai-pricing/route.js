@@ -15,7 +15,13 @@ Analyze this address and estimate appropriate rent prices based on current Korea
 Address: "${address}"
 Property type: ${propertyType} (${typeEn})
 
-Output ONLY this JSON structure with real Korean market data. No explanation, no markdown:
+IMPORTANT UNIT RULES:
+- All rent values must be in "만원/월" unit. Example: 90 means 90만원/월
+- All deposit values must be in "만원" unit. Example: 3000 means 3000만원
+- pricePerSqm must be in "만원/평" unit. Example: 150 means 150만원/평
+- Do NOT use raw won amounts like 900000. Use 90 instead of 900000.
+
+Output ONLY this JSON structure with real Korean market data for the given address:
 {
   "rentRange": { "min": 80, "max": 120, "unit": "만원/월" },
   "depositRange": { "min": 3000, "max": 5000, "unit": "만원" },
@@ -23,7 +29,7 @@ Output ONLY this JSON structure with real Korean market data. No explanation, no
   "marketPositionScore": 0,
   "avgRent": 100,
   "avgDeposit": 4000,
-  "pricePerSqm": 3,
+  "pricePerSqm": 150,
   "comparables": [
     { "type": "인근 유사 물건 1", "rent": 90, "deposit": 3000, "note": "반경 300m 내 유사 면적" },
     { "type": "인근 유사 물건 2", "rent": 100, "deposit": 4000, "note": "동일 건물 유형" },
@@ -42,8 +48,9 @@ Rules:
 - marketPositionScore: integer -2 to 2
 - vacancyRisk: "낮음" | "보통" | "높음"
 - priceTrend: "상승" | "보합" | "하락"
-- All numbers must be actual numbers not strings
-- All text must be in Korean (한글)`;
+- All rent/deposit numbers in 만원 units (e.g. 90, not 900000)
+- All text in Korean (한글)
+- Return ONLY the JSON object`;
 }
 
 export async function POST(req) {
@@ -65,7 +72,7 @@ export async function POST(req) {
         messages: [
           {
             role: "system",
-            content: "You are a Korean real estate pricing expert. Output ONLY valid JSON. No markdown, no backticks, no extra text. Korean text only for all string values."
+            content: "You are a Korean real estate pricing expert. Output ONLY valid JSON. No markdown, no backticks, no extra text. All rent/deposit numbers must be in 만원 units (e.g. use 90 for 90만원, not 900000). All string values in Korean (한글)."
           },
           {
             role: "user",
@@ -94,13 +101,10 @@ export async function POST(req) {
     const content = data?.choices?.[0]?.message?.content;
     if (!content) return Response.json({ error: "AI 응답이 비어있습니다." }, { status: 500 });
 
-    // response_format: json_object 사용 시 content는 이미 valid JSON string
-    // 단순 파싱만 시도, 실패 시 {} 범위만 추출
     let result;
     try {
       result = JSON.parse(content);
     } catch {
-      // fallback: { } 범위 추출
       const start = content.indexOf("{");
       const end = content.lastIndexOf("}");
       if (start === -1 || end === -1) {
@@ -112,6 +116,27 @@ export async function POST(req) {
         return Response.json({ error: `AI 응답 파싱 실패: ${e.message}` }, { status: 500 });
       }
     }
+
+    // 혹시 AI가 원 단위로 반환했을 경우 만원으로 자동 변환
+    const toMan = (v) => (v && v >= 10000 ? Math.round(v / 10000) : v);
+    if (result.avgRent >= 10000) result.avgRent = toMan(result.avgRent);
+    if (result.avgDeposit >= 10000) result.avgDeposit = toMan(result.avgDeposit);
+    if (result.rentRange) {
+      result.rentRange.min = toMan(result.rentRange.min);
+      result.rentRange.max = toMan(result.rentRange.max);
+    }
+    if (result.depositRange) {
+      result.depositRange.min = toMan(result.depositRange.min);
+      result.depositRange.max = toMan(result.depositRange.max);
+    }
+    if (result.comparables) {
+      result.comparables = result.comparables.map(c => ({
+        ...c,
+        rent: toMan(c.rent),
+        deposit: toMan(c.deposit),
+      }));
+    }
+    if (result.pricePerSqm >= 10000) result.pricePerSqm = toMan(result.pricePerSqm);
 
     result.address = address;
     result.propertyType = propertyType;
