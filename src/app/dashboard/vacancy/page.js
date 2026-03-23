@@ -31,9 +31,17 @@ function VacancyContent() {
   const [form, setForm] = useState(initForm());
   const set = (k) => (val) => setForm(f => ({ ...f, [k]: val }));
 
-  const totalUnits   = tenants.length + vacancies.length;
-  const vacancyRate  = totalUnits > 0 ? Math.round((vacancies.length / totalUnits) * 100) : 0;
-  const monthlyLoss  = vacancies.reduce((s, v) => s + (Number(v.expected_rent) || Number(v.expectedRent) || 0), 0);
+  const totalUnits  = tenants.length + vacancies.length;
+  const vacancyRate = totalUnits > 0 ? Math.round((vacancies.length / totalUnits) * 100) : 0;
+  const monthlyLoss = vacancies.reduce((s, v) => s + (Number(v.expected_rent) || Number(v.expectedRent) || 0), 0);
+
+  // ✅ 누적 손실: 각 공실의 (공실 시작일 ~ 오늘) 개월 수 × 기대 월세 합산
+  const cumulativeLoss = vacancies.reduce((s, v) => {
+    const rent  = Number(v.expected_rent || v.expectedRent || 0);
+    const since = v.vacant_since || v.vacantSince || new Date().toISOString().slice(0, 10);
+    const months = Math.max(0, (new Date() - new Date(since)) / (1000 * 60 * 60 * 24 * 30.44));
+    return s + rent * months;
+  }, 0);
 
   const handleAdd = async () => {
     if (!form.addr) { toast("주소를 입력하세요", "error"); return; }
@@ -96,13 +104,16 @@ function VacancyContent() {
         </button>
       </div>
 
-      {/* 요약 카드 */}
-      <div className="dash-grid-4" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:13, marginBottom:20 }}>
+      {/* ✅ 요약 카드 — 5개 (누적 손실 추가) */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:13, marginBottom:20 }}>
         {[
-          { l:"공실률",        v:vacancyRate+"%",       c:vacancyRate>10?C.rose:C.emerald, sub:vacancyRate>10?"주의 필요":"양호" },
-          { l:"공실 수",       v:vacancies.length+"실",  c:C.amber,   sub:`전체 ${totalUnits}실 중` },
-          { l:"월간 손실 추정", v:monthlyLoss+"만원",    c:C.rose,    sub:"공실 기대 월세 합계" },
-          { l:"평균 공실 기간", v: vacancies.length > 0 ? Math.round(vacancies.reduce((s,v)=>s+vacantDays(getField(v,"vacant_since","vacantSince")||new Date().toISOString().slice(0,10)),0)/vacancies.length)+"일" : "—", c:C.navy, sub:"공실 평균" },
+          { l:"공실률",        v:vacancyRate+"%",                                     c:vacancyRate>10?C.rose:C.emerald, sub:vacancyRate>10?"주의 필요":"양호" },
+          { l:"공실 수",       v:vacancies.length+"실",                               c:C.amber,   sub:`전체 ${totalUnits}실 중` },
+          { l:"월간 손실 추정", v:monthlyLoss.toLocaleString()+"만원",                 c:C.rose,    sub:"공실 기대 월세 합계" },
+          { l:"누적 손실 추정", v:Math.round(cumulativeLoss).toLocaleString()+"만원",  c:"#c2410c", sub:"공실 시작일 기준 합산" },
+          { l:"평균 공실 기간", v: vacancies.length > 0
+              ? Math.round(vacancies.reduce((s,v)=>s+vacantDays(getField(v,"vacant_since","vacantSince")||new Date().toISOString().slice(0,10)),0)/vacancies.length)+"일"
+              : "—",                                                                  c:C.navy,    sub:"공실 평균" },
         ].map(k => (
           <div key={k.l} style={{ background:"#fff", border:"1px solid #ebe9e3", borderRadius:15, padding:"18px 20px" }}>
             <p style={{ fontSize:10, color:"#8a8a9a", fontWeight:700, textTransform:"uppercase", letterSpacing:".5px", marginBottom:7 }}>{k.l}</p>
@@ -146,6 +157,9 @@ function VacancyContent() {
             const cfg   = TYPE_CONFIG[pType] || TYPE_CONFIG["주거"];
             const urgency = days >= 90 ? { c:C.rose, label:"⚠️ 장기공실" } : days >= 30 ? { c:C.amber, label:"🔔 주의" } : { c:C.emerald, label:"🟢 신규" };
 
+            // ✅ 개별 카드 누적 손실
+            const cardCumulativeLoss = Math.round(rent * Math.max(0, days / 30.44));
+
             return (
               <div key={v.id} className="hover-lift"
                 style={{ background:"#fff", border:`1px solid ${urgency.c}22`, borderRadius:16, padding:"18px 22px" }}>
@@ -155,7 +169,8 @@ function VacancyContent() {
                     <div style={{ display:"flex", gap:6, marginBottom:8, flexWrap:"wrap" }}>
                       <span style={{ fontSize:10, fontWeight:700, color:cfg.color, background:cfg.color+"18", padding:"2px 8px", borderRadius:5 }}>{cfg.icon} {sub || pType}</span>
                       <span style={{ fontSize:10, fontWeight:700, color:urgency.c, background:urgency.c+"15", padding:"2px 8px", borderRadius:5 }}>{urgency.label} D+{days}</span>
-                      {days >= 90 && <span style={{ fontSize:10, fontWeight:700, color:"#fff", background:C.rose, padding:"2px 8px", borderRadius:5 }}>공실손실 {(rent * Math.floor(days/30)).toLocaleString()}만원+</span>}
+                      {/* ✅ 90일 이상이면 누적손실 뱃지 (정확한 값으로) */}
+                      {days >= 90 && <span style={{ fontSize:10, fontWeight:700, color:"#fff", background:C.rose, padding:"2px 8px", borderRadius:5 }}>누적손실 {cardCumulativeLoss.toLocaleString()}만원</span>}
                     </div>
 
                     {/* 주소 */}
@@ -194,7 +209,7 @@ function VacancyContent() {
         <h2 style={{ fontSize:19, fontWeight:800, color:"#1a2744", marginBottom:16 }}>공실 등록</h2>
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
 
-          {/* 물건 유형 — 물건관리와 동일하게 4가지 */}
+          {/* 물건 유형 */}
           <div>
             <p style={{ fontSize:11, color:"#8a8a9a", fontWeight:700, letterSpacing:".5px", textTransform:"uppercase", marginBottom:8 }}>물건 유형</p>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:7 }}>
