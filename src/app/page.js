@@ -329,7 +329,7 @@ export default function LandingPage() {
                   <Link href="/dashboard/pricing" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }}
                     onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}>
                     요금제
-                  </Link>
+                  </Link><Link href="/blog" style={{ fontSize: 13, color: "#6a6a7a", textDecoration: "none" }} onMouseEnter={e=>e.target.style.color="#1a2744"} onMouseLeave={e=>e.target.style.color="#6a6a7a"}> 임대인 가이드 </Link>
                 </div>
               </div>
               <div>

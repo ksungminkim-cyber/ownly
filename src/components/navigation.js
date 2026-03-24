@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { C, NAV, daysLeft } from "../lib/constants";
@@ -156,7 +156,7 @@ export function MobileDrawer({ open, onClose, onLogout }) {
             );
           })}
           <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
-          <Item icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" />
+          <Item icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" /><Item icon="📖" label="임대인 가이드" path="/blog" activeColor="#0d9488" />
           <Item icon="⚙️" label="설정" path="/dashboard/settings" />
           <Item icon="💎" label="구독 플랜" path="/dashboard/pricing" />
         </div>
@@ -334,7 +334,7 @@ export function Sidebar({ onLogout }) {
         )}
         <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
 
-        <NavItem icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" />
+        <NavItem icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" /><NavItem icon="📖" label="임대인 가이드" path="/blog" activeColor="#0d9488" />
         <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
         <NavItem icon="⚙️" label="설정" path="/dashboard/settings" />
         <NavItem icon="💎" label="구독 플랜" path="/dashboard/pricing" />
