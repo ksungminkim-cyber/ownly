@@ -216,7 +216,6 @@ export default function KakaoAlertPage() {
                       background: "#fff",
                       border: "1px solid var(--border)",
                       borderRadius: 12,
-                      overflow: "hidden",
                     }}>
                       <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", background: "#f8f7f4" }}>
                         <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "1px" }}>알림 메시지 미리보기</p>
