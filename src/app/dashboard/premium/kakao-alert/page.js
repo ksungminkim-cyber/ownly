@@ -4,27 +4,31 @@ import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
 import { daysLeft } from "../../../../lib/constants";
 
-const C = { navy:"#1a2744", amber:"#e8960a", rose:"#e8445a", emerald:"#0fa573", surface:"var(--surface)", border:"var(--border)", muted:"var(--text-muted)", faint:"var(--surface2)" };
+const C = {
+  navy:"#1a2744", amber:"#e8960a", rose:"#e8445a", emerald:"#0fa573",
+  surface:"var(--surface)", border:"var(--border)", muted:"var(--text-muted)", faint:"var(--surface2)"
+};
 const KAKAO = "#FEE500";
+
 const TAB_ITEMS = [
-  { key: "unpaid",   label: "\ubbf8\ub0a9 \uc54c\ub9bc",          icon: "\u26a0\ufe0f" },
-  { key: "upcoming", label: "\ub0a9\ubd80\uc77c \uc608\uc815 \uc54c\ub9bc", icon: "\ud83d\udd14" },
-  { key: "expiring", label: "\uacc4\uc57d \ub9cc\ub8cc \uc54c\ub9bc",    icon: "\ud83d\udcc5" },
+  { key: "unpaid",   label: "미납 알림",        icon: "⚠️" },
+  { key: "upcoming", label: "납부일 예정 알림",  icon: "🔔" },
+  { key: "expiring", label: "계약 만료 알림",    icon: "📅" },
 ];
 
 function isOwnerMgt(t) {
-  if (t.pType === "\uc0c1\uac00") return true;
-  if (t.pType === "\uc8fc\uac70") return !["\uc544\ud30c\ud2b8", "\uc624\ud53c\uc2a4\ud154"].includes(t.sub);
+  if (t.pType === "상가") return true;
+  if (t.pType === "주거") return !["아파트","오피스텔"].includes(t.sub);
   return false;
 }
 
 export default function KakaoAlertPage() {
   const router = useRouter();
   const { tenants, payments } = useApp();
-  const [tab, setTab]         = useState("unpaid");
-  const [sent, setSent]       = useState({});
+  const [tab, setTab] = useState("unpaid");
+  const [sent, setSent] = useState({});
   const [sending, setSending] = useState({});
-  const [error, setError]     = useState({});
+  const [error, setError] = useState({});
   const [preview, setPreview] = useState(null);
 
   const now   = new Date();
@@ -32,41 +36,32 @@ export default function KakaoAlertPage() {
   const month = now.getMonth() + 1;
   const today = now.getDate();
 
-  // 이번 달 납부 완료된 세입자 ID Set
   const paidTids = new Set(
     payments
       .filter(p => p.year === year && p.month === month && p.paid_date)
       .map(p => p.tid || p.tenant_id)
   );
 
-  // 미납: status === "미납" 또는 이번 달 payments 없는 세입자
-  const unpaid = tenants.filter(t =>
-    t.status === "\ubbf8\ub0a9" || !paidTids.has(t.id)
-  );
-
-  // 납부 예정: 납부일(pay_day) 기준 D-3 이내인데 아직 납부 안 한 세입자
-  // pay_day가 없으면 5일 기본값
+  const unpaid   = tenants.filter(t => t.status === "미납" || !paidTids.has(t.id));
   const upcoming = tenants.filter(t => {
-    if (paidTids.has(t.id)) return false; // 이미 납부했으면 제외
-    if (t.status === "\ubbf8\ub0a9") return false; // 미납은 미납 탭에서 처리
+    if (paidTids.has(t.id)) return false;
+    if (t.status === "미납") return false;
     const payDay = t.pay_day || 5;
     const daysUntilPay = payDay - today;
-    return daysUntilPay >= 0 && daysUntilPay <= 3; // D-3 ~ D-0
+    return daysUntilPay >= 0 && daysUntilPay <= 3;
   });
-
-  // 계약 만료: end_date 기준 D-60 이내
   const expiring = tenants.filter(t => {
     const dl = daysLeft(t.end_date || t.end || "");
     return dl >= 0 && dl <= 60;
   });
 
-  const counts  = { unpaid: unpaid.length, upcoming: upcoming.length, expiring: expiring.length };
+  const counts = { unpaid: unpaid.length, upcoming: upcoming.length, expiring: expiring.length };
   const getList = () => tab === "unpaid" ? unpaid : tab === "upcoming" ? upcoming : expiring;
 
   const send = async (t) => {
     const key = tab + "_" + t.id;
     if (!t.phone) {
-      setError(e => ({ ...e, [key]: "\uc804\ud654\ubc88\ud638\uac00 \uc5c6\uc2b5\ub2c8\ub2e4. \ubb3c\uac74 \uad00\ub9ac\uc5d0\uc11c \uc785\ub825\ud574\uc8fc\uc138\uc694." }));
+      setError(e => ({ ...e, [key]: "전화번호가 없습니다. 물건 관리에서 입력해주세요." }));
       return;
     }
     setSending(s => ({ ...s, [key]: true }));
@@ -82,7 +77,7 @@ export default function KakaoAlertPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(e => ({ ...e, [key]: data.error || "\ubc1c\uc1a1 \uc2e4\ud328" }));
+        setError(e => ({ ...e, [key]: data.error || "발송 실패" }));
       } else {
         setSent(s => ({ ...s, [key]: true }));
         setPreview(null);
@@ -94,26 +89,26 @@ export default function KakaoAlertPage() {
   };
 
   const getPreviewMsg = (t) => {
-    const dl    = daysLeft(t.end_date || t.end || "");
-    const rent  = (t.rent || 0).toLocaleString();
-    const mgt   = (t.maintenance || 0).toLocaleString();
-    const total = ((t.rent || 0) + (t.maintenance || 0)).toLocaleString();
-    const hasMgt = isOwnerMgt(t) && (t.maintenance || 0) > 0;
-    const addr  = t.addr || "\ud574\ub2f9 \ubb3c\uac74";
-    const payDay = t.pay_day || 5;
+    const dl          = daysLeft(t.end_date || t.end || "");
+    const rent        = (t.rent || 0).toLocaleString();
+    const mgt         = (t.maintenance || 0).toLocaleString();
+    const total       = ((t.rent || 0) + (t.maintenance || 0)).toLocaleString();
+    const hasMgt      = isOwnerMgt(t) && (t.maintenance || 0) > 0;
+    const addr        = t.addr || "해당 물건";
+    const payDay      = t.pay_day || 5;
     const daysUntilPay = payDay - today;
-    const todayStr = now.toLocaleDateString("ko-KR");
+    const todayStr    = now.toLocaleDateString("ko-KR");
 
     if (tab === "unpaid") {
-      if (hasMgt) return `[\uc628\ub9ac \uc218\uae08 \uc54c\ub9bc]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc774\ubc88 \ub2ec \uc6d4\uc138 \ubc0f \uad00\ub9ac\ube44\uac00 \ubbf8\ub0a9 \uc0c1\ud0dc\uc785\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \uc6d4\uc138: ${rent}\ub9cc\uc6d0\n\u25a0 \uad00\ub9ac\ube44: ${mgt}\ub9cc\uc6d0\n\u25a0 \ud569\uacc4: ${total}\ub9cc\uc6d0\n\u25a0 \ub0a9\ubd80 \uc694\uccad\uc77c: ${todayStr}\uae4c\uc9c0`;
-      return `[\uc628\ub9ac \uc218\uae08 \uc54c\ub9bc]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc774\ubc88 \ub2ec \uc6d4\uc138\uac00 \ubbf8\ub0a9 \uc0c1\ud0dc\uc785\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \ubbf8\ub0a9 \uae08\uc561: ${rent}\ub9cc\uc6d0\n\u25a0 \ub0a9\ubd80 \uc694\uccad\uc77c: ${todayStr}\uae4c\uc9c0`;
+      if (hasMgt) return `[온리 수금 알림]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n이번 달 월세 및 관리비가 미납 상태입니다.\n\n■ 임대 주소: ${addr}\n■ 월세: ${rent}만원\n■ 관리비: ${mgt}만원\n■ 합계: ${total}만원\n■ 납부 요청일: ${todayStr}까지`;
+      return `[온리 수금 알림]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n이번 달 월세가 미납 상태입니다.\n\n■ 임대 주소: ${addr}\n■ 미납 금액: ${rent}만원\n■ 납부 요청일: ${todayStr}까지`;
     }
     if (tab === "upcoming") {
-      const dStr = daysUntilPay === 0 ? "\uc624\ub298" : `${daysUntilPay}\uc77c \ud6c4`;
-      if (hasMgt) return `[\uc628\ub9ac \ub0a9\ubd80 \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc6d4\uc138 \ubc0f \uad00\ub9ac\ube44 \ub0a9\ubd80\uc77c\uc774 ${dStr}(${payDay}\uc77c)\uc785\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \uc6d4\uc138: ${rent}\ub9cc\uc6d0\n\u25a0 \uad00\ub9ac\ube44: ${mgt}\ub9cc\uc6d0\n\u25a0 \ud569\uacc4: ${total}\ub9cc\uc6d0\n\u25a0 \ub0a9\ubd80\uc77c: \ub9e4\uc6d4 ${payDay}\uc77c`;
-      return `[\uc628\ub9ac \ub0a9\ubd80 \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc6d4\uc138 \ub0a9\ubd80\uc77c\uc774 ${dStr}(${payDay}\uc77c)\uc785\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \ub0a9\ubd80 \uae08\uc561: ${rent}\ub9cc\uc6d0\n\u25a0 \ub0a9\ubd80\uc77c: \ub9e4\uc6d4 ${payDay}\uc77c`;
+      const dStr = daysUntilPay === 0 ? "오늘" : `${daysUntilPay}일 후`;
+      if (hasMgt) return `[온리 납부 안내]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n월세 및 관리비 납부일이 ${dStr}(${payDay}일)입니다.\n\n■ 임대 주소: ${addr}\n■ 월세: ${rent}만원\n■ 관리비: ${mgt}만원\n■ 합계: ${total}만원\n■ 납부일: 매월 ${payDay}일`;
+      return `[온리 납부 안내]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n월세 납부일이 ${dStr}(${payDay}일)입니다.\n\n■ 임대 주소: ${addr}\n■ 납부 금액: ${rent}만원\n■ 납부일: 매월 ${payDay}일`;
     }
-    return `[\uc628\ub9ac \uacc4\uc57d \ub9cc\ub8cc \uc548\ub0b4]\n\n${t.name}\ub2d8, \uc548\ub155\ud558\uc138\uc694.\n\uc628\ub9ac(Ownly) \uc784\ub300\uad00\ub9ac \uc11c\ube44\uc2a4\uc785\ub2c8\ub2e4.\n\n\uc784\ub300\ucc28 \uacc4\uc57d \ub9cc\ub8cc\uc77c\uc774 ${dl}\uc77c \ub0a8\uc558\uc2b5\ub2c8\ub2e4.\n\n\u25a0 \uc784\ub300 \uc8fc\uc18c: ${addr}\n\u25a0 \uacc4\uc57d \ub9cc\ub8cc\uc77c: ${t.end_date || t.end || "\ubbf8\uc815"}\n\u25a0 \uc794\uc5ec\uc77c: D-${dl}\n\n\uac31\uc2e0 \uc5ec\ubd80\ub97c \uc870\uc18d\ud788 \uc54c\ub824\uc8fc\uc2dc\uba74 \uac10\uc0ac\ud558\uaca0\uc2b5\ub2c8\ub2e4.`;
+    return `[온리 계약 만료 안내]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n임대차 계약 만료일이 ${dl}일 남았습니다.\n\n■ 임대 주소: ${addr}\n■ 계약 만료일: ${t.end_date || t.end || "미정"}\n■ 잔여일: D-${dl}\n\n갱신 여부를 조속히 알려주시면 감사하겠습니다.`;
   };
 
   const list = getList();
@@ -121,23 +116,25 @@ export default function KakaoAlertPage() {
   return (
     <div className="page-in page-padding" style={{ maxWidth: 720, fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
       <button onClick={() => router.back()} style={{ background: "none", border: "none", color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 14, padding: 0 }}>
-        {"\u2190 \ub300\uc2dc\ubcf4\ub4dc\ub85c"}
+        ← 대시보드로
       </button>
+
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: `linear-gradient(135deg,${KAKAO},#e6ce00)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{"\ud83d\udcac"}</div>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: `linear-gradient(135deg,${KAKAO},#e6ce00)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>💬</div>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text)", letterSpacing: "-.4px" }}>{"\uce74\uce74\uc624 \uc54c\ub9bc \ubc1c\uc1a1"}</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text)", letterSpacing: "-.4px" }}>카카오 알림 발송</h1>
             <span style={{ fontSize: 10, fontWeight: 800, color: C.amber, background: "rgba(232,150,10,0.12)", padding: "3px 8px", borderRadius: 6 }}>PRO</span>
           </div>
-          <p style={{ fontSize: 13, color: C.muted }}>{"\ubbf8\ub0a9\xb7\ub0a9\ubd80\uc608\uc815\xb7\uacc4\uc57d\ub9cc\ub8cc \uc138\uc785\uc790\uc5d0\uac8c \uce74\uce74\uc624 \uc54c\ub9bc\ud1a1\uc744 \ubc1c\uc1a1\ud569\ub2c8\ub2e4"}</p>
+          <p style={{ fontSize: 13, color: C.muted }}>미납·납부예정·계약만료 세입자에게 카카오 알림톡을 발송합니다</p>
         </div>
       </div>
 
-      <div className="tab-scroll" style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      {/* 탭 */}
+      <div className="tab-scroll" style={{ display: "flex", gap: 8, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         {TAB_ITEMS.map(tb => (
           <button key={tb.key} onClick={() => { setTab(tb.key); setPreview(null); }}
-            style={{ padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 36, whiteSpace: "nowrap", border: `1px solid ${tab === tb.key ? C.navy : "var(--border)"}`, background: tab === tb.key ? C.navy : "transparent", color: tab === tb.key ? "#fff" : C.muted, display: "flex", alignItems: "center", gap: 6 }}>
+            style={{ padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 36, whiteSpace: "nowrap", flexShrink: 0, border: `1px solid ${tab === tb.key ? C.navy : "var(--border)"}`, background: tab === tb.key ? C.navy : "transparent", color: tab === tb.key ? "#fff" : C.muted, display: "flex", alignItems: "center", gap: 6 }}>
             <span>{tb.icon}</span><span>{tb.label}</span>
             {counts[tb.key] > 0 && (
               <span style={{ fontSize: 10, fontWeight: 800, background: tab === tb.key ? "rgba(255,255,255,0.2)" : C.rose + "20", color: tab === tb.key ? "#fff" : C.rose, padding: "1px 6px", borderRadius: 20 }}>{counts[tb.key]}</span>
@@ -146,74 +143,99 @@ export default function KakaoAlertPage() {
         ))}
       </div>
 
+      {/* 세입자 목록 카드 */}
       <div style={{ background: C.surface, border: "1px solid var(--border)", borderRadius: 20, padding: 20, marginBottom: 20, boxShadow: "0 2px 12px rgba(26,39,68,0.06)" }}>
         {list.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0" }}>
-            <p style={{ fontSize: 36, marginBottom: 12 }}>{tab === "unpaid" ? "\ud83c\udf89" : "\u2705"}</p>
+            <p style={{ fontSize: 36, marginBottom: 12 }}>{tab === "unpaid" ? "🎉" : "✅"}</p>
             <p style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", marginBottom: 6 }}>
-              {tab === "unpaid" ? "\ubbf8\ub0a9 \uac74\uc774 \uc5c6\uc5b4\uc694!" : tab === "upcoming" ? "\ub0a9\ubd80\uc77c D-3 \uc774\ub0b4 \uc138\uc785\uc790 \uc5c6\uc74c" : "\ub9cc\ub8cc \uc784\ubc15 \uacc4\uc57d \uc5c6\uc74c"}
+              {tab === "unpaid" ? "미납 건이 없어요!" : tab === "upcoming" ? "납부일 D-3 이내 세입자 없음" : "만료 임박 계약 없음"}
             </p>
             <p style={{ fontSize: 13, color: C.muted }}>
-              {tab === "unpaid" ? "\ubaa8\ub4e0 \uc138\uc785\uc790\uac00 \uc774\ubc88 \ub2ec \ub0a9\ubd80 \uc644\ub8cc" : tab === "upcoming" ? "\ub0a9\ubd80\uc77c D-3 \uc774\ub0b4\uc778 \ubbf8\ub0a9 \uc138\uc785\uc790\uac00 \uc5c6\uc2b5\ub2c8\ub2e4" : "60\uc77c \uc774\ub0b4 \ub9cc\ub8cc \uc608\uc815\uc778 \uacc4\uc57d\uc774 \uc5c6\uc2b5\ub2c8\ub2e4"}
+              {tab === "unpaid" ? "모든 세입자가 이번 달 납부 완료" : tab === "upcoming" ? "납부일 D-3 이내인 미납 세입자가 없습니다" : "60일 이내 만료 예정인 계약이 없습니다"}
             </p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {list.map(t => {
-              const key = tab + "_" + t.id;
-              const isSent    = sent[key];
-              const isSending = sending[key];
-              const errMsg    = error[key];
-              const dl        = daysLeft(t.end_date || t.end || "");
-              const hasMgt    = isOwnerMgt(t) && (t.maintenance || 0) > 0;
-              const dispAmt   = (t.rent || 0) + (hasMgt ? (t.maintenance || 0) : 0);
-              const payDay    = t.pay_day || 5;
+              const key          = tab + "_" + t.id;
+              const isSent       = sent[key];
+              const isSending    = sending[key];
+              const errMsg       = error[key];
+              const dl           = daysLeft(t.end_date || t.end || "");
+              const hasMgt       = isOwnerMgt(t) && (t.maintenance || 0) > 0;
+              const dispAmt      = (t.rent || 0) + (hasMgt ? (t.maintenance || 0) : 0);
+              const payDay       = t.pay_day || 5;
               const daysUntilPay = payDay - today;
+              const isPreviewOpen = preview?.id === t.id && preview?.tab === tab;
 
               return (
                 <div key={t.id} style={{ border: `1px solid ${isSent ? C.emerald + "40" : "var(--border)"}`, borderRadius: 16, padding: 18, background: isSent ? "rgba(15,165,115,0.04)" : C.faint, transition: "all .3s" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 8 }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
                         <p style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>{t.name}</p>
-                        {hasMgt && <span style={{ fontSize: 10, fontWeight: 700, color: "#5b4fcf", background: "rgba(91,79,207,0.1)", padding: "2px 6px", borderRadius: 5 }}>{"\uad00\ub9ac\ube44\ud3ec\ud568"}</span>}
-                        {!t.phone && <span style={{ fontSize: 10, fontWeight: 700, color: C.rose, background: "rgba(232,68,90,0.1)", padding: "2px 6px", borderRadius: 5 }}>{"\ubc88\ud638\uc5c6\uc74c"}</span>}
-                        {tab === "upcoming" && <span style={{ fontSize: 10, fontWeight: 700, color: C.navy, background: "rgba(26,39,68,0.08)", padding: "2px 6px", borderRadius: 5 }}>{"\ub0a9\ubd80\uc77c "}{payDay}{"\uc77c"}</span>}
+                        {hasMgt && <span style={{ fontSize: 10, fontWeight: 700, color: "#5b4fcf", background: "rgba(91,79,207,0.1)", padding: "2px 6px", borderRadius: 5 }}>관리비포함</span>}
+                        {!t.phone && <span style={{ fontSize: 10, fontWeight: 700, color: C.rose, background: "rgba(232,68,90,0.1)", padding: "2px 6px", borderRadius: 5 }}>번호없음</span>}
+                        {tab === "upcoming" && <span style={{ fontSize: 10, fontWeight: 700, color: C.navy, background: "rgba(26,39,68,0.08)", padding: "2px 6px", borderRadius: 5 }}>납부일 {payDay}일</span>}
                       </div>
-                      <p style={{ fontSize: 12, color: C.muted }}>{t.sub} {"\xb7"} {t.addr}</p>
+                      <p style={{ fontSize: 12, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.sub} · {t.addr}</p>
                       {t.phone && <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{t.phone}</p>}
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <p style={{ fontSize: 17, fontWeight: 900, color: tab === "expiring" ? C.amber : tab === "upcoming" ? C.navy : C.rose }}>
-                        {tab === "expiring" ? `D-${dl}` : tab === "upcoming" ? (daysUntilPay === 0 ? "D-day" : `D-${daysUntilPay}`) : `${dispAmt.toLocaleString()}\ub9cc\uc6d0`}
+                        {tab === "expiring" ? `D-${dl}` : tab === "upcoming" ? (daysUntilPay === 0 ? "D-day" : `D-${daysUntilPay}`) : `${dispAmt.toLocaleString()}만원`}
                       </p>
                       <p style={{ fontSize: 11, color: C.muted }}>
-                        {tab === "expiring" ? (t.end_date || t.end || "") : tab === "upcoming" ? "\ub0a9\ubd80\uc608\uc815" : "\ubbf8\ub0a9"}
+                        {tab === "expiring" ? (t.end_date || t.end || "") : tab === "upcoming" ? "납부예정" : "미납"}
                       </p>
                     </div>
                   </div>
 
                   {errMsg && (
                     <div style={{ marginBottom: 10, padding: "8px 12px", background: "rgba(232,68,90,0.08)", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 8 }}>
-                      <p style={{ fontSize: 12, color: C.rose, fontWeight: 600 }}>{"\u26a0\ufe0f "}{errMsg}</p>
+                      <p style={{ fontSize: 12, color: C.rose, fontWeight: 600 }}>⚠️ {errMsg}</p>
                     </div>
                   )}
 
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => setPreview(preview?.id === t.id && preview?.tab === tab ? null : { ...t, tab })}
+                    <button onClick={() => setPreview(isPreviewOpen ? null : { ...t, tab })}
                       style={{ flex: 1, padding: "10px 0", borderRadius: 10, background: C.surface, border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40 }}>
-                      {"\ubbf8\ub9ac\ubcf4\uae30"}
+                      미리보기
                     </button>
                     <button onClick={() => send(t)} disabled={isSent || isSending || !t.phone}
                       style={{ flex: 2, padding: "10px 0", borderRadius: 10, minHeight: 40, background: isSent ? C.emerald : isSending ? "#94a3b8" : !t.phone ? "#e5e7eb" : KAKAO, color: isSent || isSending ? "#fff" : !t.phone ? "#9ca3af" : "#1a1a1a", border: "none", fontSize: 13, fontWeight: 800, cursor: isSent || !t.phone ? "not-allowed" : "pointer", transition: "all .2s" }}>
-                      {isSent ? "\u2705 \ubc1c\uc1a1 \uc644\ub8cc" : isSending ? "\ubc1c\uc1a1 \uc911..." : !t.phone ? "\uc804\ud654\ubc88\ud638 \uc5c6\uc74c" : "\ud83d\udcac \uce74\uce74\uc624 \uc54c\ub9bc \ubc1c\uc1a1"}
+                      {isSent ? "✅ 발송 완료" : isSending ? "발송 중..." : !t.phone ? "전화번호 없음" : "💬 카카오 알림 발송"}
                     </button>
                   </div>
 
-                  {preview?.id === t.id && preview?.tab === tab && (
-                    <div style={{ marginTop: 12, background: C.surface, border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 8, letterSpacing: "1px" }}>{"\uc54c\ub9bc \uba54\uc2dc\uc9c0 \ubbf8\ub9ac\ubcf4\uae30"}</p>
-                      <pre style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.8, whiteSpace: "pre-wrap", fontFamily: "inherit", wordBreak: "break-word", overflowWrap: "break-word", maxHeight: "none", overflow: "visible" }}>{getPreviewMsg(t)}</pre>
+                  {/* ✅ 미리보기 — 카드 외부로 분리, 스크롤 가능하게 */}
+                  {isPreviewOpen && (
+                    <div style={{
+                      marginTop: 12,
+                      background: "#fff",
+                      border: "1px solid var(--border)",
+                      borderRadius: 12,
+                      overflow: "hidden",
+                    }}>
+                      <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", background: "#f8f7f4" }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "1px" }}>알림 메시지 미리보기</p>
+                      </div>
+                      {/* ✅ 스크롤 가능한 미리보기 영역 */}
+                      <div style={{ maxHeight: 260, overflowY: "auto", padding: "14px 16px", WebkitOverflowScrolling: "touch" }}>
+                        <pre style={{
+                          fontSize: 12,
+                          color: "var(--text)",
+                          lineHeight: 1.9,
+                          whiteSpace: "pre-wrap",
+                          fontFamily: "inherit",
+                          wordBreak: "break-word",
+                          overflowWrap: "break-word",
+                          margin: 0,
+                        }}>
+                          {getPreviewMsg(t)}
+                        </pre>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -223,10 +245,11 @@ export default function KakaoAlertPage() {
         )}
       </div>
 
+      {/* 안내 박스 */}
       <div style={{ background: "rgba(254,229,0,0.08)", border: `1px solid ${KAKAO}40`, borderRadius: 14, padding: "14px 18px" }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: "#b8a000", marginBottom: 4 }}>{"\ud83d\udca1 \uc194\ub77c\ud53c \uc54c\ub9bc\ud1a1 \uc5f0\ub3d9"}</p>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#b8a000", marginBottom: 4 }}>💡 솔라피 알림톡 연동</p>
         <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.7 }}>
-          {"\uc54c\ub9bc\ud1a1 \ubc1c\uc1a1 \uc2e4\ud328 \uc2dc SMS\ub85c \ub300\uccb4 \ubc1c\uc1a1\ub429\ub2c8\ub2e4. \ub0a9\ubd80\uc77c \uc124\uc815\uc740 \ubb3c\uac74 \uad00\ub9ac \u2192 \uc218\uc815\uc5d0\uc11c \ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4."}
+          알림톡 발송 실패 시 SMS로 대체 발송됩니다. 납부일 설정은 물건 관리 → 수정에서 할 수 있습니다.
         </p>
       </div>
     </div>
