@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
 import { daysLeft } from "../../../../lib/constants";
+import { Modal } from "../../../../components/shared";
 
 const C = {
   navy:"#1a2744", amber:"#e8960a", rose:"#e8445a", emerald:"#0fa573",
@@ -29,7 +30,7 @@ export default function KakaoAlertPage() {
   const [sent, setSent] = useState({});
   const [sending, setSending] = useState({});
   const [error, setError] = useState({});
-  const [preview, setPreview] = useState(null);
+  const [previewModal, setPreviewModal] = useState(null); // { tenant, msg } or null
 
   const now   = new Date();
   const year  = now.getFullYear();
@@ -47,8 +48,7 @@ export default function KakaoAlertPage() {
     if (paidTids.has(t.id)) return false;
     if (t.status === "미납") return false;
     const payDay = t.pay_day || 5;
-    const daysUntilPay = payDay - today;
-    return daysUntilPay >= 0 && daysUntilPay <= 3;
+    return (payDay - today) >= 0 && (payDay - today) <= 3;
   });
   const expiring = tenants.filter(t => {
     const dl = daysLeft(t.end_date || t.end || "");
@@ -69,18 +69,17 @@ export default function KakaoAlertPage() {
     try {
       const dl = daysLeft(t.end_date || t.end || "");
       const payDay = t.pay_day || 5;
-      const daysUntilPay = payDay - today;
       const res = await fetch("/api/kakao/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tab, tenant: { ...t, daysLeft: dl, daysUntilPay } }),
+        body: JSON.stringify({ tab, tenant: { ...t, daysLeft: dl, daysUntilPay: payDay - today } }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         setError(e => ({ ...e, [key]: data.error || "발송 실패" }));
       } else {
         setSent(s => ({ ...s, [key]: true }));
-        setPreview(null);
+        setPreviewModal(null);
       }
     } catch (err) {
       setError(e => ({ ...e, [key]: err.message }));
@@ -88,22 +87,22 @@ export default function KakaoAlertPage() {
     setSending(s => ({ ...s, [key]: false }));
   };
 
-  const getPreviewMsg = (t) => {
-    const dl          = daysLeft(t.end_date || t.end || "");
-    const rent        = (t.rent || 0).toLocaleString();
-    const mgt         = (t.maintenance || 0).toLocaleString();
-    const total       = ((t.rent || 0) + (t.maintenance || 0)).toLocaleString();
-    const hasMgt      = isOwnerMgt(t) && (t.maintenance || 0) > 0;
-    const addr        = t.addr || "해당 물건";
-    const payDay      = t.pay_day || 5;
+  const getPreviewMsg = (t, tabKey) => {
+    const dl           = daysLeft(t.end_date || t.end || "");
+    const rent         = (t.rent || 0).toLocaleString();
+    const mgt          = (t.maintenance || 0).toLocaleString();
+    const total        = ((t.rent || 0) + (t.maintenance || 0)).toLocaleString();
+    const hasMgt       = isOwnerMgt(t) && (t.maintenance || 0) > 0;
+    const addr         = t.addr || "해당 물건";
+    const payDay       = t.pay_day || 5;
     const daysUntilPay = payDay - today;
-    const todayStr    = now.toLocaleDateString("ko-KR");
+    const todayStr     = now.toLocaleDateString("ko-KR");
 
-    if (tab === "unpaid") {
+    if (tabKey === "unpaid") {
       if (hasMgt) return `[온리 수금 알림]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n이번 달 월세 및 관리비가 미납 상태입니다.\n\n■ 임대 주소: ${addr}\n■ 월세: ${rent}만원\n■ 관리비: ${mgt}만원\n■ 합계: ${total}만원\n■ 납부 요청일: ${todayStr}까지`;
       return `[온리 수금 알림]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n이번 달 월세가 미납 상태입니다.\n\n■ 임대 주소: ${addr}\n■ 미납 금액: ${rent}만원\n■ 납부 요청일: ${todayStr}까지`;
     }
-    if (tab === "upcoming") {
+    if (tabKey === "upcoming") {
       const dStr = daysUntilPay === 0 ? "오늘" : `${daysUntilPay}일 후`;
       if (hasMgt) return `[온리 납부 안내]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n월세 및 관리비 납부일이 ${dStr}(${payDay}일)입니다.\n\n■ 임대 주소: ${addr}\n■ 월세: ${rent}만원\n■ 관리비: ${mgt}만원\n■ 합계: ${total}만원\n■ 납부일: 매월 ${payDay}일`;
       return `[온리 납부 안내]\n\n${t.name}님, 안녕하세요.\n온리(Ownly) 임대관리 서비스입니다.\n\n월세 납부일이 ${dStr}(${payDay}일)입니다.\n\n■ 임대 주소: ${addr}\n■ 납부 금액: ${rent}만원\n■ 납부일: 매월 ${payDay}일`;
@@ -131,9 +130,9 @@ export default function KakaoAlertPage() {
       </div>
 
       {/* 탭 */}
-      <div className="tab-scroll" style={{ display: "flex", gap: 8, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         {TAB_ITEMS.map(tb => (
-          <button key={tb.key} onClick={() => { setTab(tb.key); setPreview(null); }}
+          <button key={tb.key} onClick={() => setTab(tb.key)}
             style={{ padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 36, whiteSpace: "nowrap", flexShrink: 0, border: `1px solid ${tab === tb.key ? C.navy : "var(--border)"}`, background: tab === tb.key ? C.navy : "transparent", color: tab === tb.key ? "#fff" : C.muted, display: "flex", alignItems: "center", gap: 6 }}>
             <span>{tb.icon}</span><span>{tb.label}</span>
             {counts[tb.key] > 0 && (
@@ -143,7 +142,7 @@ export default function KakaoAlertPage() {
         ))}
       </div>
 
-      {/* 세입자 목록 카드 */}
+      {/* 세입자 목록 */}
       <div style={{ background: C.surface, border: "1px solid var(--border)", borderRadius: 20, padding: 20, marginBottom: 20, boxShadow: "0 2px 12px rgba(26,39,68,0.06)" }}>
         {list.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0" }}>
@@ -167,10 +166,9 @@ export default function KakaoAlertPage() {
               const dispAmt      = (t.rent || 0) + (hasMgt ? (t.maintenance || 0) : 0);
               const payDay       = t.pay_day || 5;
               const daysUntilPay = payDay - today;
-              const isPreviewOpen = preview?.id === t.id && preview?.tab === tab;
 
               return (
-                <div key={t.id} style={{ border: `1px solid ${isSent ? C.emerald + "40" : "var(--border)"}`, borderRadius: 16, padding: 18, background: isSent ? "rgba(15,165,115,0.04)" : C.faint, transition: "all .3s" }}>
+                <div key={t.id} style={{ border: `1px solid ${isSent ? C.emerald + "40" : "var(--border)"}`, borderRadius: 16, padding: 18, background: isSent ? "rgba(15,165,115,0.04)" : C.faint }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 8 }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
@@ -199,44 +197,17 @@ export default function KakaoAlertPage() {
                   )}
 
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => setPreview(isPreviewOpen ? null : { ...t, tab })}
+                    {/* ✅ 미리보기 → 모달로 오픈 */}
+                    <button
+                      onClick={() => setPreviewModal({ tenant: t, msg: getPreviewMsg(t, tab), tab })}
                       style={{ flex: 1, padding: "10px 0", borderRadius: 10, background: C.surface, border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40 }}>
                       미리보기
                     </button>
                     <button onClick={() => send(t)} disabled={isSent || isSending || !t.phone}
-                      style={{ flex: 2, padding: "10px 0", borderRadius: 10, minHeight: 40, background: isSent ? C.emerald : isSending ? "#94a3b8" : !t.phone ? "#e5e7eb" : KAKAO, color: isSent || isSending ? "#fff" : !t.phone ? "#9ca3af" : "#1a1a1a", border: "none", fontSize: 13, fontWeight: 800, cursor: isSent || !t.phone ? "not-allowed" : "pointer", transition: "all .2s" }}>
+                      style={{ flex: 2, padding: "10px 0", borderRadius: 10, minHeight: 40, background: isSent ? C.emerald : isSending ? "#94a3b8" : !t.phone ? "#e5e7eb" : KAKAO, color: isSent || isSending ? "#fff" : !t.phone ? "#9ca3af" : "#1a1a1a", border: "none", fontSize: 13, fontWeight: 800, cursor: isSent || !t.phone ? "not-allowed" : "pointer" }}>
                       {isSent ? "✅ 발송 완료" : isSending ? "발송 중..." : !t.phone ? "전화번호 없음" : "💬 카카오 알림 발송"}
                     </button>
                   </div>
-
-                  {/* ✅ 미리보기 — 카드 외부로 분리, 스크롤 가능하게 */}
-                  {isPreviewOpen && (
-                    <div style={{
-                      marginTop: 12,
-                      background: "#fff",
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                    }}>
-                      <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", background: "#f8f7f4" }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "1px" }}>알림 메시지 미리보기</p>
-                      </div>
-                      {/* ✅ 스크롤 가능한 미리보기 영역 */}
-                      <div style={{ maxHeight: 260, overflowY: "auto", padding: "14px 16px", WebkitOverflowScrolling: "touch" }}>
-                        <pre style={{
-                          fontSize: 12,
-                          color: "var(--text)",
-                          lineHeight: 1.9,
-                          whiteSpace: "pre-wrap",
-                          fontFamily: "inherit",
-                          wordBreak: "break-word",
-                          overflowWrap: "break-word",
-                          margin: 0,
-                        }}>
-                          {getPreviewMsg(t)}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -251,6 +222,42 @@ export default function KakaoAlertPage() {
           알림톡 발송 실패 시 SMS로 대체 발송됩니다. 납부일 설정은 물건 관리 → 수정에서 할 수 있습니다.
         </p>
       </div>
+
+      {/* ✅ 미리보기 모달 — 화면 중앙에 뜨므로 잘림 없음 */}
+      <Modal open={!!previewModal} onClose={() => setPreviewModal(null)} width={440}>
+        {previewModal && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "1px", marginBottom: 3 }}>알림 메시지 미리보기</p>
+                <p style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>{previewModal.tenant.name}</p>
+              </div>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg,${KAKAO},#e6ce00)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>💬</div>
+            </div>
+
+            {/* 메시지 본문 */}
+            <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+              <pre style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.9, whiteSpace: "pre-wrap", fontFamily: "inherit", wordBreak: "break-word", margin: 0 }}>
+                {previewModal.msg}
+              </pre>
+            </div>
+
+            {/* 버튼 */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setPreviewModal(null)}
+                style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid var(--border)", color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                닫기
+              </button>
+              <button
+                onClick={() => { send(previewModal.tenant); }}
+                disabled={sent[previewModal.tab + "_" + previewModal.tenant.id] || sending[previewModal.tab + "_" + previewModal.tenant.id] || !previewModal.tenant.phone}
+                style={{ flex: 2, padding: "12px", borderRadius: 11, border: "none", fontWeight: 800, fontSize: 13, cursor: "pointer", background: sent[previewModal.tab + "_" + previewModal.tenant.id] ? C.emerald : KAKAO, color: sent[previewModal.tab + "_" + previewModal.tenant.id] ? "#fff" : "#1a1a1a" }}>
+                {sent[previewModal.tab + "_" + previewModal.tenant.id] ? "✅ 발송 완료" : "💬 이대로 발송하기"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
