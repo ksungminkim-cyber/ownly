@@ -45,7 +45,6 @@ const PREMIUM_NAV = [
   { key: "market/valuation",       icon: "🏠", label: "매물 가치 추정",   plan: "pro"  },
   { key: "premium/roi",            icon: "💰", label: "수익률 계산기",    plan: "plus" },
   { key: "premium/rent-increase",  icon: "📈", label: "임대료 인상 계산기", plan: "plus" },
-  { key: "premium/deposit-return", icon: "🔑", label: "보증금 반환 계산기", plan: "plus" },
   { key: "premium/vacancy",        icon: "📉", label: "공실 손실 계산기",  plan: "plus" },
   { key: "premium/lease-check",    icon: "⚖️", label: "임대차 3법",       plan: "plus" },
   { key: "premium/map-search",     icon: "🗺️", label: "주변 매물 조회",   plan: "pro"  },
@@ -135,7 +134,6 @@ export function MobileDrawer({ open, onClose, onLogout }) {
               <Item icon="📨" label="내용증명" path="/dashboard/certified" />
               <Item icon="🔨" label="수리 이력" path="/dashboard/repairs" />
               <Item icon="📒" label="간편 장부" path="/dashboard/ledger" />
-              <Item icon="📄" label="수익 리포트" path="/dashboard/report-pdf" />
               <Item icon="📊" label="리포트" path="/dashboard/reports" />
               <Item icon="🧾" label="세금 관리" path="/dashboard/tax" />
             </>
@@ -194,7 +192,7 @@ export function Sidebar({ onLogout }) {
   const { tenants, user, userPlan } = useApp();
   const unpaidCount = tenants.filter((t) => t.status === "미납").length;
   const expiringCount = tenants.filter((t) => daysLeft(t.end) <= 90).length;
-  const inDocs = ["/certified","/repairs","/ledger","/report-pdf","/renewal","/reports","/tax"].some(p => pathname.includes(p));
+  const inDocs = ["/certified","/repairs","/ledger","/reports","/renewal","/reports","/tax"].some(p => pathname.includes(p));
   const inPremium = pathname.includes("/premium") || pathname.includes("/market");
   const [docsOpen, setDocsOpen] = useState(inDocs);
   const [premiumOpen, setPremiumOpen] = useState(inPremium);
@@ -278,11 +276,11 @@ export function Sidebar({ onLogout }) {
             <NavItem icon="🔨" label="수리 이력" path="/dashboard/repairs" />
             <NavItem icon="📒" label="간편 장부" path="/dashboard/ledger" />
             {(() => { const ok = PLAN_ORDER[userPlan || "free"] >= PLAN_ORDER["plus"]; return (
-              <div onClick={() => router.push(ok ? "/dashboard/report-pdf" : "/dashboard/pricing")} className={"nav-item" + (pathname.includes("/report-pdf") ? " active" : "")}
-                style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 10px", borderRadius:10, marginBottom:1, cursor:"pointer", borderLeft:`2.5px solid ${pathname.includes("/report-pdf") ? "#5b4fcf" : "transparent"}`, opacity: ok ? 1 : 0.45 }}>
+              <div onClick={() => router.push(ok ? "/dashboard/report-pdf" : "/dashboard/pricing")} className={"nav-item" + (pathname.includes("/reports") ? " active" : "")}
+                style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 10px", borderRadius:10, marginBottom:1, cursor:"pointer", borderLeft:`2.5px solid ${pathname.includes("/reports") ? "#5b4fcf" : "transparent"}`, opacity: ok ? 1 : 0.45 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:9 }}>
                   <span style={{ fontSize:15 }}>📄</span>
-                  <span style={{ fontSize:14, fontWeight: pathname.includes("/report-pdf") ? 700 : 500, color: pathname.includes("/report-pdf") ? "#5b4fcf" : ok ? "#4a5568" : "#9ca3af" }}>수익 리포트</span>
+                  <span style={{ fontSize:14, fontWeight: pathname.includes("/reports") ? 700 : 500, color: pathname.includes("/reports") ? "#5b4fcf" : ok ? "#4a5568" : "#9ca3af" }}>수익 리포트</span>
                 </div>
                 {!ok && <span style={{ fontSize:9 }}>🔒</span>}
               </div>

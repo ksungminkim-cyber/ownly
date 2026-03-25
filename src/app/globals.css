@@ -1,4 +1,4 @@
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+﻿@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
 
 @tailwind base;
@@ -91,7 +91,7 @@
   .stagger > *:nth-child(5){animation-delay:.24s}
   .stagger > *:nth-child(6){animation-delay:.29s}
 
-  .main-content { margin-left: 220px; width: calc(100% - 220px); }
+  .main-content { margin-left: 230px; width: calc(100% - 230px); }
 
   .btn-primary { position:relative; overflow:hidden; transition:transform .15s, box-shadow .15s; }
   .btn-primary:hover { transform:translateY(-2px); box-shadow: 0 8px 24px rgba(26,39,68,0.25); }
