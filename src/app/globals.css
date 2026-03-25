@@ -91,7 +91,7 @@
   .stagger > *:nth-child(5){animation-delay:.24s}
   .stagger > *:nth-child(6){animation-delay:.29s}
 
-  .main-content { margin-left: 230px; width: calc(100% - 230px); }
+  .main-content { margin-left: var(--sidebar-w, 230px); width: calc(100% - var(--sidebar-w, 230px)); transition: margin-left 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s cubic-bezier(0.4,0,0.2,1); }
 
   .btn-primary { position:relative; overflow:hidden; transition:transform .15s, box-shadow .15s; }
   .btn-primary:hover { transform:translateY(-2px); box-shadow: 0 8px 24px rgba(26,39,68,0.25); }
