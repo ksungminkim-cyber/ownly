@@ -368,7 +368,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 14 }}><div onClick={() => router.push("/blog")} style={{ borderRadius: 14, padding: "16px", cursor: "pointer", background: "linear-gradient(135deg,rgba(13,148,136,0.06),rgba(13,148,136,0.02))", border: "1.5px solid rgba(13,148,136,0.2)" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}><div style={{ fontSize: 24, marginBottom: 6 }}>📖</div><p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 3 }}>임대인 가이드</p><p style={{ fontSize: 10, color: "#8a8a9a", lineHeight: 1.5 }}>세금·법률·수익률 실전 정보</p><div style={{ marginTop: 8, borderTop: "1px solid rgba(13,148,136,0.15)", paddingTop: 8 }}><span style={{ fontSize: 11, fontWeight: 700, color: "#0d9488" }}>읽어보기 →</span></div></div>
               <div onClick={() => router.push("/dashboard/community")} style={{ borderRadius: 14, padding: "16px", cursor: "pointer", background: "linear-gradient(135deg,#0fa57308,#0fa57302)", border: "1.5px solid #0fa57330" }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}
