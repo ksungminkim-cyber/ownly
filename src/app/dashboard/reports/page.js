@@ -14,7 +14,7 @@ const C = {
 
 const TABS = [
   { key:"chart", label:"📊 수익 차트" },
-  { key:"pdf",   label:"📄 PDF 출력" },
+  { key:"pdf",   label:"📄 PDF 출력" }, { key:"excel", label:"📥 엑셀 내보내기" },
 ];
 
 // ── 수익 차트 탭 (기존 reports/page.js 내용) ──────────────────────
