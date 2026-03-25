@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CustomTooltip, EmptyState } from "../../components/shared";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { REVENUE, daysLeft } from "../../lib/constants";
+import { daysLeft } from "../../lib/constants";
 import AddressInput from "../../components/AddressInput";
 import { useApp } from "../../context/AppContext";
 
@@ -27,7 +27,7 @@ const PLAN_ORDER = { free: 0, plus: 1, pro: 2 };
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { tenants, loading, userPlan } = useApp();
+  const { tenants, payments, repairs, ledger, loading, userPlan } = useApp();
   const [filter, setFilter] = useState("전체");
   const [selected, setSelected] = useState(null);
   const planLevel = PLAN_ORDER[userPlan] ?? 0;
