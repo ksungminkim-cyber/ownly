@@ -1,4 +1,4 @@
-"use client";
+﻿"use client"; import ExcelTab from "./ExcelTab";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
@@ -341,7 +341,7 @@ function ReportsContent() {
       </div>
 
       {tab === "chart" && <ChartTab />}
-      {tab === "pdf"   && <PDFTab />}
+      {tab === "pdf"   && <PDFTab />} {tab === "excel" && <ExcelTab />}
     </div>
   );
 }
