@@ -32,7 +32,7 @@ function OwnlyLogo({ size = "md", onClick }) {
 const NAV_ICONS = {
   dashboard: "⊞", properties: "🏠", tenants: "👤", payments: "💰",
   contracts: "📝", calendar: "📅", vacancy: "🚪", certified: "📨",
-  repairs: "🔨", ledger: "📒", renewal: "🔄", "report-pdf": "📄",
+  repairs: "🔨", ledger: "📒", renewal: "🔄", "reports": "📄",
   reports: "📊", tax: "🧾", settings: "⚙️", pricing: "💎", community: "💬",
 };
 
@@ -126,7 +126,7 @@ export function MobileDrawer({ open, onClose, onLogout }) {
           <Item icon="👤" label="세입자" path="/dashboard/tenants" />
           <Item icon="💰" label="수금 현황" path="/dashboard/payments" />
           <Item icon="📅" label="캘린더" path="/dashboard/calendar" />
-          <Item icon="🔄" label="갱신 의향" path="/dashboard/renewal" />
+          
           <Item icon="🚪" label="공실 관리" path="/dashboard/vacancy" />
           <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
           <AccHeader label="문서·기록" open={docsOpen} onToggle={() => setDocsOpen(o => !o)} />
@@ -156,7 +156,7 @@ export function MobileDrawer({ open, onClose, onLogout }) {
             );
           })}
           <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
-          <Item icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" /><Item icon="📖" label="임대인 가이드" path="/blog" activeColor="#0d9488" />
+          <Item icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" />
           <Item icon="⚙️" label="설정" path="/dashboard/settings" />
           <Item icon="💎" label="구독 플랜" path="/dashboard/pricing" />
         </div>
@@ -257,7 +257,7 @@ export function Sidebar({ onLogout }) {
         <NavItem icon="👤" label="세입자" path="/dashboard/tenants" badge={expiringCount} />
         <NavItem icon="💰" label="수금 현황" path="/dashboard/payments" badge={unpaidCount} />
         <NavItem icon="📅" label="캘린더" path="/dashboard/calendar" />
-        <NavItem icon="🔄" label="갱신 의향" path="/dashboard/renewal" />
+        
         <NavItem icon="🚪" label="공실 관리" path="/dashboard/vacancy" />
         <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
 
@@ -334,7 +334,7 @@ export function Sidebar({ onLogout }) {
         )}
         <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
 
-        <NavItem icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" /><NavItem icon="📖" label="임대인 가이드" path="/blog" activeColor="#0d9488" />
+        <NavItem icon="💬" label="커뮤니티" path="/dashboard/community" activeColor="#0fa573" />
         <div style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />
         <NavItem icon="⚙️" label="설정" path="/dashboard/settings" />
         <NavItem icon="💎" label="구독 플랜" path="/dashboard/pricing" />
