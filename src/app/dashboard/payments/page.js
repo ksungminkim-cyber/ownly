@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Badge, SectionLabel, EmptyState, Modal, AuthInput, toast } from "../../../components/shared";
+import { Badge, SectionLabel, EmptyState, Modal, AuthInput, toast, SkeletonTable } from "../../../components/shared";
 import { C, PAY_MAP } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 
@@ -104,7 +104,7 @@ export function triggerDailyNotify(user, tenants, payments) {
 
 export default function PaymentsPage() {
   const router = useRouter();
-  const { tenants, payments, upsertPayment, deletePayment, user } = useApp();
+  const { tenants, payments, upsertPayment, deletePayment, user, loading } = useApp();
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [payModal, setPayModal] = useState(null);
   const [maintModal, setMaintModal] = useState(null);
@@ -121,7 +121,7 @@ export default function PaymentsPage() {
     if (user && tenants.length > 0) {
       triggerDailyNotify(user, tenants, payments);
     }
-  }, [user, tenants.length]);
+  }, [user, tenants.length]); if (loading) return <SkeletonTable rows={5} cols={4} />;
 
   const hasMaintenance = (t) => (t.pType === "상가" || t.pType === "오피스텔") && (t.maintenance || 0) > 0;
   const rows = tenants.map((t) => ({ t, p: payments.find((x) => x.tid === t.id && x.month === month) }));
