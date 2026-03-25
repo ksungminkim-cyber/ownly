@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { SectionLabel, EmptyState, Modal, toast } from "../../../components/shared";
 import { C } from "../../../lib/constants";
@@ -276,7 +276,7 @@ function CertifiedContent() {
       {loading ? (
         <div style={{ textAlign:"center", padding:60, color:C.muted }}>불러오는 중...</div>
       ) : history.length === 0 ? (
-        <EmptyState icon="📨" title="작성된 내용증명이 없습니다" desc="내용증명 작성 버튼으로 첫 문서를 작성하세요" action="+ 내용증명 작성" onAction={openCreate} />
+        <EmptyState icon="📨" title="작성된 내용증명이 없습니다" desc="내용증명 작성 버튼으로 첫 문서를 작성하세요" hint="내용증명은 법적 효력이 있는 공식 통보 수단입니다" action="+ 내용증명 작성" onAction={openCreate} />
       ) : (
         <div style={{ background:"#fff", border:"1px solid #ebe9e3", borderRadius:16, overflow:"hidden" }}>
           {history.map((h, i) => {

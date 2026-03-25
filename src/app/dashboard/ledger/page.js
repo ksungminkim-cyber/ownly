@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useApp } from "../../../context/AppContext";
-import { SectionLabel, toast } from "../../../components/shared";
+import { SectionLabel, toast , EmptyState } from "../../../components/shared";
 
 const C = { navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", purple:"#5b4fcf", indigo:"#3b5bdb", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" };
 
@@ -152,10 +152,7 @@ export default function LedgerPage() {
       {loading ? (
         <div style={{ textAlign:"center", padding:40, color:C.muted }}>불러오는 중...</div>
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign:"center", padding:60, background:C.faint, borderRadius:16 }}>
-          <p style={{ fontSize:36, marginBottom:12 }}>📒</p>
-          <p style={{ fontSize:16, fontWeight:700, color:C.navy }}>내역이 없습니다</p>
-          <p style={{ fontSize:13, color:C.muted, marginTop:4 }}>수입·지출 내역을 추가해 보세요</p>
+        <EmptyState icon="📒" title="내역이 없습니다" desc="수입·지출 내역을 추가해 보세요" hint="수입·지출을 기록하면 연간 순수익이 자동 계산됩니다" />
         </div>
       ) : (
         <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:17, overflow:"hidden" }}>

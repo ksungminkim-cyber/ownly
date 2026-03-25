@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useApp } from "../../../context/AppContext";
-import { SectionLabel, toast } from "../../../components/shared";
+import { SectionLabel, toast , EmptyState } from "../../../components/shared";
 
 const C = { navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", purple:"#5b4fcf", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" };
 
@@ -106,11 +106,7 @@ export default function RepairsPage() {
       {loading ? (
         <div style={{ textAlign:"center", padding:40, color:C.muted }}>불러오는 중...</div>
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign:"center", padding:60, background:C.faint, borderRadius:16 }}>
-          <p style={{ fontSize:36, marginBottom:12 }}>🔨</p>
-          <p style={{ fontSize:16, fontWeight:700, color:C.navy }}>수리 이력이 없습니다</p>
-          <p style={{ fontSize:13, color:C.muted, marginTop:4 }}>수리·교체 내역을 기록해두면 세금 신고 시 비용 처리에 도움이 됩니다</p>
-        </div>
+        <EmptyState icon="🔨" title="수리 이력이 없습니다" desc="수리·교체 내역을 기록해두면 세금 신고 시 비용 처리에 도움이 됩니다" hint="수리비를 등록하면 세금 신고 시 필요경비로 자동 집계됩니다" />
       ) : (
         <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:17, overflow:"hidden" }}>
           <div style={{ padding:"10px 20px", background:"#0a0a10", display:"grid", gridTemplateColumns:"90px 80px 1fr 100px 80px 80px 40px", gap:8 }}>
