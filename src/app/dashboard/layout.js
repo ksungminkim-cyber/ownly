@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation";
 import { Toast, PageLoader } from "../../components/shared";
-import { AppProvider, useApp } from "../../context/AppContext";
+import OnboardingModal from "../../components/OnboardingModal"; import { AppProvider, useApp } from "../../context/AppContext";
 import { supabase } from "../../lib/supabase";
 import RealEstateTicker from "../../components/RealEstateTicker";
 
@@ -83,7 +83,7 @@ function DashboardShell({ children }) {
 
 export default function DashboardLayout({ children }) {
   return (
-    <AppProvider>
+    <AppProvider><OnboardingModal />
       <DashboardShell>{children}</DashboardShell>
     </AppProvider>
   );
