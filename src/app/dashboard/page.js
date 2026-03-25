@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CustomTooltip, EmptyState } from "../../components/shared";
@@ -15,8 +15,8 @@ const ST = {
 const FILTERS = ["전체", "주거", "상가", "토지", "만료임박", "미납"];
 
 const PREMIUM_FEATURES = [
-  { id: "roi",          href: "/dashboard/premium/roi",        icon: "💰", title: "수익률 계산기",    desc: "취득세·종소세·건보료 감안한 실질 수익률 시뮬레이션", badge: "STARTER+", badgeColor: "#0fa573", plan: "plus", tag: "인기", tagColor: "#0fa573" },
-  { id: "vacancy_loss", href: "/dashboard/premium/vacancy",    icon: "📉", title: "공실 손실 계산기", desc: "공실 기간별 기회비용·손실액 자동 계산",               badge: "STARTER+", badgeColor: "#0fa573", plan: "plus", tag: null },
+  { id: "roi",          href: "/dashboard/premium/calculator?tab=roi",        icon: "💰", title: "수익률 계산기",    desc: "취득세·종소세·건보료 감안한 실질 수익률 시뮬레이션", badge: "STARTER+", badgeColor: "#0fa573", plan: "plus", tag: "인기", tagColor: "#0fa573" },
+  { id: "vacancy_loss", href: "/dashboard/premium/calculator?tab=vacancy",    icon: "📉", title: "공실 손실 계산기", desc: "공실 기간별 기회비용·손실액 자동 계산",               badge: "STARTER+", badgeColor: "#0fa573", plan: "plus", tag: null },
   { id: "lease_check",  href: "/dashboard/premium/lease-check",icon: "⚖️", title: "임대차 3법 체크",  desc: "계약갱신청구권·전월세상한제 자동 적용 여부 확인",       badge: "STARTER+", badgeColor: "#0fa573", plan: "plus", tag: null },
   { id: "map",          href: "/dashboard/premium/map-search", icon: "🗺️", title: "주변 매물 조회",   desc: "네이버 부동산 연동 주변 시세·매물 비교",               badge: "PRO",      badgeColor: "#c9920a", plan: "pro",  tag: "NEW", tagColor: "#5b4fcf" },
   { id: "ai_report",   href: "/dashboard/premium/ai-report",  icon: "🤖", title: "AI 입지 분석",    desc: "위치 기반 상권·학군·인구밀도 AI 분석",                 badge: "PRO",      badgeColor: "#c9920a", plan: "pro",  tag: "AI",  tagColor: "#5b4fcf" },
@@ -368,7 +368,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 14 }}>
               <div onClick={() => router.push("/dashboard/community")} style={{ borderRadius: 14, padding: "16px", cursor: "pointer", background: "linear-gradient(135deg,#0fa57308,#0fa57302)", border: "1.5px solid #0fa57330" }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}
