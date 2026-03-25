@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
 
@@ -360,8 +360,8 @@ function VacancyCalc() {
   );
 }
 
-// ── 메인 ─────────────────────────────────────────────────────────
-export default function CalculatorPage() {
+// ── 메인 내부 컴포넌트 (useSearchParams 사용) ─────────────────────
+function CalculatorContent() {
   const router = useRouter();
   const params = useSearchParams();
   const { userPlan } = useApp();
@@ -423,5 +423,14 @@ export default function CalculatorPage() {
         ※ 모든 계산 결과는 참고용 추정치입니다. 정확한 세무·법률 판단은 전문가에게 문의하세요.
       </p>
     </div>
+  );
+}
+
+// ✅ Suspense로 감싸서 useSearchParams 빌드 에러 해결
+export default function CalculatorPage() {
+  return (
+    <Suspense fallback={<div className="page-in page-padding" style={{ color:"#8a8a9a", fontSize:13 }}>불러오는 중...</div>}>
+      <CalculatorContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { useApp } from "../../../context/AppContext";
@@ -308,7 +308,13 @@ function PDFTab() {
 
 // ── 메인 ─────────────────────────────────────────────────────────
 export default function ReportsPage() {
-  return <PlanGate feature="reports"><ReportsContent /></PlanGate>;
+  return (
+    <PlanGate feature="reports">
+      <Suspense fallback={<div className="page-in page-padding" style={{ color:"#8a8a9a", fontSize:13 }}>불러오는 중...</div>}>
+        <ReportsContent />
+      </Suspense>
+    </PlanGate>
+  );
 }
 
 function ReportsContent() {
