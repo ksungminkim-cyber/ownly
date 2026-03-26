@@ -1,5 +1,6 @@
 ﻿"use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApp } from "../../../context/AppContext";
 
 const C = {
@@ -411,6 +412,7 @@ async function buildXlsx({ year, tenants, payments, repairs, ledger }) {
 // ── 컴포넌트 ─────────────────────────────────────────────────────
 export default function ExcelTab() {
   const { tenants, payments, repairs, ledger, userPlan } = useApp(); const isPlus = ["plus","pro"].includes(userPlan || "free");
+  const router = useRouter();
   const [year,    setYear]    = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
 
