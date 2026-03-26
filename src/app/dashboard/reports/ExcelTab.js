@@ -535,6 +535,6 @@ export default function ExcelTab() {
         헤더 색상 · 테두리 · 행 서식이 완전히 적용된 실제 xlsx 파일입니다<br/>
         엑셀 · 구글스프레드시트 모두 지원
       </p>
- )}    </div>
+    </div>
   );
 }
