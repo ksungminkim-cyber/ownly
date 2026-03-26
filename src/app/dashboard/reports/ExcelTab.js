@@ -1,16 +1,4 @@
 ﻿"use client";
-}
-  );
-      <button onClick={handleExport} disabled={loading}
-        style={{ width:"100%", padding:"16px", borderRadius:14,
-          background:loading?"#b0b0c0":`linear-gradient(135deg,${C.navy},#2d4270)`,
-          color:"#fff", border:"none", fontWeight:800, fontSize:15,
-          cursor:loading?"not-allowed":"pointer",
-          boxShadow:loading?"none":"0 4px 20px rgba(26,39,68,0.25)",
-          display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
-        {loading ? <><span>⏳</span> 생성 중...</> : <><span>📥</span> {year}년 세금 신고 자료 다운로드 (.xlsx)</>}
-      </button>
-"use client";
 import { useState } from "react";
 import { useApp } from "../../../context/AppContext";
 
