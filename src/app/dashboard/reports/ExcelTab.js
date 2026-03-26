@@ -513,7 +513,7 @@ export default function ExcelTab() {
       {isPlus ? (
         <button onClick={handleExport} disabled={loading}
           style={{ width:"100%", padding:"16px", borderRadius:14,
-            background:loading?"#b0b0c0":linear-gradient(135deg,${C.navy},#2d4270),
+            background:loading?"#b0b0c0":`linear-gradient(135deg,${C.navy},#2d4270)`,
             color:"#fff", border:"none", fontWeight:800, fontSize:15,
             cursor:loading?"not-allowed":"pointer",
             boxShadow:loading?"none":"0 4px 20px rgba(26,39,68,0.25)",
