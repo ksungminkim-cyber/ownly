@@ -510,15 +510,26 @@ export default function ExcelTab() {
         ))}
       </div>
 
-      {isPlus ? {!isPlus ? ( <div onClick={() => router.push("/dashboard/pricing")} style={{ width:"100%", padding:"16px", borderRadius:14, background:"linear-gradient(135deg,#4f46e5,#6d63f5)", border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow:"0 4px 20px rgba(79,70,229,0.3)" }}> <span>🔒</span> 플러스 플랜에서 엑셀 내보내기 가능 <span style={{fontSize:12,opacity:.8}}>→ 업그레이드</span> </div> ) : ( <button onClick={handleExport} disabled={loading}
-        style={{ width:"100%", padding:"16px", borderRadius:14,
-          background:loading?"#b0b0c0":`linear-gradient(135deg,${C.navy},#2d4270)`,
-          color:"#fff", border:"none", fontWeight:800, fontSize:15,
-          cursor:loading?"not-allowed":"pointer",
-          boxShadow:loading?"none":"0 4px 20px rgba(26,39,68,0.25)",
-          display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
-        {loading ? <><span>⏳</span> 생성 중...</> : <><span>📥</span> {year}년 세금 신고 자료 다운로드 (.xlsx)</>}} : <div onClick={() => router.push("/dashboard/pricing")} style={{ width:"100%", padding:"16px", borderRadius:14, background:"linear-gradient(135deg,#4f46e5,#6d63f5)", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow:"0 4px 20px rgba(79,70,229,0.3)" }}><span>🔒</span> 플러스 플랜에서 엑셀 내보내기 · 업그레이드 →</div>}
-      </button>
+      {isPlus ? (
+        <button onClick={handleExport} disabled={loading}
+          style={{ width:"100%", padding:"16px", borderRadius:14,
+            background:loading?"#b0b0c0":linear-gradient(135deg,${C.navy},#2d4270),
+            color:"#fff", border:"none", fontWeight:800, fontSize:15,
+            cursor:loading?"not-allowed":"pointer",
+            boxShadow:loading?"none":"0 4px 20px rgba(26,39,68,0.25)",
+            display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+          {loading ? <><span>⏳</span> 생성 중...</> : <><span>📥</span> {year}년 세금 신고 자료 다운로드 (.xlsx)</>}
+        </button>
+      ) : (
+        <div onClick={() => router.push("/dashboard/pricing")}
+          style={{ width:"100%", padding:"16px", borderRadius:14,
+            background:"linear-gradient(135deg,#4f46e5,#6d63f5)",
+            color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer",
+            display:"flex", alignItems:"center", justifyContent:"center", gap:10,
+            boxShadow:"0 4px 20px rgba(79,70,229,0.3)" }}>
+          <span>🔒</span> 플러스 플랜에서 엑셀 내보내기 · 업그레이드 →
+        </div>
+      )}
 
       <p style={{ fontSize:11, color:C.muted, marginTop:12, textAlign:"center", lineHeight:1.7 }}>
         헤더 색상 · 테두리 · 행 서식이 완전히 적용된 실제 xlsx 파일입니다<br/>
