@@ -19,7 +19,7 @@ const TABS = [
 
 // ── 수익 차트 탭 (기존 reports/page.js 내용) ──────────────────────
 function ChartTab() {
-  const { tenants, payments } = useApp();
+  const { tenants, payments } = useApp(); const isPlus = ["plus","pro"].includes(userPlan || "free");
   const [period, setPeriod] = useState("3m");
 
   const now = new Date();
@@ -134,7 +134,7 @@ function ChartTab() {
 
 // ── PDF 출력 탭 (기존 report-pdf/page.js 내용) ────────────────────
 function PDFTab() {
-  const { tenants, payments } = useApp();
+  const { tenants, payments } = useApp(); const isPlus = ["plus","pro"].includes(userPlan || "free");
   const [year, setYear] = useState(new Date().getFullYear());
   const [repairs, setRepairs] = useState([]);
   const [ledger,  setLedger]  = useState([]);

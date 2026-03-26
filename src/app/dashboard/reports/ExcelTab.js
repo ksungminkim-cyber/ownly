@@ -510,7 +510,7 @@ export default function ExcelTab() {
         ))}
       </div>
 
-      {isPlus ? <button onClick={handleExport} disabled={loading}
+      {isPlus ? {!isPlus ? ( <div onClick={() => router.push("/dashboard/pricing")} style={{ width:"100%", padding:"16px", borderRadius:14, background:"linear-gradient(135deg,#4f46e5,#6d63f5)", border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, boxShadow:"0 4px 20px rgba(79,70,229,0.3)" }}> <span>🔒</span> 플러스 플랜에서 엑셀 내보내기 가능 <span style={{fontSize:12,opacity:.8}}>→ 업그레이드</span> </div> ) : ( <button onClick={handleExport} disabled={loading}
         style={{ width:"100%", padding:"16px", borderRadius:14,
           background:loading?"#b0b0c0":`linear-gradient(135deg,${C.navy},#2d4270)`,
           color:"#fff", border:"none", fontWeight:800, fontSize:15,
@@ -524,6 +524,6 @@ export default function ExcelTab() {
         헤더 색상 · 테두리 · 행 서식이 완전히 적용된 실제 xlsx 파일입니다<br/>
         엑셀 · 구글스프레드시트 모두 지원
       </p>
-    </div>
+ )}    </div>
   );
 }
