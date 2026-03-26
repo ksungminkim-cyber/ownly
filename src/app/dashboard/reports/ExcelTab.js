@@ -7,7 +7,7 @@ const C = {
   amber:"#e8960a", border:"#e8e6e0", muted:"#8a8a9a", faint:"#f8f7f4",
 };
 
-// ExcelJS 로더 — public/exceljs.min.js (로컬)
+// ExcelJS 로더
 async function loadExcelJS() {
   if (window.ExcelJS) return window.ExcelJS;
   await new Promise((res, rej) => {
@@ -19,7 +19,6 @@ async function loadExcelJS() {
   return window.ExcelJS;
 }
 
-// ── 스타일 헬퍼 ──────────────────────────────────────────────────────
 const P = {
   navy:  { argb:"FF1A2744" }, white: { argb:"FFFFFFFF" },
   green: { argb:"FF0FA573" }, lgreen:{ argb:"FFE8F7F2" },
@@ -29,30 +28,25 @@ const P = {
   border:{ argb:"FFE8E6E0" },
 };
 
-function applyBorder(ws, range) {
-  const thin = { style:"thin", color:{ argb:P.border.argb } };
-  const med  = { style:"medium", color:{ argb:"FF1A2744" } };
-  ws.getCell(range).border = {
-    top:thin, bottom:med, left:thin, right:thin,
-  };
-}
-
-function headerRow(ws, cols, text, bgColor=P.navy, sz=13) {
+function titleRow(ws, cols, text, bgColor, sz) {
+  const bg = bgColor || P.navy;
+  const fontSize = sz || 13;
   ws.mergeCells(1, 1, 1, cols);
   const cell = ws.getCell("A1");
   cell.value = text;
-  cell.font = { bold:true, size:sz, color:P.white };
-  cell.fill = { type:"pattern", pattern:"solid", fgColor:bgColor };
+  cell.font = { bold:true, size:fontSize, color:P.white };
+  cell.fill = { type:"pattern", pattern:"solid", fgColor:bg };
   cell.alignment = { horizontal:"center", vertical:"middle" };
   ws.getRow(1).height = 32;
 }
 
-function colHdr(ws, r, arr, bgColor=P.navy) {
-  arr.forEach((v,i) => {
+function colHdr(ws, r, arr, bgColor) {
+  const bg = bgColor || P.navy;
+  arr.forEach((v, i) => {
     const cell = ws.getCell(r, i+1);
     cell.value = v;
     cell.font = { bold:true, size:10, color:P.white };
-    cell.fill = { type:"pattern", pattern:"solid", fgColor:bgColor };
+    cell.fill = { type:"pattern", pattern:"solid", fgColor:bg };
     cell.alignment = { horizontal:"center", vertical:"middle", wrapText:true };
     cell.border = {
       top:{ style:"thin", color:P.border },
@@ -65,17 +59,22 @@ function colHdr(ws, r, arr, bgColor=P.navy) {
 }
 
 function dataRow(ws, r, cells) {
-  cells.forEach(({ v, align="left", numFmt, bgColor, color, bold, sz }) => {
-    const col = cells.indexOf({ v, align, numFmt, bgColor, color, bold, sz }) + 1;
-  });
-  // 직접 인덱스로 처리
   cells.forEach((cell, i) => {
     const c = ws.getCell(r, i+1);
-    c.value = cell.v !== undefined ? cell.v : cell;
-    if (cell.align) c.alignment = { horizontal:cell.align, vertical:"middle" };
-    if (cell.numFmt) c.numFmt = cell.numFmt;
-    if (cell.bgColor) c.fill = { type:"pattern", pattern:"solid", fgColor:{ argb:cell.bgColor } };
-    if (cell.color) c.font = { color:{ argb:cell.color }, bold:cell.bold||false, size:cell.sz||9 };
+    const val = (cell !== null && typeof cell === "object" && "v" in cell) ? cell.v : cell;
+    c.value = val;
+    if (cell && typeof cell === "object") {
+      if (cell.align) c.alignment = { horizontal:cell.align, vertical:"middle" };
+      if (cell.numFmt) c.numFmt = cell.numFmt;
+      if (cell.bgColor) c.fill = { type:"pattern", pattern:"solid", fgColor:{ argb:cell.bgColor } };
+      if (cell.color || cell.bold || cell.sz) {
+        c.font = {
+          color: cell.color ? { argb:cell.color } : undefined,
+          bold: cell.bold || false,
+          size: cell.sz || 9,
+        };
+      }
+    }
     c.border = {
       top:{ style:"thin", color:P.border },
       bottom:{ style:"thin", color:P.border },
@@ -86,13 +85,18 @@ function dataRow(ws, r, cells) {
   ws.getRow(r).height = 26;
 }
 
-function sumRow(ws, r, cols, cells) {
+function sumRow(ws, r, cells) {
   cells.forEach((cell, i) => {
     const c = ws.getCell(r, i+1);
-    c.value = cell.v !== undefined ? cell.v : cell;
-    if (cell.align) c.alignment = { horizontal:cell.align };
-    if (cell.numFmt) c.numFmt = cell.numFmt;
-    c.font = { bold:true, size:10, color:{ argb: cell.color || "FF1A2744" } };
+    const val = (cell !== null && typeof cell === "object" && "v" in cell) ? cell.v : cell;
+    c.value = val;
+    if (cell && typeof cell === "object") {
+      if (cell.align) c.alignment = { horizontal:cell.align };
+      if (cell.numFmt) c.numFmt = cell.numFmt;
+      c.font = { bold:true, size:10, color:{ argb: cell.color || "FF1A2744" } };
+    } else {
+      c.font = { bold:true, size:10 };
+    }
     c.fill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FFF0EFE9" } };
     c.border = {
       top:{ style:"medium", color:P.navy },
@@ -104,118 +108,86 @@ function sumRow(ws, r, cols, cells) {
   ws.getRow(r).height = 26;
 }
 
-// ── 수금 내역 시트 ──────────────────────────────────────────────────
-// ──────────────────────────────────────────────────────────────────
 async function buildXlsx({ year, tenants, payments, repairs, ledger }) {
   const ExcelJS = await loadExcelJS();
   const wb = new ExcelJS.Workbook();
   wb.creator = "온리(Ownly)";
   wb.created = new Date();
 
-  // ── ① 임대수입현황 ──────────────────────────────────────────────
-  // ──────────────────────────────────────────────────────────────────
+  const yp = (payments||[]).filter(p => (p.year||new Date().getFullYear()) === year);
+  const yr = (repairs||[]).filter(x => new Date(x.date||x.created_at||"").getFullYear() === year);
+  const totalPaid   = yp.filter(p=>p.status==="paid").reduce((s,p)=>s+(p.amount||0),0);
+  const totalExp    = yr.reduce((s,r)=>s+(r.cost||0),0);
+  const totalAnnual = tenants.reduce((s,t)=>s+(t.rent||0)*12,0);
+
+  // ① 임대수입현황
   const w1 = wb.addWorksheet("① 임대수입현황");
   w1.views = [{ showGridLines:false }];
   w1.columns = [{width:5},{width:14},{width:20},{width:12},{width:12},{width:12},{width:14}];
-
-  headerRow(w1, 7, `${year}년 임대수입 현황 — 온리(Ownly)`);
+  titleRow(w1, 7, `${year}년 임대수입 현황 — 온리(Ownly)`);
   colHdr(w1, 2, ["No.","세입자","주소","임대유형","월세(만)","관리비(만)","연간수입(만)"]);
-
-  const yp = (payments||[]).filter(p=>(p.year||new Date().getFullYear())===year);
-  let r = 3;
-  let totalAnnual = 0;
-
+  let r1 = 3;
   tenants.forEach((t, i) => {
     const pType = t.pType || t.type || "월세";
-    const ann   = (t.rent||0) * 12;
-    const isCom = pType === "관리비";
-    totalAnnual += ann;
-    dataRow(w1, r, [
+    const ann = (t.rent||0) * 12;
+    dataRow(w1, r1, [
       { v:i+1, align:"center" },
       { v:t.name, bold:true },
       { v:t.addr || t.address || "" },
-      { v:pType, align:"center",
-        bgColor: isCom ? "FFFFF8E6" : pType==="전세" ? "FFE8F7F2" : undefined,
-        color:   isCom ? "FFB8860B" : pType==="전세" ? "FF0FA573" : undefined },
+      { v:pType, align:"center" },
       { v:t.rent||0, align:"right", numFmt:'#,##0"만"' },
       { v:t.mgmt||0, align:"right", numFmt:'#,##0"만"' },
-      { v:ann, align:"right", numFmt:'#,##0"만"', bold:true, color:"FF1A2744" },
+      { v:ann, align:"right", numFmt:'#,##0"만"', bold:true },
     ]);
-    r++;
+    r1++;
   });
-
-  sumRow(w1, r, 7, [
+  sumRow(w1, r1, [
     { v:"합계", align:"right" },
-    { v:"" }, { v:"" }, { v:"" }, { v:"" },
+    { v:"" }, { v:"" }, { v:"" }, { v:"" }, { v:"" },
     { v:totalAnnual, align:"right", numFmt:'#,##0"만"', color:P.green.argb },
-    { v:"" },
   ]);
-  r++;
 
-  // 연간 절약 (10% 할인)
-  dataRow(w1, r, [
-    { v:"", align:"right" },
-    { v:"" }, { v:"" },
-    { v:`연간 할인 적용 시 (10%) 절약`, bgColor:"FFFFFFBE" },
-    Math.round(totalAnnual*0.1),
-    { v:"연간 할인 절약", align:"right" }, { v:P.amber, false:9 },
-  ]);
-  r++;
-
-  // ── ② 수금내역 ─────────────────────────────────────────────────
-  // ──────────────────────────────────────────────────────────────────
+  // ② 수금내역
   const w2 = wb.addWorksheet("② 수금내역");
   w2.views = [{ showGridLines:false }];
   w2.columns = [{width:5},{width:8},{width:18},{width:16},{width:14},{width:14},{width:14}];
-
   titleRow(w2, 7, `${year}년 수금내역`);
   colHdr(w2, 2, ["No.","월","세입자","주소","금액(만)","상태","납부일"]);
-
-  const paidRows = yp.sort((a,b)=>(a.month||0)-(b.month||0));
-  let totalPaid = 0, totalUnpaid = 0;
-  let rr = 3;
-  paidRows.forEach((p, i) => {
+  let r2 = 3;
+  const sorted = [...yp].sort((a,b)=>(a.month||0)-(b.month||0));
+  sorted.forEach((p, i) => {
     const t2 = tenants.find(t=>t.id===p.tenant_id)||{};
     const isPaid = p.status==="paid";
-    totalPaid += isPaid ? (p.amount||0) : 0;
-    totalUnpaid += !isPaid ? (p.amount||0) : 0;
-    dataRow(w2, rr, [
+    dataRow(w2, r2, [
       { v:i+1, align:"center" },
       { v:`${p.month||""}월`, align:"center" },
       { v:t2.name||"" },
       { v:t2.addr||t2.address||"" },
       { v:p.amount||0, align:"right", numFmt:'#,##0"만"' },
       { v:isPaid?"납부":"미납", align:"center",
-        bgColor: isPaid?"FFE8F7F2":"FFFEF2F4",
-        color:   isPaid? P.green.argb : P.red.argb, bold:true },
+        bgColor:isPaid?"FFE8F7F2":"FFFEF2F4",
+        color:isPaid?P.green.argb:P.red.argb, bold:true },
       { v:p.paid_at ? p.paid_at.slice(0,10) : "", align:"center" },
     ]);
-    rr++;
+    r2++;
   });
-  sumRow(w2, rr, 7, [
-    { v:"합계", align:"right" },
+  sumRow(w2, r2, [
+    { v:"수금합계", align:"right" },
     { v:"" },{ v:"" },{ v:"" },
     { v:totalPaid, align:"right", numFmt:'#,##0"만"', color:P.green.argb },
-    { v:`미납: ${totalUnpaid.toLocaleString()}만` },
-    { v:"" },
+    { v:"" },{ v:"" },
   ]);
 
-  // ── ③ 수리비 ───────────────────────────────────────────────────
-  // ──────────────────────────────────────────────────────────────────
+  // ③ 수리비
   const w3 = wb.addWorksheet("③ 수리비·지출");
   w3.views = [{ showGridLines:false }];
   w3.columns = [{width:5},{width:10},{width:20},{width:18},{width:14},{width:14},{width:12}];
   titleRow(w3, 7, `${year}년 수리비·지출`);
   colHdr(w3, 2, ["No.","날짜","세입자","내용","금액(만)","업체","영수증"]);
-
-  const yr = (repairs||[]).filter(x=>{
-    const d=new Date(x.date||x.created_at||""); return d.getFullYear()===year;
-  });
-  let totalExp = 0;
+  let r3 = 3;
   yr.forEach((rep, i) => {
     const t3 = tenants.find(t=>t.id===rep.tenant_id)||{};
-    totalExp += rep.cost||0;
-    dataRow(w3, 3+i, [
+    dataRow(w3, r3, [
       { v:i+1, align:"center" },
       { v:(rep.date||"").slice(0,10), align:"center" },
       { v:t3.name||"" },
@@ -224,50 +196,37 @@ async function buildXlsx({ year, tenants, payments, repairs, ledger }) {
       { v:rep.vendor||"" },
       { v:rep.receipt?"O":"", align:"center" },
     ]);
+    r3++;
   });
-  sumRow(w3, r, 7, [
-    { v:"합계", align:"right" },
+  sumRow(w3, r3, [
+    { v:"지출합계", align:"right" },
     { v:"" },{ v:"" },{ v:"" },
     { v:totalExp, align:"right", numFmt:'#,##0"만"', color:P.red.argb },
     { v:"" },{ v:"" },
   ]);
-  r++;
 
-  // 공백 빈 행
-  w3.getRow(r).height = 6; r++;
-
-  // ── ④ 세금 시뮬레이션 요약 ─────────────────────────────────────
-  // ──────────────────────────────────────────────────────────────────
+  // ④ 세금신고참고
   const w4 = wb.addWorksheet("④ 세금신고참고");
   w4.views = [{ showGridLines:false }];
-  w4.columns = [{width:28},{width:20},{width:20},{width:8}];
-
-  titleRow(w4, 4, `${year}년 세금 신고 참고자료`);
-
-  colHdr(w4, r, 3, "  🌿 세금 신고 참고자료");  r++;
-  colHdr(w4, r, ["항목","금액(만원)","비고"]);  r++;
+  w4.columns = [{width:30},{width:20},{width:24}];
+  titleRow(w4, 3, `${year}년 세금 신고 참고자료`);
+  colHdr(w4, 2, ["항목","금액(만원)","비고"]);
+  let r4 = 3;
+  const netIncome = totalPaid - totalExp;
   [
-    ["임대 수입현황 (연간)", totalAnnual, "임대수입 시트 참조", P.green, P.lgreen],
-    ["실제 수금액 (납부됨)", totalPaid,   "수금내역 시트 참조", P.green, P.lgreen],
-    ["수리비·필요경비 (10% 할인)",
-      Math.round(totalAnnual*0.1),
-      "연간 할인 절약", P.amber, "FFFFFFBE", false, 9],
-  ].forEach(([a,b,c_,col,bg,bold,sz]) => {
-    dataRow(w4, r, [
-      { v:a, bold, color:col?.argb, bgColor:bg||null, sz:sz||9 },
-      { v:b, align:"right", numFmt:'#,##0', color:col?.argb },
-      { v:c_, align:"left" },
-      { v:"" },
+    ["임대 연간 수입 (이론)", totalAnnual, "임대수입 시트 참조"],
+    ["실제 수금액 (납부됨)", totalPaid, "수금내역 시트 참조"],
+    ["수리비·필요경비 합계", totalExp, "수리비 시트 참조"],
+    ["순수익 (수금 - 지출)", netIncome, "세금 신고 참고용"],
+  ].forEach(([a, b, c]) => {
+    dataRow(w4, r4, [
+      { v:a },
+      { v:b, align:"right", numFmt:'#,##0' },
+      { v:c },
     ]);
-    r++;
+    r4++;
   });
 
-  // 순수익
-  const netIncome = totalPaid - totalExp;
-  colHdr(w4, r, ["순수익 (수금-지출)", netIncome, "세금 신고 기준 참고", P.navy]);
-  r++;
-
-  // 저장
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], {
     type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -282,18 +241,16 @@ async function buildXlsx({ year, tenants, payments, repairs, ledger }) {
   URL.revokeObjectURL(url);
 }
 
-// ── 컴포넌트 ─────────────────────────────────────────────────────────
 export default function ExcelTab() {
   const { tenants, payments, repairs, ledger } = useApp();
-  const [year,    setYear]    = useState(new Date().getFullYear());
+  const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
 
   const yp = (payments||[]).filter(p=>(p.year||new Date().getFullYear())===year);
   const yr = (repairs||[]).filter(x=>new Date(x.date||x.created_at||"").getFullYear()===year);
-  const yl = (ledger||[]).filter(x=>new Date(x.date||"").getFullYear()===year);
 
   const totalPaid   = yp.filter(p=>p.status==="paid").reduce((s,p)=>s+(p.amount||0),0);
-  const totalExp    = yr.reduce((s,r)=>s+(r.cost||0),0)+yl.reduce((s,l)=>s+(l.amount||0),0);
+  const totalExp    = yr.reduce((s,r)=>s+(r.cost||0),0);
   const totalAnnual = tenants.reduce((s,t)=>s+(t.rent||0)*12,0);
 
   async function handleExport() {
@@ -324,7 +281,6 @@ export default function ExcelTab() {
         </p>
       </div>
 
-      {/* 연도 선택 */}
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
         {[year-1, year, year+1].map(y => (
           <button key={y} onClick={() => setYear(y)}
@@ -337,7 +293,6 @@ export default function ExcelTab() {
         ))}
       </div>
 
-      {/* KPI 카드 */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10, marginBottom:20 }}>
         {kvs.map(k => (
           <div key={k.l} style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px" }}>
@@ -347,11 +302,10 @@ export default function ExcelTab() {
         ))}
       </div>
 
-      {/* 포함 내용 */}
       <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:14, padding:"18px 20px", marginBottom:20 }}>
         <p style={{ fontSize:11, fontWeight:800, color:C.muted, letterSpacing:"1px", textTransform:"uppercase", marginBottom:12 }}>파일 포함 내용 (4개 시트)</p>
         {[
-          { icon:"📋", title:"① 임대수입현황", desc:"유형별 색상 구분 · 만원+원 단위 병기 · 합계 수식" },
+          { icon:"📋", title:"① 임대수입현황", desc:"유형별 색상 구분 · 만원 단위 · 합계 수식" },
           { icon:"💰", title:"② 수금내역",     desc:"월별 납부/미납 현황 · 납부일 기록" },
           { icon:"🔧", title:"③ 수리비·지출", desc:"수리 내역 · 업체명 · 영수증 여부" },
           { icon:"📑", title:"④ 세금신고참고", desc:"수입·지출 요약 · 순수익 · 신고 참고용" },
