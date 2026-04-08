@@ -2,16 +2,12 @@
 
 function parseBankSms(text) { if (!text?.trim()) return null; let amt = null; const manMatch = text.match(/([0-9,]+)\s*만원/); if (manMatch) amt = parseInt(manMatch[1].replace(/,/g, ""), 10); if (!amt) { const wonMatch = text.match(/([0-9,]{4,})\s*원/); if (wonMatch) { const rawWon = parseInt(wonMatch[1].replace(/,/g, ""), 10); amt = Math.round(rawWon / 10000); } } if (!amt) { const kakaoMatch = text.match(/입금\s*([0-9,]+)/); if (kakaoMatch) { const raw = parseInt(kakaoMatch[1].replace(/,/g, ""), 10); amt = raw > 9999 ? Math.round(raw / 10000) : raw; } } if (!amt) return null; const today = new Date(); let paidDate = today.toISOString().slice(0, 10); const dateMatch = text.match(/(\d{1,2})[\/\-월](\d{1,2})/); if (dateMatch) { const m = String(dateMatch[1]).padStart(2, "0"); const d = String(dateMatch[2]).padStart(2, "0"); paidDate = `${today.getFullYear()}-${m}-${d}`; } const banks = ["카카오뱅크", "토스뱅크", "케이뱅크", "국민", "신한", "하나", "우리", "기업", "농협", "NH", "IBK", "KB", "SC"]; const bank = banks.find(b => text.includes(b)) || null; return { amt, paidDate, bank }; }
 
-export function triggerDailyNotify(user, tenants, payments) { if (!user?.id || !user?.email || !tenants?.length) return; const today = new Date().toISOString().slice(0, 10); const key = `ownly_notified_${today}_${user.id}`; if (typeof window !== "undefined" && localStorage.getItem(key)) return; const month = new Date().getMonth() + 1; const year = new Date().getFullYear(); const hasUnpaid = tenants.some(t => { const p = (payments || []).find(x => x.tid === t.id && x.month === month && (x.year || year) === year); return !p || p.status !== "paid"; }); const hasExpiring = tenants.some(t => { const end = t.contract_end || t.end_date; if (!end) return false; const days = Math.ceil((new Date(end) - new Date()) / 86400000); return days > 0 && days <= 90; }); const isFirstOfMonth = new Date().getDate() === 1; const types = []; if (hasUnpaid) types.push("unpaid"); if (hasExpiring) types.push("expiring"); if (isFirstOfMonth) types.push("checklist"); if (types.length === 0) return; Promise.all(types.map(type => fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type, userId: user.id, userEmail: user.email }), }).catch(() => {}))).then(() => { if (typeof window !== "undefined") localStorage.setItem(key, "1"); }); }
-
 export default function PaymentsPage() {
   const router = useRouter();
   const { tenants, payments, upsertPayment, deletePayment, user, loading } = useApp();
-  // ✅ #5 수정: {year, month} 객체로 관리 — 연도 넘김 정상 처리
   const now = new Date();
   const [viewDate, setViewDate] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
   const { year: viewYear, month } = viewDate;
-
   const prevMonth = () => setViewDate(({ year, month }) => month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 });
   const nextMonth = () => setViewDate(({ year, month }) => month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 });
 
@@ -24,14 +20,12 @@ export default function PaymentsPage() {
   const [smsParsed, setSmsParsed] = useState(null);
   const [smsTid, setSmsTid] = useState(null);
 
-  useEffect(() => { if (user && tenants.length > 0) { triggerDailyNotify(user, tenants, payments); } }, [user, tenants.length]);
-
   if (loading) return <SkeletonTable rows={5} cols={4} />;
 
   const hasMaintenance = (t) => (t.pType === "상가" || t.pType === "오피스텔") && (t.maintenance || 0) > 0;
-  const rows = tenants
-    .filter(t => t.status !== "공실")
-    .map((t) => ({ t, p: payments.find((x) => x.tid === t.id && x.month === month && (x.year || viewYear) === viewYear) }));
+  const rows = tenants.filter(t => t.status !== "공실").map((t) => ({
+    t, p: payments.find((x) => x.tid === t.id && x.month === month && (x.year || viewYear) === viewYear)
+  }));
 
   const totalRentExp = rows.reduce((s, { t }) => s + (t.rent || 0), 0);
   const totalRentColl = rows.filter((r) => r.p?.status === "paid").reduce((s, r) => s + (r.p?.amt || r.t.rent || 0), 0);
@@ -44,58 +38,28 @@ export default function PaymentsPage() {
   const totalColl = totalRentColl + totalMaintColl;
   const totalRate = totalExp > 0 ? Math.round((totalColl / totalExp) * 100) : 0;
 
+  // ✅ ② 일괄 납부처리
+  const unpaidRows = rows.filter(({ p }) => !p || p.status !== "paid");
+  const markAllPaid = async () => {
+    if (unpaidRows.length === 0) { toast("이미 모두 납부 처리됐습니다", "warning"); return; }
+    if (!confirm(`미납 ${unpaidRows.length}건을 오늘 날짜로 일괄 납부처리 하시겠습니까?`)) return;
+    setSaving(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      await Promise.all(unpaidRows.map(({ t }) =>
+        upsertPayment({ tid: t.id, month, year: viewYear, status: "paid", paid: today, amt: t.rent })
+      ));
+      toast(`${unpaidRows.length}건 일괄 납부처리 완료 ✓`);
+    } catch { toast("일괄 처리 중 오류가 발생했습니다", "error"); }
+    finally { setSaving(false); }
+  };
+
   const handleSmsChange = (text) => { setSmsText(text); setSmsParsed(parseBankSms(text)); };
-
-  const confirmSmsPay = async () => {
-    if (!smsTid || !smsParsed) return;
-    setSaving(true);
-    try {
-      const t = tenants.find((x) => x.id === smsTid);
-      await upsertPayment({ tid: smsTid, month, year: viewYear, status: "paid", paid: smsParsed.paidDate, amt: smsParsed.amt || t?.rent });
-      toast((t?.name || "") + "님 납부 처리 완료");
-      setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null);
-    } catch { toast("처리 중 오류가 발생했습니다", "error"); }
-    finally { setSaving(false); }
-  };
-
-  const markPaid = async (tid) => {
-    const t = tenants.find((x) => x.id === tid);
-    if (!t) return;
-    setSaving(true);
-    try {
-      await upsertPayment({ tid, month, year: viewYear, status: "paid", paid: payDate, amt: t.rent });
-      toast(t.name + "님 월세 납부 처리 완료");
-      setPayModal(null);
-    } catch { toast("저장 중 오류가 발생했습니다", "error"); }
-    finally { setSaving(false); }
-  };
-
-  const markMaintPaid = async (tid) => {
-    const t = tenants.find((x) => x.id === tid);
-    if (!t) return;
-    setSaving(true);
-    try {
-      const existing = payments.find((x) => x.tid === tid && x.month === month && (x.year || viewYear) === viewYear);
-      await upsertPayment({ tid, month, year: viewYear, status: existing?.status || "unpaid", paid: existing?.paid || null, amt: existing?.amt || t.rent, maintenance_paid: true, maintenance_paid_date: payDate });
-      toast(t.name + "님 관리비 납부 처리 완료");
-      setMaintModal(null);
-    } catch { toast("저장 중 오류가 발생했습니다", "error"); }
-    finally { setSaving(false); }
-  };
-
-  const markMaintUnpaid = async (tid) => {
-    try {
-      const existing = payments.find((x) => x.tid === tid && x.month === month && (x.year || viewYear) === viewYear);
-      if (!existing) return;
-      await upsertPayment({ tid, month, year: viewYear, status: existing.status, paid: existing.paid, amt: existing.amt, maintenance_paid: false, maintenance_paid_date: null });
-      toast("관리비 납부 취소 처리되었습니다", "warning");
-    } catch { toast("처리 중 오류가 발생했습니다", "error"); }
-  };
-
-  const markUnpaid = async (tid) => {
-    try { await deletePayment(tid, month); toast("납부 취소 처리되었습니다", "warning"); }
-    catch { toast("처리 중 오류가 발생했습니다", "error"); }
-  };
+  const confirmSmsPay = async () => { if (!smsTid || !smsParsed) return; setSaving(true); try { const t = tenants.find((x) => x.id === smsTid); await upsertPayment({ tid: smsTid, month, year: viewYear, status: "paid", paid: smsParsed.paidDate, amt: smsParsed.amt || t?.rent }); toast((t?.name || "") + "님 납부 처리 완료"); setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null); } catch { toast("처리 중 오류가 발생했습니다", "error"); } finally { setSaving(false); } };
+  const markPaid = async (tid) => { const t = tenants.find((x) => x.id === tid); if (!t) return; setSaving(true); try { await upsertPayment({ tid, month, year: viewYear, status: "paid", paid: payDate, amt: t.rent }); toast(t.name + "님 월세 납부 처리 완료"); setPayModal(null); } catch { toast("저장 중 오류가 발생했습니다", "error"); } finally { setSaving(false); } };
+  const markMaintPaid = async (tid) => { const t = tenants.find((x) => x.id === tid); if (!t) return; setSaving(true); try { const existing = payments.find((x) => x.tid === tid && x.month === month && (x.year || viewYear) === viewYear); await upsertPayment({ tid, month, year: viewYear, status: existing?.status || "unpaid", paid: existing?.paid || null, amt: existing?.amt || t.rent, maintenance_paid: true, maintenance_paid_date: payDate }); toast(t.name + "님 관리비 납부 처리 완료"); setMaintModal(null); } catch { toast("저장 중 오류가 발생했습니다", "error"); } finally { setSaving(false); } };
+  const markMaintUnpaid = async (tid) => { try { const existing = payments.find((x) => x.tid === tid && x.month === month && (x.year || viewYear) === viewYear); if (!existing) return; await upsertPayment({ tid, month, year: viewYear, status: existing.status, paid: existing.paid, amt: existing.amt, maintenance_paid: false, maintenance_paid_date: null }); toast("관리비 납부 취소 처리됐습니다", "warning"); } catch { toast("처리 중 오류가 발생했습니다", "error"); } };
+  const markUnpaid = async (tid) => { try { await deletePayment(tid, month); toast("납부 취소 처리됐습니다", "warning"); } catch { toast("처리 중 오류가 발생했습니다", "error"); } };
 
   return (
     <div className="page-in page-padding" style={{ maxWidth: 860 }}>
@@ -109,10 +73,15 @@ export default function PaymentsPage() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          {/* ✅ ② 일괄 납부처리 버튼 */}
+          {unpaidRows.length > 0 && (
+            <button onClick={markAllPaid} disabled={saving} style={{ padding: "8px 14px", borderRadius: 10, minHeight: 36, background: "linear-gradient(135deg,#0fa573,#059669)", border: "none", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              ✅ 전체 납부처리 ({unpaidRows.length}건)
+            </button>
+          )}
           <button onClick={() => setSmsModal(true)} style={{ padding: "8px 14px", borderRadius: 10, minHeight: 36, background: "rgba(15,165,115,0.1)", border: "1px solid rgba(15,165,115,0.3)", color: "#0fa573", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             📱 입금문자 파싱
           </button>
-          {/* ✅ 월 이동: 연도 정상 처리 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid #ebe9e3", borderRadius: 11, padding: "7px 11px" }}>
             <button onClick={prevMonth} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>‹</button>
             <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", minWidth: 70, textAlign: "center" }}>{viewYear}년 {month}월</span>
@@ -180,6 +149,7 @@ export default function PaymentsPage() {
                       </div>
                       <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 1 }}>
                         {t.addr}
+                        {/* ✅ ⑤ 전화번호 수금 현황에서도 바로 표시 */}
                         {t.phone && <> · <a href={`tel:${t.phone}`} style={{ color: "#0fa573", textDecoration: "none", fontWeight: 600 }}>📞 {t.phone}</a></>}
                       </p>
                     </div>
@@ -214,9 +184,7 @@ export default function PaymentsPage() {
                         {p?.maintenance_paid_date && <span style={{ fontSize: 10, color: "#8a8a9a" }}>{String(p.maintenance_paid_date).slice(5)} 납부</span>}
                       </div>
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: maintPaid ? C.emerald : C.amber, background: maintPaid ? "rgba(15,165,115,0.1)" : "rgba(232,150,10,0.1)", padding: "3px 10px", borderRadius: 20 }}>
-                          {maintPaid ? "✅ 납부완료" : "💰 미납"}
-                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: maintPaid ? C.emerald : C.amber, background: maintPaid ? "rgba(15,165,115,0.1)" : "rgba(232,150,10,0.1)", padding: "3px 10px", borderRadius: 20 }}>{maintPaid ? "✅ 납부완료" : "💰 미납"}</span>
                         {maintPaid ? (
                           <button onClick={() => markMaintUnpaid(t.id)} style={{ padding: "5px 10px", borderRadius: 8, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>취소</button>
                         ) : (
@@ -268,12 +236,7 @@ export default function PaymentsPage() {
 
       <Modal open={smsModal} onClose={() => { setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null); }} width={440}>
         <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>📱 입금 문자 파싱</h3>
-        <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 14 }}>카카오뱅크·토스·국민·신한·하나·우리 입금 알림을 붙여넣으면 금액과 날짜를 자동으로 인식합니다</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 14 }}>
-          {["카카오뱅크", "토스", "국민은행", "신한은행", "하나은행", "우리은행", "NH농협", "기업은행"].map(b => (
-            <span key={b} style={{ fontSize: 10, fontWeight: 600, color: "#5b4fcf", background: "rgba(91,79,207,0.08)", padding: "2px 8px", borderRadius: 20 }}>{b}</span>
-          ))}
-        </div>
+        <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 14 }}>카카오뱅크·토스·국민·신한 입금 알림을 붙여넣으면 금액과 날짜를 자동으로 인식합니다</p>
         <div style={{ marginBottom: 14 }}>
           <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>세입자 선택</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -297,7 +260,7 @@ export default function PaymentsPage() {
                 {smsParsed.bank && <div><p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>은행</p><p style={{ fontSize: 13, fontWeight: 700, color: "#5b4fcf" }}>{smsParsed.bank}</p></div>}
               </div>
             ) : (
-              <div><p style={{ fontSize: 12, color: "#e8445a", fontWeight: 700, marginBottom: 4 }}>❌ 금액을 인식하지 못했습니다</p><p style={{ fontSize: 11, color: "#8a8a9a" }}>금액이 "120만원" 또는 "1,200,000원" 형식으로 포함되어 있는지 확인하세요</p></div>
+              <div><p style={{ fontSize: 12, color: "#e8445a", fontWeight: 700, marginBottom: 4 }}>❌ 금액을 인식하지 못했습니다</p><p style={{ fontSize: 11, color: "#8a8a9a" }}>금액이 포함된 문자를 붙여넣으세요</p></div>
             )}
           </div>
         )}
@@ -309,7 +272,7 @@ export default function PaymentsPage() {
         </div>
       </Modal>
 
-      {rows.some(({ p }) => !p || p.status === "unpaid") && (
+      {unpaidRows.length > 0 && (
         <div style={{ marginTop: 20, background: "linear-gradient(135deg,rgba(232,68,90,0.05),rgba(232,68,90,0.02))", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 16, padding: "16px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -321,7 +284,7 @@ export default function PaymentsPage() {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => router.push("/dashboard/certified")} style={{ padding: "8px 14px", borderRadius: 10, background: "transparent", border: "1px solid rgba(232,68,90,0.4)", color: "#e8445a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>내용증명 작성</button>
-              <button onClick={() => alert("🚧 법무사 연결 서비스 준비 중입니다.\n빠른 시일 내에 오픈할게요!")} style={{ padding: "8px 14px", borderRadius: 10, background: "#e8445a", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>법무사 연결 →</button>
+              <button onClick={() => alert("🚧 법무사 연결 서비스 준비 중입니다.")} style={{ padding: "8px 14px", borderRadius: 10, background: "#e8445a", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>법무사 연결 →</button>
             </div>
           </div>
         </div>
