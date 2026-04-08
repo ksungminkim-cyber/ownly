@@ -7,7 +7,14 @@ export function triggerDailyNotify(user, tenants, payments) { if (!user?.id || !
 export default function PaymentsPage() {
   const router = useRouter();
   const { tenants, payments, upsertPayment, deletePayment, user, loading } = useApp();
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  // ✅ #5 수정: {year, month} 객체로 관리 — 연도 넘김 정상 처리
+  const now = new Date();
+  const [viewDate, setViewDate] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
+  const { year: viewYear, month } = viewDate;
+
+  const prevMonth = () => setViewDate(({ year, month }) => month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 });
+  const nextMonth = () => setViewDate(({ year, month }) => month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 });
+
   const [payModal, setPayModal] = useState(null);
   const [maintModal, setMaintModal] = useState(null);
   const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
@@ -24,7 +31,7 @@ export default function PaymentsPage() {
   const hasMaintenance = (t) => (t.pType === "상가" || t.pType === "오피스텔") && (t.maintenance || 0) > 0;
   const rows = tenants
     .filter(t => t.status !== "공실")
-    .map((t) => ({ t, p: payments.find((x) => x.tid === t.id && x.month === month) }));
+    .map((t) => ({ t, p: payments.find((x) => x.tid === t.id && x.month === month && (x.year || viewYear) === viewYear) }));
 
   const totalRentExp = rows.reduce((s, { t }) => s + (t.rent || 0), 0);
   const totalRentColl = rows.filter((r) => r.p?.status === "paid").reduce((s, r) => s + (r.p?.amt || r.t.rent || 0), 0);
@@ -44,7 +51,7 @@ export default function PaymentsPage() {
     setSaving(true);
     try {
       const t = tenants.find((x) => x.id === smsTid);
-      await upsertPayment({ tid: smsTid, month, status: "paid", paid: smsParsed.paidDate, amt: smsParsed.amt || t?.rent });
+      await upsertPayment({ tid: smsTid, month, year: viewYear, status: "paid", paid: smsParsed.paidDate, amt: smsParsed.amt || t?.rent });
       toast((t?.name || "") + "님 납부 처리 완료");
       setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null);
     } catch { toast("처리 중 오류가 발생했습니다", "error"); }
@@ -56,7 +63,7 @@ export default function PaymentsPage() {
     if (!t) return;
     setSaving(true);
     try {
-      await upsertPayment({ tid, month, status: "paid", paid: payDate, amt: t.rent });
+      await upsertPayment({ tid, month, year: viewYear, status: "paid", paid: payDate, amt: t.rent });
       toast(t.name + "님 월세 납부 처리 완료");
       setPayModal(null);
     } catch { toast("저장 중 오류가 발생했습니다", "error"); }
@@ -68,8 +75,8 @@ export default function PaymentsPage() {
     if (!t) return;
     setSaving(true);
     try {
-      const existing = payments.find((x) => x.tid === tid && x.month === month);
-      await upsertPayment({ tid, month, status: existing?.status || "unpaid", paid: existing?.paid || null, amt: existing?.amt || t.rent, maintenance_paid: true, maintenance_paid_date: payDate });
+      const existing = payments.find((x) => x.tid === tid && x.month === month && (x.year || viewYear) === viewYear);
+      await upsertPayment({ tid, month, year: viewYear, status: existing?.status || "unpaid", paid: existing?.paid || null, amt: existing?.amt || t.rent, maintenance_paid: true, maintenance_paid_date: payDate });
       toast(t.name + "님 관리비 납부 처리 완료");
       setMaintModal(null);
     } catch { toast("저장 중 오류가 발생했습니다", "error"); }
@@ -78,9 +85,9 @@ export default function PaymentsPage() {
 
   const markMaintUnpaid = async (tid) => {
     try {
-      const existing = payments.find((x) => x.tid === tid && x.month === month);
+      const existing = payments.find((x) => x.tid === tid && x.month === month && (x.year || viewYear) === viewYear);
       if (!existing) return;
-      await upsertPayment({ tid, month, status: existing.status, paid: existing.paid, amt: existing.amt, maintenance_paid: false, maintenance_paid_date: null });
+      await upsertPayment({ tid, month, year: viewYear, status: existing.status, paid: existing.paid, amt: existing.amt, maintenance_paid: false, maintenance_paid_date: null });
       toast("관리비 납부 취소 처리되었습니다", "warning");
     } catch { toast("처리 중 오류가 발생했습니다", "error"); }
   };
@@ -92,13 +99,12 @@ export default function PaymentsPage() {
 
   return (
     <div className="page-in page-padding" style={{ maxWidth: 860 }}>
-      {/* 헤더 */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
         <div>
           <SectionLabel>PAYMENT MANAGEMENT</SectionLabel>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744", letterSpacing: "-.4px" }}>수금 현황</h1>
           <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>
-            {new Date().getFullYear()}년 {month}월 · 전체 수금률{" "}
+            {viewYear}년 {month}월 · 전체 수금률{" "}
             <span style={{ color: totalRate >= 80 ? C.emerald : C.rose, fontWeight: 700 }}>{totalRate}%</span>
           </p>
         </div>
@@ -106,15 +112,15 @@ export default function PaymentsPage() {
           <button onClick={() => setSmsModal(true)} style={{ padding: "8px 14px", borderRadius: 10, minHeight: 36, background: "rgba(15,165,115,0.1)", border: "1px solid rgba(15,165,115,0.3)", color: "#0fa573", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             📱 입금문자 파싱
           </button>
+          {/* ✅ 월 이동: 연도 정상 처리 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid #ebe9e3", borderRadius: 11, padding: "7px 11px" }}>
-            <button onClick={() => setMonth((m) => Math.max(1, m - 1))} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>‹</button>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", minWidth: 58, textAlign: "center" }}>{new Date().getFullYear()}년 {month}월</span>
-            <button onClick={() => setMonth((m) => Math.min(12, m + 1))} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>›</button>
+            <button onClick={prevMonth} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>‹</button>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", minWidth: 70, textAlign: "center" }}>{viewYear}년 {month}월</span>
+            <button onClick={nextMonth} style={{ width: 26, height: 26, borderRadius: 7, background: "#f8f7f4", border: "none", color: "#1a2744", cursor: "pointer", fontSize: 14 }}>›</button>
           </div>
         </div>
       </div>
 
-      {/* KPI 카드 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 10, marginBottom: 16 }}>
         {[
           { l: "월세 청구", v: totalRentExp.toLocaleString() + "만원", c: C.muted },
@@ -133,7 +139,6 @@ export default function PaymentsPage() {
         ))}
       </div>
 
-      {/* 진행률 바 */}
       <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: "#1a2744" }}>월세 수금</span>
@@ -153,7 +158,6 @@ export default function PaymentsPage() {
         </>)}
       </div>
 
-      {/* ✅ 카드형 수금 목록 — 가로 테이블 대신 카드로 교체, 월세/관리비 개별 처리 */}
       {rows.length === 0 ? (
         <EmptyState icon="💰" title="세입자가 없습니다" desc="물건을 먼저 등록하면 수금 현황을 확인할 수 있습니다" />
       ) : (
@@ -164,10 +168,8 @@ export default function PaymentsPage() {
             const maintPaid = p?.maintenance_paid || false;
             const showMaint = hasMaintenance(t);
             const s = PAY_MAP[rentSt];
-
             return (
               <div key={t.id} style={{ background: "#fff", border: `1px solid ${!rentPaid ? "rgba(232,68,90,0.2)" : "#ebe9e3"}`, borderRadius: 14, padding: "14px 16px", borderLeft: `3px solid ${!rentPaid ? C.rose : C.emerald}` }}>
-                {/* 세입자 정보 헤더 */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                     <div style={{ width: 34, height: 34, borderRadius: 10, background: (t.color || C.indigo) + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: t.color || C.indigo, flexShrink: 0 }}>{t.name?.[0]}</div>
@@ -184,10 +186,7 @@ export default function PaymentsPage() {
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : t.pType === "토지" ? "#0d9488" : C.indigo, background: t.pType === "상가" ? C.amber + "18" : t.pType === "토지" ? "#0d948818" : C.indigo + "18", padding: "2px 8px", borderRadius: 5, flexShrink: 0 }}>{t.sub}</span>
                 </div>
-
-                {/* ✅ 월세 + 관리비 개별 처리 행 */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                  {/* 월세 행 */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: rentPaid ? "rgba(15,165,115,0.04)" : "rgba(232,68,90,0.04)", borderRadius: 10, padding: "10px 13px" }}>
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", minWidth: 30 }}>월세</span>
@@ -207,8 +206,6 @@ export default function PaymentsPage() {
                       )}
                     </div>
                   </div>
-
-                  {/* 관리비 행 — 해당 세입자만 표시 */}
                   {showMaint && (
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: maintPaid ? "rgba(15,165,115,0.04)" : "rgba(232,150,10,0.04)", borderRadius: 10, padding: "10px 13px" }}>
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -235,17 +232,13 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* 월세 납부 모달 */}
       <Modal open={!!payModal} onClose={() => setPayModal(null)} width={380}>
         {payModal && (() => { const t = tenants.find((x) => x.id === payModal); if (!t) return null; return (
           <div>
             <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>월세 납부 처리</h3>
-            <p style={{ fontSize: 13, color: "#8a8a9a", marginBottom: 18 }}>{t.name}님 {month}월 월세</p>
+            <p style={{ fontSize: 13, color: "#8a8a9a", marginBottom: 18 }}>{t.name}님 {viewYear}년 {month}월 월세</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
-              <div>
-                <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 6 }}>납부 금액</p>
-                <div style={{ padding: "12px 14px", borderRadius: 10, background: "#f8f7f4", border: "1px solid #ebe9e3", fontSize: 16, fontWeight: 800, color: "#0fa573" }}>{Number(t.rent).toLocaleString()}만원</div>
-              </div>
+              <div><p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 6 }}>납부 금액</p><div style={{ padding: "12px 14px", borderRadius: 10, background: "#f8f7f4", border: "1px solid #ebe9e3", fontSize: 16, fontWeight: 800, color: "#0fa573" }}>{Number(t.rent).toLocaleString()}만원</div></div>
               <AuthInput label="납부일" type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
               <div style={{ display: "flex", gap: 9 }}>
                 <button onClick={() => setPayModal(null)} style={{ flex: 1, padding: "11px", borderRadius: 10, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
@@ -256,17 +249,13 @@ export default function PaymentsPage() {
         ); })()}
       </Modal>
 
-      {/* 관리비 납부 모달 */}
       <Modal open={!!maintModal} onClose={() => setMaintModal(null)} width={380}>
         {maintModal && (() => { const t = tenants.find((x) => x.id === maintModal); if (!t) return null; return (
           <div>
             <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>🏢 관리비 납부 처리</h3>
-            <p style={{ fontSize: 13, color: "#8a8a9a", marginBottom: 18 }}>{t.name}님 {month}월 관리비</p>
+            <p style={{ fontSize: 13, color: "#8a8a9a", marginBottom: 18 }}>{t.name}님 {viewYear}년 {month}월 관리비</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
-              <div>
-                <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 6 }}>관리비 금액</p>
-                <div style={{ padding: "12px 14px", borderRadius: 10, background: "#f8f7f4", border: "1px solid #ebe9e3", fontSize: 16, fontWeight: 800, color: C.amber }}>{Number(t.maintenance).toLocaleString()}만원</div>
-              </div>
+              <div><p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 6 }}>관리비 금액</p><div style={{ padding: "12px 14px", borderRadius: 10, background: "#f8f7f4", border: "1px solid #ebe9e3", fontSize: 16, fontWeight: 800, color: C.amber }}>{Number(t.maintenance).toLocaleString()}만원</div></div>
               <AuthInput label="납부일" type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
               <div style={{ display: "flex", gap: 9 }}>
                 <button onClick={() => setMaintModal(null)} style={{ flex: 1, padding: "11px", borderRadius: 10, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
@@ -277,7 +266,6 @@ export default function PaymentsPage() {
         ); })()}
       </Modal>
 
-      {/* 입금문자 파싱 모달 */}
       <Modal open={smsModal} onClose={() => { setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null); }} width={440}>
         <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>📱 입금 문자 파싱</h3>
         <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 14 }}>카카오뱅크·토스·국민·신한·하나·우리 입금 알림을 붙여넣으면 금액과 날짜를 자동으로 인식합니다</p>
@@ -298,7 +286,7 @@ export default function PaymentsPage() {
         </div>
         <div style={{ marginBottom: 14 }}>
           <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>입금 문자 내용</p>
-          <textarea value={smsText} onChange={(e) => handleSmsChange(e.target.value)} placeholder={"예시:\n[카카오뱅크] 03/05 입금 1,100,000원 잔액 2,340,000원"} rows={4} style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, resize: "vertical", outline: "none", fontFamily: "inherit" }} />
+          <textarea value={smsText} onChange={(e) => handleSmsChange(e.target.value)} placeholder="예: [카카오뱅크] 03/05 입금 1,100,000원" rows={4} style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, resize: "vertical", outline: "none", fontFamily: "inherit" }} />
         </div>
         {smsText && (
           <div style={{ padding: "12px 14px", borderRadius: 10, marginBottom: 14, background: smsParsed ? "rgba(15,165,115,0.07)" : "rgba(232,68,90,0.07)", border: `1px solid ${smsParsed ? "rgba(15,165,115,0.25)" : "rgba(232,68,90,0.25)"}` }}>
@@ -321,7 +309,6 @@ export default function PaymentsPage() {
         </div>
       </Modal>
 
-      {/* 미납 법적 대응 배너 */}
       {rows.some(({ p }) => !p || p.status === "unpaid") && (
         <div style={{ marginTop: 20, background: "linear-gradient(135deg,rgba(232,68,90,0.05),rgba(232,68,90,0.02))", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 16, padding: "16px 20px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
