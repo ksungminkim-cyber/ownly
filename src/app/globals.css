@@ -270,3 +270,17 @@ input { color-scheme: light; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   #ai-report-print > div { page-break-inside: avoid; }
 }
+
+/* ?? #8 紐⑤컮??諛섏쓳??蹂닿컯 ?? */
+@media (max-width: 768px) {
+  .vacancy-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .kpi-grid-auto { grid-template-columns: repeat(2, 1fr) !important; }
+  .payday-btns button { padding: 5px 10px !important; font-size: 11px !important; }
+  .payment-card-header { flex-wrap: wrap !important; gap: 8px !important; }
+  .payments-actions { width: 100%; justify-content: flex-end; }
+  .group-summary-bar { flex-direction: column !important; align-items: flex-start !important; gap: 4px !important; }
+}
+@media (max-width: 480px) {
+  .vacancy-kpi-grid { grid-template-columns: 1fr !important; }
+  .kpi-grid-auto { grid-template-columns: 1fr !important; }
+}
