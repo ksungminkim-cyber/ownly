@@ -1,4 +1,4 @@
-﻿@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
 @tailwind base;
 @tailwind components;
@@ -22,7 +22,7 @@
   --card-hover: rgba(26,39,68,0.06);
   --shadow: rgba(26,39,68,0.06);
   --shadow-md: rgba(26,39,68,0.10);
-  --shadow-deep: rgba(26,39,68,0.15); --sidebar-w: 230px;
+  --shadow-deep: rgba(26,39,68,0.15);
   --scrollbar: #d0cec5;
   --nav-active-bg: rgba(26,39,68,0.07);
   /* ✅ 보라 계열 단일화 */
@@ -269,90 +269,4 @@ input { color-scheme: light; }
   @page { margin: 15mm; size: A4 portrait; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   #ai-report-print > div { page-break-inside: avoid; }
-}
-
-/* ?? #8 紐⑤컮??諛섏쓳??蹂닿컯 ?? */
-@media (max-width: 768px) {
-  .vacancy-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
-  .kpi-grid-auto { grid-template-columns: repeat(2, 1fr) !important; }
-  .payday-btns button { padding: 5px 10px !important; font-size: 11px !important; }
-  .payment-card-header { flex-wrap: wrap !important; gap: 8px !important; }
-  .payments-actions { width: 100%; justify-content: flex-end; }
-  .group-summary-bar { flex-direction: column !important; align-items: flex-start !important; gap: 4px !important; }
-}
-@media (max-width: 480px) {
-  .vacancy-kpi-grid { grid-template-columns: 1fr !important; }
-  .kpi-grid-auto { grid-template-columns: 1fr !important; }
-}
-
-/* ????紐⑤컮???섎떒 ?ㅻ퉬 ?뺤떎???쒖떆 */
-@media (max-width: 768px) {
-  .bottom-nav {
-    display: flex !important;
-    flex-direction: column;
-  }
-  .desktop-sidebar {
-    display: none !important;
-  }
-  .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    padding-bottom: 70px !important;
-  }
-  .mobile-header {
-    display: flex !important;
-  }
-  .page-padding {
-    padding: 20px 16px 90px !important;
-  }
-  .tenant-split {
-    flex-direction: column !important;
-    height: auto !important;
-  }
-  .tenant-list-panel {
-    width: 100% !important;
-    max-height: 280px !important;
-    border-right: none !important;
-    border-bottom: 1px solid var(--border) !important;
-    overflow-y: auto;
-  }
-  .detail-2col {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* ????紐⑤컮???섎떒 ?ㅻ퉬 ?뺤떎???쒖떆 */
-@media (max-width: 768px) {
-  .bottom-nav {
-    display: flex !important;
-    flex-direction: column;
-  }
-  .desktop-sidebar {
-    display: none !important;
-  }
-  .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    padding-bottom: 70px !important;
-  }
-  .mobile-header {
-    display: flex !important;
-  }
-  .page-padding {
-    padding: 20px 16px 90px !important;
-  }
-  .tenant-split {
-    flex-direction: column !important;
-    height: auto !important;
-  }
-  .tenant-list-panel {
-    width: 100% !important;
-    max-height: 280px !important;
-    border-right: none !important;
-    border-bottom: 1px solid var(--border) !important;
-    overflow-y: auto;
-  }
-  .detail-2col {
-    grid-template-columns: 1fr !important;
-  }
 }
