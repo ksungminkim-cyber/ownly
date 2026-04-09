@@ -96,9 +96,9 @@ export default function LandingPage() {
                 <div style={{ padding: "16px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 10, textTransform: "uppercase" }}>2026년 4월 수금</div>
                   {[
-                    { name: "디디팩토리", amt: "1,100만원", status: "납부완료", c: "#0fa573" },
-                    { name: "핑크마켓", amt: "500만원", status: "미납", c: "#e8445a" },
-                    { name: "낙금새", amt: "900만원", status: "납부완료", c: "#0fa573" },
+                    { name: "GS25 편의점", amt: "280만원", status: "납부완료", c: "#0fa573" },
+                    { name: "BBQ 치킨", amt: "350만원", status: "미납", c: "#e8445a" },
+                    { name: "CU 편의점", amt: "260만원", status: "납부완료", c: "#0fa573" },
                   ].map(r => (
                     <div key={r.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f0efe9" }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: "#1a2744" }}>{r.name}</span>
@@ -148,9 +148,9 @@ export default function LandingPage() {
                 <div style={{ padding: "16px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 10, textTransform: "uppercase" }}>만료 임박 알림</div>
                   {[
-                    { name: "모두헬스바이오", days: "D-12", c: "#e8445a" },
-                    { name: "구구스", days: "D-47", c: "#e8960a" },
-                    { name: "만원당", days: "D-63", c: "#e8960a" },
+                    { name: "스타벅스 1층", days: "D-12", c: "#e8445a" },
+                    { name: "올리브영", days: "D-47", c: "#e8960a" },
+                    { name: "다이소", days: "D-63", c: "#e8960a" },
                   ].map(r => (
                     <div key={r.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f0efe9" }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: "#1a2744" }}>{r.name}</span>
