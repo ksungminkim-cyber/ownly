@@ -1,0 +1,18 @@
+name: Monthly Report Email
+
+on:
+  schedule:
+    - cron: '0 0 28 * *'  # 매월 28일 자정 (한국시간 오전 9시)
+  workflow_dispatch:       # 수동 실행 버튼도 추가
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send monthly report
+        run: |
+          curl -X POST \
+            https://rubgztlhnlhglpyppurk.supabase.co/functions/v1/monthly-report \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
