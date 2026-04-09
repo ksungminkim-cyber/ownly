@@ -49,14 +49,21 @@ export default function PaymentsPage() {
       await Promise.all(unpaidRows.map(({ t }) =>
         upsertPayment({ tid: t.id, month, year: viewYear, status: "paid", paid: today, amt: t.rent })
       ));
-      toast(`${unpaidRows.length}건 일괄 납부처리 완료 ✓`);
+      const total2 = rows.reduce((s,{t}) => s + (t.rent||0), 0);
+      toast(`🎉 이번 달 전체 수금 완료! ${unpaidRows.length}건 · 총 ${total2.toLocaleString()}만원`);
     } catch { toast("일괄 처리 중 오류가 발생했습니다", "error"); }
     finally { setSaving(false); }
   };
 
   const handleSmsChange = (text) => { setSmsText(text); setSmsParsed(parseBankSms(text)); };
   const confirmSmsPay = async () => { if (!smsTid || !smsParsed) return; setSaving(true); try { const t = tenants.find((x) => x.id === smsTid); await upsertPayment({ tid: smsTid, month, year: viewYear, status: "paid", paid: smsParsed.paidDate, amt: smsParsed.amt || t?.rent }); toast((t?.name || "") + "님 납부 처리 완료"); setSmsModal(false); setSmsText(""); setSmsParsed(null); setSmsTid(null); } catch { toast("처리 중 오류가 발생했습니다", "error"); } finally { setSaving(false); } };
-  const markPaid = async (tid) => { const t = tenants.find((x) => x.id === tid); if (!t) return; setSaving(true); try { await upsertPayment({ tid, month, year: viewYear, status: "paid", paid: payDate, amt: t.rent }); toast(t.name + "님 월세 납부 처리 완료"); setPayModal(null); } catch { toast("저장 중 오류가 발생했습니다", "error"); } finally { setSaving(false); } };
+  const markPaid = async (tid) => { const t = tenants.find((x) => x.id === tid); if (!t) return; setSaving(true); try { await upsertPayment({ tid, month, year: viewYear, status: "paid", paid: payDate, amt: t.rent }); const allPaid2 = rows.filter(({p}) => !p || p.status !== "paid");
+      if (allPaid2.length <= 1) {
+        const totalColl2 = rows.filter(({p: pp}) => pp?.status === "paid").reduce((s,{t: tt}) => s + (tt.rent||0), 0) + (t.rent||0);
+        toast(`🎉 이번 달 수금 완료! 총 ${totalColl2.toLocaleString()}만원 수금`);
+      } else {
+        toast(t.name + "님 월세 납부 처리 완료 ✓");
+      } setPayModal(null); } catch { toast("저장 중 오류가 발생했습니다", "error"); } finally { setSaving(false); } };
   const markMaintPaid = async (tid) => { const t = tenants.find((x) => x.id === tid); if (!t) return; setSaving(true); try { const existing = payments.find((x) => x.tid === tid && x.month === month && (x.year || viewYear) === viewYear); await upsertPayment({ tid, month, year: viewYear, status: existing?.status || "unpaid", paid: existing?.paid || null, amt: existing?.amt || t.rent, maintenance_paid: true, maintenance_paid_date: payDate }); toast(t.name + "님 관리비 납부 처리 완료"); setMaintModal(null); } catch { toast("저장 중 오류가 발생했습니다", "error"); } finally { setSaving(false); } };
   const markMaintUnpaid = async (tid) => { try { const existing = payments.find((x) => x.tid === tid && x.month === month && (x.year || viewYear) === viewYear); if (!existing) return; await upsertPayment({ tid, month, year: viewYear, status: existing.status, paid: existing.paid, amt: existing.amt, maintenance_paid: false, maintenance_paid_date: null }); toast("관리비 납부 취소 처리됐습니다", "warning"); } catch { toast("처리 중 오류가 발생했습니다", "error"); } };
   const markUnpaid = async (tid) => { try { await deletePayment(tid, month); toast("납부 취소 처리됐습니다", "warning"); } catch { toast("처리 중 오류가 발생했습니다", "error"); } };
