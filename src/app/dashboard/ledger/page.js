@@ -5,7 +5,7 @@ export default function LedgerPage() {
   const { tenants, ledger: items, addLedgerEntry, deleteLedgerEntry, loading } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showCsvImport, setShowCsvImport] = useState(false); // ✅ ⑥ CSV 가져오기
+  const [showCsvImport, setShowCsvImport] = useState(false);
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(0);
   const [form, setForm] = useState({ date: new Date().toISOString().slice(0,10), type:"income", category:INCOME_CATS[0], amount:0, memo:"", tenant_id:"" });
@@ -40,10 +40,7 @@ export default function LedgerPage() {
         {autoCount > 0 && <span style={{ marginLeft:8, fontSize:11, color:"#5b4fcf", fontWeight:600, background:"rgba(91,79,207,0.08)", padding:"2px 8px", borderRadius:10 }}>🤖 수금 자동기록 {autoCount}건 포함</span>}
       </p>
     </div> <div style={{ display:"flex", gap:8, alignItems:"center" }}> <div style={{ display:"flex", alignItems:"center", gap:8, background:C.surface, border:`1px solid ${C.border}`, borderRadius:11, padding:"7px 11px" }}> <button onClick={()=>setViewYear(y=>y-1)} style={{ width:26,height:26,borderRadius:7,border:"none",background:C.faint,cursor:"pointer",fontSize:14 }}>‹</button> <span style={{ fontSize:13, fontWeight:700, color:C.navy, minWidth:58, textAlign:"center" }}>{viewYear}년</span> <button onClick={()=>setViewYear(y=>y+1)} style={{ width:26,height:26,borderRadius:7,border:"none",background:C.faint,cursor:"pointer",fontSize:14 }}>›</button> </div> <button onClick={()=>setShowForm(true)} style={{ padding:"10px 20px", borderRadius:11, background:`linear-gradient(135deg,${C.navy},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>+ 내역 추가</button>
-          {/* ✅ ⑥ CSV 가져오기 버튼 */}
-          <button onClick={() => setShowCsvImport(true)} style={{ padding:"9px 16px", borderRadius:10, background:"rgba(15,165,115,0.1)", border:"1px solid rgba(15,165,115,0.3)", color:"#0fa573", fontWeight:700, fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
-            📥 CSV 가져오기
-          </button>
+          <button onClick={() => setShowCsvImport(true)} style={{ padding:"9px 16px", borderRadius:10, background:"rgba(15,165,115,0.1)", border:"1px solid rgba(15,165,115,0.3)", color:"#0fa573", fontWeight:700, fontSize:13, cursor:"pointer" }}>📥 CSV 가져오기</button>
         </div> </div>
 
     {/* ✅ #10: 자동 기록 안내 배너 */}
@@ -61,60 +58,49 @@ export default function LedgerPage() {
               {/* ✅ #10: 자동 기록 뱃지 */}
               <span style={{ fontSize:9, fontWeight:700, color: item.auto_generated ? "#5b4fcf" : "transparent", background: item.auto_generated ? "rgba(91,79,207,0.1)" : "transparent", padding:"2px 4px", borderRadius:4, whiteSpace:"nowrap" }}>{item.auto_generated ? "자동" : ""}</span>
               <button onClick={()=>del(item.id)} style={{ width:28,height:28,borderRadius:7,border:"none",background:"rgba(232,68,90,0.1)",color:C.rose,fontSize:12,cursor:"pointer" }}>×</button>
-            </div>
+            </div> ); })} <div style={{ padding:"12px 20px", borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"flex-end", gap:24 }}> <span style={{ fontSize:12, color:C.emerald, fontWeight:700 }}>수입 {totalIncome.toLocaleString()}만원</span> <span style={{ fontSize:12, color:C.rose, fontWeight:700 }}>지출 {totalExpense.toLocaleString()}만원</span> <span style={{ fontSize:14, fontWeight:900, color:netIncome>=0?C.indigo:C.rose }}>순수익 {netIncome.toLocaleString()}만원</span> </div> </div> )}
 
-      {/* ✅ ⑥ CSV 가져오기 모달 */}
-      {showCsvImport && (
-        <CsvImportModal
-          onClose={() => setShowCsvImport(false)}
-          onImport={async (rows) => {
-            let ok = 0;
-            for (const row of rows) {
-              try { await addLedger({ date: row.date, type: row.type, category: row.category, memo: row.memo, amount: Number(row.amount), auto: false }); ok++; } catch {}
-            }
-            toast(`✅ ${ok}건 가져오기 완료`);
-            setShowCsvImport(false);
-          }}
-        />
-      )}
-  ); }
+    {showForm && ( <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setShowForm(false)}> <div style={{ background:C.surface,borderRadius:20,padding:28,width:"min(460px,94vw)",maxHeight:"90vh",overflowY:"auto" }} onClick={e=>e.stopPropagation()}> <h3 style={{ fontSize:17, fontWeight:800, color:C.navy, marginBottom:20 }}>내역 추가</h3> <div style={{ display:"flex", flexDirection:"column", gap:14 }}> <div style={{ display:"flex", gap:8 }}> {[{v:"income",l:"수입",c:C.emerald},{v:"expense",l:"지출",c:C.rose}].map(({v,l,c})=>( <button key={v} onClick={()=>setForm(f=>({...f,type:v,category:v==="income"?INCOME_CATS[0]:EXPENSE_CATS[0]}))} style={{ flex:1, padding:"11px", borderRadius:11, fontWeight:700, fontSize:13, cursor:"pointer", border:`2px solid ${form.type===v?c:C.border}`, background:form.type===v?`${c}15`:"transparent", color:form.type===v?c:C.muted }}>{l}</button> ))} </div> <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>날짜</p> <input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={{ width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:13,color:C.navy,background:C.faint }} /> </div> <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>분류</p> <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}> {(form.type==="income"?INCOME_CATS:EXPENSE_CATS).map(c=>( <button key={c} onClick={()=>setForm(f=>({...f,category:c}))} style={{ padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer", border:`1px solid ${form.category===c?(form.type==="income"?C.emerald:C.rose):C.border}`, background:form.category===c?`${form.type==="income"?C.emerald:C.rose}18`:"transparent", color:form.category===c?(form.type==="income"?C.emerald:C.rose):C.muted }}>{c}</button> ))} </div> </div> <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>금액 (만원)</p> <input type="number" value={form.amount||""} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder="0" style={{ width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:13,color:C.navy,background:C.faint }} /> </div> {tenants.length>0&&( <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>연결 임차인 (선택)</p> <select value={form.tenant_id} onChange={e=>setForm(f=>({...f,tenant_id:e.target.value}))} style={{ width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:13,color:C.navy,background:C.faint }}> <option value="">선택 안 함</option> {tenants.map(t=><option key={t.id} value={t.id}>{t.name}</option>)} </select> </div> )} <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>메모</p> <input value={form.memo} onChange={e=>setForm(f=>({...f,memo:e.target.value}))} placeholder="간단한 메모..." style={{ width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:13,color:C.navy,background:C.faint }} /> </div> <div style={{ display:"flex",gap:9,marginTop:4 }}> <button onClick={()=>setShowForm(false)} style={{ flex:1,padding:"12px",borderRadius:11,background:"transparent",border:`1px solid ${C.border}`,color:C.muted,fontWeight:600,fontSize:13,cursor:"pointer" }}>취소</button> <button onClick={save} disabled={saving} className="btn-primary" style={{ flex:2,padding:"12px",borderRadius:11,background:`linear-gradient(135deg,${C.navy},${C.purple})`,border:"none",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer" }}>{saving?"저장 중...":"저장하기"}</button> </div> </div> </div> </div> )}
+  {/* ✅ ⑥ CSV 가져오기 모달 */}
+  {showCsvImport && (
+    <CsvImportModal
+      onClose={() => setShowCsvImport(false)}
+      onImport={async (rows) => {
+        let ok = 0;
+        for (const row of rows) {
+          try { await addLedger({ date:row.date, type:row.type, category:row.category, memo:row.memo, amount:Number(row.amount), auto:false }); ok++; } catch {}
+        }
+        toast(`✅ ${ok}건 가져오기 완료`);
+        setShowCsvImport(false);
+      }}
+    />
+  )}
+  </div> ); }
 
-// ✅ ⑥ CSV 가져오기 모달
 function CsvImportModal({ onClose, onImport }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState([]);
   const [error, setError] = useState("");
   const [importing, setImporting] = useState(false);
-
   const parseCSV = (text) => {
-    const lines = text.trim().split("\n").filter(l => l.trim());
+    const lines = text.trim().split("\n").filter(l=>l.trim());
     if (lines.length < 2) return [];
     const rows = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g,""));
+    for (let i=1; i<lines.length; i++) {
+      const cols = lines[i].split(",").map(c=>c.trim().replace(/^"|"$/g,""));
       if (cols.length < 5) continue;
       rows.push({ date:cols[0], type:cols[1]==="지출"?"지출":"수입", category:cols[2]||"기타", memo:cols[3]||"", amount:Number(cols[4].replace(/[^0-9]/g,""))||0 });
     }
     return rows;
   };
-
   const handleFile = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    setFile(f);
+    const f = e.target.files[0]; if (!f) return; setFile(f);
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const rows = parseCSV(ev.target.result);
-        if (!rows.length) { setError("CSV 형식 오류: 날짜,구분,분류,메모,금액 순이어야 합니다."); setPreview([]); return; }
-        setPreview(rows); setError("");
-      } catch { setError("파일을 읽을 수 없습니다."); }
-    };
+    reader.onload = (ev) => { try { const rows = parseCSV(ev.target.result); if (!rows.length) { setError("형식 오류: 날짜,구분,분류,메모,금액 순이어야 합니다"); setPreview([]); return; } setPreview(rows); setError(""); } catch { setError("파일을 읽을 수 없습니다."); } };
     reader.readAsText(f, "utf-8");
   };
-
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:500, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={e => e.target===e.currentTarget&&onClose()}>
+    <div style={{ position:"fixed", inset:0, zIndex:500, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{ background:"var(--surface)", borderRadius:18, padding:24, width:"100%", maxWidth:500, maxHeight:"80vh", overflowY:"auto", boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
           <h3 style={{ fontSize:17, fontWeight:800, color:"var(--text)", margin:0 }}>📥 CSV 가져오기</h3>
@@ -126,34 +112,15 @@ function CsvImportModal({ onClose, onImport }) {
         </div>
         <label style={{ display:"block", border:"2px dashed var(--border)", borderRadius:12, padding:"20px", textAlign:"center", cursor:"pointer", marginBottom:12, background:file?"rgba(15,165,115,0.04)":"transparent" }}>
           <input type="file" accept=".csv,.txt" onChange={handleFile} style={{ display:"none" }} />
-          {file ? <div><p style={{ fontSize:14, fontWeight:700, color:"#0fa573", marginBottom:3 }}>✅ {file.name}</p><p style={{ fontSize:12, color:"var(--text-muted)" }}>클릭해서 다른 파일 선택</p></div>
-          : <div><p style={{ fontSize:22, marginBottom:6 }}>📄</p><p style={{ fontSize:14, fontWeight:600, color:"var(--text)", marginBottom:3 }}>CSV 파일 선택</p><p style={{ fontSize:12, color:"var(--text-muted)" }}>클릭 또는 드래그</p></div>}
+          {file?<div><p style={{ fontSize:14, fontWeight:700, color:"#0fa573", marginBottom:3 }}>✅ {file.name}</p><p style={{ fontSize:12, color:"var(--text-muted)" }}>다른 파일 선택</p></div>:<div><p style={{ fontSize:22, marginBottom:6 }}>📄</p><p style={{ fontSize:14, fontWeight:600, color:"var(--text)", marginBottom:3 }}>CSV 파일 선택</p><p style={{ fontSize:12, color:"var(--text-muted)" }}>클릭 또는 드래그</p></div>}
         </label>
-        {error && <p style={{ fontSize:12, color:"#e8445a", marginBottom:10, padding:"8px 12px", background:"rgba(232,68,90,0.08)", borderRadius:8 }}>⚠️ {error}</p>}
-        {preview.length > 0 && (
-          <div style={{ marginBottom:14 }}>
-            <p style={{ fontSize:12, fontWeight:700, color:"var(--text)", marginBottom:7 }}>미리보기 ({preview.length}건)</p>
-            <div style={{ background:"var(--surface2)", borderRadius:10, overflow:"hidden", maxHeight:160, overflowY:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
-                <thead><tr style={{ background:"var(--border)" }}>{["날짜","구분","분류","메모","금액"].map(h=><th key={h} style={{ padding:"5px 8px", textAlign:"left", fontWeight:700, color:"var(--text-muted)" }}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {preview.slice(0,8).map((r,i)=><tr key={i} style={{ borderBottom:"1px solid var(--border)" }}><td style={{ padding:"5px 8px", color:"var(--text-muted)" }}>{r.date}</td><td style={{ padding:"5px 8px", color:r.type==="수입"?"#0fa573":"#e8445a", fontWeight:700 }}>{r.type}</td><td style={{ padding:"5px 8px", color:"var(--text-muted)" }}>{r.category}</td><td style={{ padding:"5px 8px", color:"var(--text)", maxWidth:100, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.memo}</td><td style={{ padding:"5px 8px", fontWeight:700 }}>{r.amount.toLocaleString()}만</td></tr>)}
-                  {preview.length>8&&<tr><td colSpan={5} style={{ padding:"5px 8px", color:"var(--text-muted)", textAlign:"center" }}>외 {preview.length-8}건...</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {error&&<p style={{ fontSize:12, color:"#e8445a", marginBottom:10, padding:"8px 12px", background:"rgba(232,68,90,0.08)", borderRadius:8 }}>⚠️ {error}</p>}
+        {preview.length>0&&(<div style={{ marginBottom:14 }}><p style={{ fontSize:12, fontWeight:700, color:"var(--text)", marginBottom:7 }}>미리보기 ({preview.length}건)</p><div style={{ background:"var(--surface2)", borderRadius:10, overflow:"hidden", maxHeight:160, overflowY:"auto" }}><table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}><thead><tr style={{ background:"var(--border)" }}>{["날짜","구분","분류","메모","금액"].map(h=><th key={h} style={{ padding:"5px 8px", textAlign:"left", fontWeight:700, color:"var(--text-muted)" }}>{h}</th>)}</tr></thead><tbody>{preview.slice(0,8).map((r,i)=><tr key={i} style={{ borderBottom:"1px solid var(--border)" }}><td style={{ padding:"5px 8px", color:"var(--text-muted)" }}>{r.date}</td><td style={{ padding:"5px 8px", color:r.type==="수입"?"#0fa573":"#e8445a", fontWeight:700 }}>{r.type}</td><td style={{ padding:"5px 8px" }}>{r.category}</td><td style={{ padding:"5px 8px", maxWidth:90, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.memo}</td><td style={{ padding:"5px 8px", fontWeight:700 }}>{r.amount.toLocaleString()}만</td></tr>)}{preview.length>8&&<tr><td colSpan={5} style={{ padding:"5px 8px", color:"var(--text-muted)", textAlign:"center" }}>외 {preview.length-8}건...</td></tr>}</tbody></table></div></div>)}
         <div style={{ display:"flex", gap:10 }}>
           <button onClick={onClose} style={{ flex:1, padding:"12px", borderRadius:11, background:"transparent", border:"1px solid var(--border)", color:"var(--text-muted)", fontWeight:600, fontSize:13, cursor:"pointer" }}>취소</button>
-          <button onClick={async()=>{ if(!preview.length)return; setImporting(true); await onImport(preview); setImporting(false); }} disabled={!preview.length||importing} style={{ flex:2, padding:"12px", borderRadius:11, background:preview.length?"linear-gradient(135deg,#0fa573,#059669)":"#d1d5db", border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:preview.length?"pointer":"not-allowed", opacity:importing?0.7:1 }}>
-            {importing?"가져오는 중...":`${preview.length}건 가져오기`}
-          </button>
+          <button onClick={async()=>{ if(!preview.length)return; setImporting(true); await onImport(preview); setImporting(false); }} disabled={!preview.length||importing} style={{ flex:2, padding:"12px", borderRadius:11, background:preview.length?"linear-gradient(135deg,#0fa573,#059669)":"#d1d5db", border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:preview.length?"pointer":"not-allowed" }}>{importing?"가져오는 중...":`${preview.length}건 가져오기`}</button>
         </div>
       </div>
     </div>
   );
-})} <div style={{ padding:"12px 20px", borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"flex-end", gap:24 }}> <span style={{ fontSize:12, color:C.emerald, fontWeight:700 }}>수입 {totalIncome.toLocaleString()}만원</span> <span style={{ fontSize:12, color:C.rose, fontWeight:700 }}>지출 {totalExpense.toLocaleString()}만원</span> <span style={{ fontSize:14, fontWeight:900, color:netIncome>=0?C.indigo:C.rose }}>순수익 {netIncome.toLocaleString()}만원</span> </div> </div> )}
-
-    {showForm && ( <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setShowForm(false)}> <div style={{ background:C.surface,borderRadius:20,padding:28,width:"min(460px,94vw)",maxHeight:"90vh",overflowY:"auto" }} onClick={e=>e.stopPropagation()}> <h3 style={{ fontSize:17, fontWeight:800, color:C.navy, marginBottom:20 }}>내역 추가</h3> <div style={{ display:"flex", flexDirection:"column", gap:14 }}> <div style={{ display:"flex", gap:8 }}> {[{v:"income",l:"수입",c:C.emerald},{v:"expense",l:"지출",c:C.rose}].map(({v,l,c})=>( <button key={v} onClick={()=>setForm(f=>({...f,type:v,category:v==="income"?INCOME_CATS[0]:EXPENSE_CATS[0]}))} style={{ flex:1, padding:"11px", borderRadius:11, fontWeight:700, fontSize:13, cursor:"pointer", border:`2px solid ${form.type===v?c:C.border}`, background:form.type===v?`${c}15`:"transparent", color:form.type===v?c:C.muted }}>{l}</button> ))} </div> <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>날짜</p> <input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={{ width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:13,color:C.navy,background:C.faint }} /> </div> <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>분류</p> <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}> {(form.type==="income"?INCOME_CATS:EXPENSE_CATS).map(c=>( <button key={c} onClick={()=>setForm(f=>({...f,category:c}))} style={{ padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer", border:`1px solid ${form.category===c?(form.type==="income"?C.emerald:C.rose):C.border}`, background:form.category===c?`${form.type==="income"?C.emerald:C.rose}18`:"transparent", color:form.category===c?(form.type==="income"?C.emerald:C.rose):C.muted }}>{c}</button> ))} </div> </div> <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>금액 (만원)</p> <input type="number" value={form.amount||""} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder="0" style={{ width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:13,color:C.navy,background:C.faint }} /> </div> {tenants.length>0&&( <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>연결 임차인 (선택)</p> <select value={form.tenant_id} onChange={e=>setForm(f=>({...f,tenant_id:e.target.value}))} style={{ width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:13,color:C.navy,background:C.faint }}> <option value="">선택 안 함</option> {tenants.map(t=><option key={t.id} value={t.id}>{t.name}</option>)} </select> </div> )} <div> <p style={{ fontSize:11,color:C.muted,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase",marginBottom:6 }}>메모</p> <input value={form.memo} onChange={e=>setForm(f=>({...f,memo:e.target.value}))} placeholder="간단한 메모..." style={{ width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:13,color:C.navy,background:C.faint }} /> </div> <div style={{ display:"flex",gap:9,marginTop:4 }}> <button onClick={()=>setShowForm(false)} style={{ flex:1,padding:"12px",borderRadius:11,background:"transparent",border:`1px solid ${C.border}`,color:C.muted,fontWeight:600,fontSize:13,cursor:"pointer" }}>취소</button> <button onClick={save} disabled={saving} className="btn-primary" style={{ flex:2,padding:"12px",borderRadius:11,background:`linear-gradient(135deg,${C.navy},${C.purple})`,border:"none",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer" }}>{saving?"저장 중...":"저장하기"}</button> </div> </div> </div> </div> )}
-  </div> ); }
+}
