@@ -181,6 +181,8 @@ export default function TenantsPage() { const router = useRouter(); const { tena
             <button onClick={() => router.push("/dashboard/certified")} style={{ padding: "7px 13px", borderRadius: 8, background: C.rose + "18", border: `1px solid ${C.rose}40`, color: "#e8445a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📨 내용증명</button>
             {/* ✅ ⑤ 수리 요청 링크 복사 */}
             <button onClick={() => { const url = `${window.location.origin}/request/${sel.id}`; navigator.clipboard ? navigator.clipboard.writeText(url).then(()=>toast("🔧 수리 요청 링크가 복사됐습니다 — 세입자에게 전송하세요")) : toast(url); }} style={{ padding: "7px 13px", borderRadius: 8, background: "rgba(232,150,10,0.1)", border: "1px solid rgba(232,150,10,0.3)", color: "#e8960a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>🔧 수리 요청 링크</button>
+            {/* ✅ ⑦ 계약 확인 링크 */}
+            <button onClick={() => { const url = `${window.location.origin}/contract/${sel.id}`; navigator.clipboard ? navigator.clipboard.writeText(url).then(()=>toast("📄 계약 확인 링크가 복사됐습니다 — 세입자에게 전송하세요")) : toast(url); }} style={{ padding: "7px 13px", borderRadius: 8, background: "rgba(91,79,207,0.1)", border: "1px solid rgba(91,79,207,0.3)", color: "#5b4fcf", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📄 계약 확인 링크</button>
             {/* ✅ ② 갱신 제안서 PDF */}
             {daysLeft(getEnd(sel)) <= 120 && (
               <button onClick={() => setShowRenewal(true)} style={{ padding: "7px 13px", borderRadius: 8, background: "rgba(91,79,207,0.12)", border: "1px solid rgba(91,79,207,0.3)", color: "#5b4fcf", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📄 갱신 제안서</button>
