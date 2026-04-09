@@ -92,6 +92,9 @@ export default function RepairRequestPage() {
     </div>
   );
 
+  const phText = "어떤 문제가 발생했는지 자세히 알려주세요.
+예: 주방 싱크대 아래 배관에서 물이 새고 있습니다.";
+
   return (
     <div style={{ minHeight:"100vh", background:"#f5f4f0", fontFamily:"'Pretendard','DM Sans',sans-serif", padding:"0 0 40px" }}>
       <div style={{ background:"#1a2744", padding:"20px 20px 24px" }}>
@@ -130,8 +133,7 @@ export default function RepairRequestPage() {
             value={form.desc}
             onChange={e=>setForm(f=>({...f, desc:e.target.value}))}
             rows={5}
-            placeholder={"어떤 문제가 발생했는지 자세히 알려주세요.
-예: 주방 싱크대 아래 배관에서 물이 새고 있습니다."}
+            placeholder={phText}
             style={{ width:"100%", padding:"12px 14px", fontSize:14, color:"#1a2744", background:"#f8f7f4",
               border:`1px solid ${form.desc.trim()?"#1a2744":"#ebe9e3"}`,
               borderRadius:10, resize:"vertical", outline:"none", fontFamily:"inherit", lineHeight:1.7, boxSizing:"border-box" }}
