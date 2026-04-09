@@ -1,6 +1,118 @@
-"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; export default function TenantsPage() { const router = useRouter(); const { tenants, repairs, updateTenantContacts, updateTenantIntent, loading } = useApp(); if (loading) return <SkeletonTable rows={6} cols={3} />; const [selected, setSelected] = useState(null); const [filter, setFilter] = useState("전체"); const [search, setSearch] = useState(""); const [showContact, setShowContact] = useState(false); const [contactNote, setContactNote] = useState({ type: "납부확인", note: "" }); const [saving, setSaving] = useState(false);
+"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; 
+// ✅ ② 갱신 제안서 컴포넌트
+function RenewalProposal({ tenant, onClose }) {
+  const endDate = tenant.end_date || tenant.end || "";
+  const currentRent = Number(tenant.rent) || 0;
+  const maxIncrease = Math.floor(currentRent * 1.05); // 5% 상한
+  const [proposedRent, setProposedRent] = useState(maxIncrease);
+  const [proposedDep, setProposedDep] = useState(Number(tenant.dep) || 0);
+  const [newEndYears, setNewEndYears] = useState(2);
+  const [memo, setMemo] = useState("");
+  const today = new Date().toISOString().slice(0, 10);
+  const newStartDate = endDate ? new Date(new Date(endDate).getTime() + 86400000).toISOString().slice(0, 10) : today;
+  const newEndDate = newStartDate ? new Date(new Date(newStartDate).setFullYear(new Date(newStartDate).getFullYear() + newEndYears)).toISOString().slice(0, 10) : "";
+  const increaseRate = currentRent > 0 ? ((proposedRent - currentRent) / currentRent * 100).toFixed(1) : 0;
+  const isOver5pct = Number(increaseRate) > 5;
+
+  const printProposal = () => {
+    const content = `
+      <html><head><meta charset="utf-8"><style>
+        body { font-family: 'Malgun Gothic', sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
+        h1 { font-size: 22px; text-align: center; margin-bottom: 8px; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 32px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        td { padding: 10px 14px; border: 1px solid #ddd; font-size: 14px; }
+        td:first-child { background: #f5f5f5; font-weight: bold; width: 40%; }
+        .highlight { background: #fff3cd !important; }
+        .footer { margin-top: 40px; font-size: 12px; color: #888; border-top: 1px solid #ddd; padding-top: 16px; }
+        .sign { margin-top: 60px; display: flex; justify-content: space-between; }
+      </style></head><body>
+        <h1>임대차 계약 갱신 제안서</h1>
+        <p class="subtitle">작성일: ${today}</p>
+        <table>
+          <tr><td>임차인</td><td>${tenant.name}</td></tr>
+          <tr><td>임대 물건</td><td>${tenant.addr}</td></tr>
+          <tr><td>현행 계약 만료일</td><td>${endDate}</td></tr>
+          <tr><td>현행 월세</td><td>${currentRent.toLocaleString()}만원</td></tr>
+          <tr><td>현행 보증금</td><td>${(Number(tenant.dep)||0).toLocaleString()}만원</td></tr>
+        </table>
+        <table>
+          <tr><td colspan="2" style="background:#e8f4fd;font-weight:bold;text-align:center;">갱신 제안 조건</td></tr>
+          <tr><td>갱신 계약 기간</td><td>${newStartDate} ~ ${newEndDate} (${newEndYears}년)</td></tr>
+          <tr class="highlight"><td>제안 월세</td><td>${proposedRent.toLocaleString()}만원 (${increaseRate > 0 ? '+' : ''}${increaseRate}% 인상)</td></tr>
+          <tr><td>제안 보증금</td><td>${proposedDep.toLocaleString()}만원</td></tr>
+          ${memo ? `<tr><td>특약 사항</td><td>${memo}</td></tr>` : ""}
+        </table>
+        <p style="font-size:12px;color:#666;">※ 임대차 3법에 따라 계약 갱신 시 임대료 인상은 5%를 초과할 수 없습니다.<br>※ 본 제안서는 임대인이 제안하는 갱신 조건이며, 법적 효력이 없습니다.</p>
+        <div class="sign">
+          <div>임대인 서명: _______________</div>
+          <div>임차인 확인: _______________</div>
+        </div>
+        <div class="footer">Ownly(온리) 임대 관리 플랫폼에서 자동 생성 · ${today}</div>
+      </body></html>
+    `;
+    const w = window.open("", "_blank");
+    w.document.write(content);
+    w.document.close();
+    w.print();
+  };
+
+  return (
+    <div>
+      <h3 style={{ fontSize: 17, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>📄 갱신 제안서 생성</h3>
+      <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 18 }}>{tenant.name}님 · 만료 {new Date(endDate) > new Date() ? `D-${Math.ceil((new Date(endDate)-new Date())/86400000)}` : "만료됨"}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ background: "#f8f7f4", borderRadius: 10, padding: "12px 14px" }}>
+            <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>현행 월세</p>
+            <p style={{ fontSize: 18, fontWeight: 800, color: "#1a2744" }}>{currentRent.toLocaleString()}만원</p>
+          </div>
+          <div style={{ background: "#f8f7f4", borderRadius: 10, padding: "12px 14px" }}>
+            <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>5% 상한 최대</p>
+            <p style={{ fontSize: 18, fontWeight: 800, color: "#0fa573" }}>{maxIncrease.toLocaleString()}만원</p>
+          </div>
+        </div>
+        <div>
+          <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>제안 월세 (만원)</p>
+          <input type="number" value={proposedRent} onChange={e=>setProposedRent(Number(e.target.value))} style={{ width: "100%", padding: "11px 13px", border: `1.5px solid ${isOver5pct?"#e8445a":"#ebe9e3"}`, borderRadius: 10, fontSize: 14, fontWeight: 700, color: "#1a2744", background: "#f8f7f4" }} />
+          {isOver5pct && <p style={{ fontSize: 11, color: "#e8445a", fontWeight: 700, marginTop: 5 }}>⚠️ 임대차 3법 5% 상한 초과 — 법적 분쟁 소지가 있습니다</p>}
+          {!isOver5pct && Number(increaseRate) > 0 && <p style={{ fontSize: 11, color: "#0fa573", fontWeight: 600, marginTop: 5 }}>✅ 인상률 {increaseRate}% — 임대차 3법 범위 내</p>}
+        </div>
+        <div>
+          <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>제안 보증금 (만원)</p>
+          <input type="number" value={proposedDep} onChange={e=>setProposedDep(Number(e.target.value))} style={{ width: "100%", padding: "11px 13px", border: "1px solid #ebe9e3", borderRadius: 10, fontSize: 13, color: "#1a2744", background: "#f8f7f4" }} />
+        </div>
+        <div>
+          <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>갱신 기간</p>
+          <div style={{ display: "flex", gap: 8 }}>
+            {[1, 2].map(y => (
+              <button key={y} onClick={() => setNewEndYears(y)} style={{ flex: 1, padding: "10px", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", border: `1.5px solid ${newEndYears===y?"#5b4fcf":"#ebe9e3"}`, background: newEndYears===y?"rgba(91,79,207,0.1)":"transparent", color: newEndYears===y?"#5b4fcf":"#8a8a9a" }}>{y}년</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>특약 사항 (선택)</p>
+          <textarea value={memo} onChange={e=>setMemo(e.target.value)} rows={2} placeholder="예: 반려동물 불가, 에어컨 설치 후 갱신 등" style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, resize: "vertical", outline: "none", fontFamily: "inherit" }} />
+        </div>
+        <div style={{ background: "rgba(91,79,207,0.06)", borderRadius: 12, padding: "12px 14px" }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "#5b4fcf", marginBottom: 6 }}>📋 갱신 제안 요약</p>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#1a2744", marginBottom: 3 }}><span>갱신 기간</span><span style={{ fontWeight: 700 }}>{newStartDate} ~ {newEndDate}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#1a2744", marginBottom: 3 }}><span>제안 월세</span><span style={{ fontWeight: 700, color: isOver5pct?"#e8445a":"#0fa573" }}>{proposedRent.toLocaleString()}만원 ({increaseRate > 0 ? "+" : ""}{increaseRate}%)</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#1a2744" }}><span>제안 보증금</span><span style={{ fontWeight: 700 }}>{proposedDep.toLocaleString()}만원</span></div>
+        </div>
+        <div style={{ display: "flex", gap: 9 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 11, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
+          <button onClick={printProposal} style={{ flex: 2, padding: "12px", borderRadius: 11, background: "linear-gradient(135deg,#5b4fcf,#7c3aed)", border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📄 PDF 출력 / 인쇄</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function TenantsPage() { const router = useRouter(); const { tenants, repairs, updateTenantContacts, updateTenantIntent, loading } = useApp(); if (loading) return <SkeletonTable rows={6} cols={3} />; const [selected, setSelected] = useState(null); const [filter, setFilter] = useState("전체"); const [search, setSearch] = useState(""); const [showContact, setShowContact] = useState(false); const [contactNote, setContactNote] = useState({ type: "납부확인", note: "" }); const [saving, setSaving] = useState(false);
   // ✅ ⑧ 수리이력 탭
   const [detailTab, setDetailTab] = useState("contract");
+  const [showRenewal, setShowRenewal] = useState(false); // ✅ ② 갱신 제안서 모달
   const getEnd = (t) => t.end_date || t.end || ""; const filtered = useMemo(() => { let list = [...tenants]; if (filter === "만료임박") list = list.filter((t) => daysLeft(getEnd(t)) <= 90); else if (filter === "미납") list = list.filter((t) => t.status === "미납"); else if (filter !== "전체") list = list.filter((t) => t.pType === filter); if (search) { const q = search.toLowerCase(); list = list.filter((t) => t.name?.toLowerCase().includes(q) || t.addr?.toLowerCase().includes(q)); } return list; }, [tenants, filter, search]); const sel = selected ? tenants.find((t) => t.id === selected.id) : null;
   // ✅ 선택된 세입자의 수리이력
   const selRepairs = useMemo(() => sel ? (repairs||[]).filter(r => r.tenant_id === sel.id) : [], [sel, repairs]);
@@ -67,6 +179,12 @@
             <button onClick={() => setShowContact(true)} style={{ padding: "7px 13px", borderRadius: 8, background: C.indigo + "18", border: `1px solid ${C.indigo}40`, color: "#1a2744", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>+ 연락 기록</button>
             {sel.phone && <a href={`tel:${sel.phone}`} style={{ padding: "7px 13px", borderRadius: 8, background: "rgba(15,165,115,0.1)", border: "1px solid rgba(15,165,115,0.3)", color: "#0fa573", fontSize: 12, fontWeight: 700, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>📞 전화</a>}
             <button onClick={() => router.push("/dashboard/certified")} style={{ padding: "7px 13px", borderRadius: 8, background: C.rose + "18", border: `1px solid ${C.rose}40`, color: "#e8445a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📨 내용증명</button>
+            {/* ✅ ⑤ 수리 요청 링크 복사 */}
+            <button onClick={() => { const url = `${window.location.origin}/request/${sel.id}`; navigator.clipboard ? navigator.clipboard.writeText(url).then(()=>toast("🔧 수리 요청 링크가 복사됐습니다 — 세입자에게 전송하세요")) : toast(url); }} style={{ padding: "7px 13px", borderRadius: 8, background: "rgba(232,150,10,0.1)", border: "1px solid rgba(232,150,10,0.3)", color: "#e8960a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>🔧 수리 요청 링크</button>
+            {/* ✅ ② 갱신 제안서 PDF */}
+            {daysLeft(getEnd(sel)) <= 120 && (
+              <button onClick={() => setShowRenewal(true)} style={{ padding: "7px 13px", borderRadius: 8, background: "rgba(91,79,207,0.12)", border: "1px solid rgba(91,79,207,0.3)", color: "#5b4fcf", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📄 갱신 제안서</button>
+            )}
             {daysLeft(getEnd(sel)) <= 90 && ( <select onChange={(e) => { if (e.target.value) { handleUpdateIntent(e.target.value); e.target.value = ""; } }} defaultValue="" style={{ padding: "7px 13px", borderRadius: 8, background: C.amber + "18", border: `1px solid ${C.amber}40`, color: "#e8960a", fontSize: 12, fontWeight: 700, cursor: "pointer", appearance: "none" }}> <option value="" disabled>갱신 의향 변경</option> {["갱신의향 있음", "협의중", "갱신의향 없음", "미확인"].map((v) => <option key={v} value={v}>{v}</option>)} </select> )}
           </div>
         </div>
@@ -122,6 +240,11 @@
         )}
       </div>
     )}
+
+    {/* ✅ ② 갱신 제안서 PDF 모달 */}
+    <Modal open={showRenewal} onClose={() => setShowRenewal(false)} width={500}>
+      {sel && <RenewalProposal tenant={sel} onClose={() => setShowRenewal(false)} />}
+    </Modal>
 
     <Modal open={showContact} onClose={() => setShowContact(false)} width={420}> <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 16 }}>연락 기록 추가</h3> <div style={{ display: "flex", flexDirection: "column", gap: 13 }}> <div> <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>연락 유형</p> <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}> {["납부확인", "수리요청", "갱신협의", "미납독촉", "기타"].map((t) => ( <button key={t} onClick={() => setContactNote((n) => ({ ...n, type: t }))} style={{ padding: "5px 11px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${contactNote.type === t ? C.indigo : "#ebe9e3"}`, background: contactNote.type === t ? C.indigo + "20" : "transparent", color: contactNote.type === t ? C.indigo : C.muted }}>{t}</button> ))} </div> </div> <div> <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>내용</p> <textarea value={contactNote.note} onChange={(e) => setContactNote((n) => ({ ...n, note: e.target.value }))} placeholder="연락 내용을 입력하세요..." rows={3} style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, resize: "vertical", outline: "none" }} /> </div> <div style={{ display: "flex", gap: 9 }}> <button onClick={() => setShowContact(false)} style={{ flex: 1, padding: "11px", borderRadius: 10, background: "transparent", border: "1px solid #ebe9e3", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button> <button onClick={addContact} disabled={saving} className="btn-primary" style={{ flex: 2, padding: "11px", borderRadius: 10, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{saving ? "저장 중..." : "저장하기"}</button> </div> </div> </Modal>
   </div> ); }
