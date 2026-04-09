@@ -1,5 +1,25 @@
 "use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel } from "../../../../components/shared"; import { useApp } from "../../../../context/AppContext"; import PlanGate from "../../../../components/PlanGate";
 
+// ✅ F 컴포넌트 외부 정의 — 리렌더링 시 unmount 방지
+function FieldInput({ label, name, placeholder, unit = "만원", icon, value, onChange }) {
+  return (
+    <div>
+      <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>{label}</p>
+      <div style={{ position: "relative" }}>
+        {icon && <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", fontSize: 14 }}>{icon}</span>}
+        <input
+          type="number"
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          style={{ width: "100%", padding: `11px 13px 11px ${icon ? "36px" : "13px"}`, border: "1px solid #ebe9e3", borderRadius: 10, fontSize: 13, color: "#1a2744", background: "#f8f7f4", boxSizing: "border-box" }}
+        />
+        {unit && <span style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#8a8a9a" }}>{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function ProfitAnalysisPage() {
   return <PlanGate feature="profit_analysis" requiredPlan="pro"><ProfitAnalysisContent /></PlanGate>;
 }
@@ -79,16 +99,7 @@ function ProfitAnalysisContent() {
     return { action: "상황에 따라 판단", reason: "매각과 보유의 기대 수익이 비슷합니다. 유동성 필요 여부와 세금 상황을 고려하세요.", color: "#e8960a", icon: "⚖️" };
   }, [calc]);
 
-  const F = ({ label, name, placeholder, unit = "만원", icon }) => (
-    <div>
-      <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>{label}</p>
-      <div style={{ position: "relative" }}>
-        {icon && <span style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", fontSize: 14 }}>{icon}</span>}
-        <input type="number" value={form[name]} onChange={e => setForm(f => ({ ...f, [name]: e.target.value }))} placeholder={placeholder} style={{ width: "100%", padding: `11px 13px 11px ${icon ? "36px" : "13px"}`, border: "1px solid #ebe9e3", borderRadius: 10, fontSize: 13, color: "#1a2744", background: "#f8f7f4", boxSizing: "border-box" }} />
-        {unit && <span style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#8a8a9a" }}>{unit}</span>}
-      </div>
-    </div>
-  );
+  // F 컴포넌트는 아래 외부에 정의됨
 
   return (
     <div className="page-in page-padding" style={{ maxWidth: 960 }}>
@@ -116,10 +127,10 @@ function ProfitAnalysisContent() {
           <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, padding: "18px" }}>
             <p style={{ fontSize: 12, fontWeight: 800, color: "#3b5bdb", letterSpacing: "1px", textTransform: "uppercase", marginBottom: 14 }}>💰 매각 정보</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <F label="취득가 (매입가)" name="buyPrice" placeholder="30000" icon="🏷️" />
-              <F label="현재 추정 매각가" name="currentPrice" placeholder="45000" icon="📈" />
-              <F label="대출 잔액" name="loanBalance" placeholder="20000" icon="🏦" />
-              <F label="보유 기간" name="holdingYears" placeholder="3" unit="년" icon="📅" />
+              <FieldInput label="취득가 (매입가)" name="buyPrice" placeholder="30000" icon="🏷️" value={form.buyPrice} onChange={e => setForm(f => ({ ...f, buyPrice: e.target.value }))} />
+              <FieldInput label="현재 추정 매각가" name="currentPrice" placeholder="45000" icon="📈" value={form.currentPrice} onChange={e => setForm(f => ({ ...f, currentPrice: e.target.value }))} />
+              <FieldInput label="대출 잔액" name="loanBalance" placeholder="20000" icon="🏦" value={form.loanBalance} onChange={e => setForm(f => ({ ...f, loanBalance: e.target.value }))} />
+              <FieldInput label="보유 기간" name="holdingYears" placeholder="3" unit="년" icon="📅" value={form.holdingYears} onChange={e => setForm(f => ({ ...f, holdingYears: e.target.value }))} />
               <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 0" }}>
                 <div onClick={() => setForm(f => ({ ...f, isMain: !f.isMain }))} style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${form.isMain ? "#0fa573" : "#ebe9e3"}`, background: form.isMain ? "#0fa573" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
                   {form.isMain && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>✓</span>}
@@ -136,8 +147,8 @@ function ProfitAnalysisContent() {
           <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, padding: "18px" }}>
             <p style={{ fontSize: 12, fontWeight: 800, color: "#0fa573", letterSpacing: "1px", textTransform: "uppercase", marginBottom: 14 }}>🏠 계속 임대 정보</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <F label="연간 임대 수입" name="annualRent" placeholder="1440" icon="💰" />
-              <F label="연간 비용 (수리비 등)" name="annualCost" placeholder="200" icon="🔧" />
+              <FieldInput label="연간 임대 수입" name="annualRent" placeholder="1440" icon="💰" value={form.annualRent} onChange={e => setForm(f => ({ ...f, annualRent: e.target.value }))} />
+              <FieldInput label="연간 비용 (수리비 등)" name="annualCost" placeholder="200" icon="🔧" value={form.annualCost} onChange={e => setForm(f => ({ ...f, annualCost: e.target.value }))} />
               <div>
                 <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 7 }}>향후 임대 예정 기간</p>
                 <div style={{ display: "flex", gap: 8 }}>
