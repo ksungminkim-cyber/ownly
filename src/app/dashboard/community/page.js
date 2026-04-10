@@ -5,6 +5,21 @@ const CATEGORIES = ["전체","공실매물","자유","절세팁","계약·법률
 const CAT_HIGHLIGHT = "공실매물";
 const CAT_COLORS = { "공실매물":"#0fa573","자유":"#8a8a9a","절세팁":"#0fa573","계약·법률":"#1a2744","인테리어·수리":"#e8960a","지역정보":"#1e7fcb","세입자관리":"#e8445a","질문":"#5b4fcf" };
 
+// ✅ 비속어/선정적 단어 필터
+const BAD_WORDS = [
+  "씨발","시발","씨팔","ㅅㅂ","개새끼","개새","새끼","놈팡이","지랄","병신","미친놈","미친년",
+  "썅","쌍년","쌍놈","개년","개놈","꺼져","죽어","살인","강간","성폭행","성희롱","성추행",
+  "보지","자지","음란","야동","섹스","섹시","누드","포르노","야설","성기","자위",
+  "fuck","shit","bitch","asshole","pussy","dick","cock","nigger","faggot",
+  "창녀","매춘","윤락","원조교제","조건만남","만남조건","성매매",
+];
+
+function containsBadWord(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase().replace(/\s/g, "");
+  return BAD_WORDS.some(w => lower.includes(w.toLowerCase()));
+}
+
 export default function CommunityPage() {
   const { user, tenants, userPlan } = useApp();
   const [posts, setPosts] = useState([]);
@@ -76,6 +91,9 @@ export default function CommunityPage() {
 
   const submitPost = async () => {
     if (!form.title.trim() || !form.content.trim()) { toast("제목과 내용을 입력하세요", "error"); return; }
+    if (containsBadWord(form.title) || containsBadWord(form.content)) {
+      toast("부적절한 내용이 포함되어 있습니다. 내용을 수정해주세요.", "error"); return;
+    }
     setUploading(true);
     const imageUrls = await uploadImages();
     const row = { user_id: user.id, author_name: form.author_name.trim() || myNickname, badge_label: myBadge?.label || null, badge_color: myBadge?.color || null, badge_bg: myBadge?.bg || null, category: form.category, title: form.title.trim(), content: form.content.trim(), images: imageUrls };
@@ -91,6 +109,9 @@ export default function CommunityPage() {
 
   const submitComment = async () => {
     if (!newComment.trim()) return;
+    if (containsBadWord(newComment)) {
+      toast("부적절한 내용이 포함되어 있습니다.", "error"); return;
+    }
     const row = { post_id: activePost.id, user_id: user.id, author_name: myNickname, content: newComment.trim() };
     const { data, error } = await supabase.from("community_comments").insert(row).select().single();
     if (error) { toast("댓글 오류", "error"); return; }

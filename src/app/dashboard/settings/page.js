@@ -62,8 +62,11 @@ export default function SettingsPage() {
   const router = useRouter();
   const { user, tenants, payments, contracts, resetAllData } = useApp();
   const currentNickname = user?.user_metadata?.nickname || "";
+  const currentPhone = user?.user_metadata?.phone || "";
   const [nickname, setNickname] = useState(currentNickname);
   const [savingNick, setSavingNick] = useState(false);
+  const [phone, setPhone] = useState(currentPhone);
+  const [savingPhone, setSavingPhone] = useState(false);
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [savingPw, setSavingPw] = useState(false);
   const [showPw, setShowPw] = useState(false);
@@ -79,6 +82,18 @@ export default function SettingsPage() {
   ];
   const saveNickname = async () => { if (!nickname.trim()) { toast("닉네임을 입력해주세요", "error"); return; } if (nickname.trim().length < 2 || nickname.trim().length > 20) { toast("닉네임은 2~20자 사이로 입력해주세요", "error"); return; } setSavingNick(true); const { error } = await supabase.auth.updateUser({ data: { nickname: nickname.trim() } }); setSavingNick(false); if (error) { toast("저장 실패: " + error.message, "error"); return; } toast("닉네임이 저장되었습니다 ✓"); };
   const randomNickname = () => setNickname(generateNickname());
+
+  // ── 전화번호 저장 ──
+  const savePhone = async () => {
+    const cleaned = phone.trim().replace(/-/g, "");
+    if (!cleaned) { toast("전화번호를 입력해주세요", "error"); return; }
+    if (!/^01[0-9][0-9]{7,8}$/.test(cleaned)) { toast("올바른 전화번호를 입력하세요 (예: 010-1234-5678)", "error"); return; }
+    setSavingPhone(true);
+    const { error } = await supabase.auth.updateUser({ data: { phone: phone.trim() } });
+    setSavingPhone(false);
+    if (error) { toast("저장 실패: " + error.message, "error"); return; }
+    toast("전화번호가 저장되었습니다 ✓");
+  };
   const savePassword = async () => { if (!pwForm.next || pwForm.next.length < 6) { toast("새 비밀번호는 6자 이상이어야 합니다", "error"); return; } if (pwForm.next !== pwForm.confirm) { toast("새 비밀번호가 일치하지 않습니다", "error"); return; } setSavingPw(true); const { error } = await supabase.auth.updateUser({ password: pwForm.next }); setSavingPw(false); if (error) { toast("변경 실패: " + error.message, "error"); return; } setPwForm({ current: "", next: "", confirm: "" }); toast("비밀번호가 변경되었습니다 ✓"); };
   const handleReset = async () => { setResetting(true); try { await resetAllData(); toast("모든 데이터가 초기화되었습니다", "warning"); setConfirmReset(false); } catch { toast("초기화 중 오류가 발생했습니다", "error"); } finally { setResetting(false); } };
   const handleDelete = async () => { if (deleteInput !== "탈퇴합니다") { toast("확인 문구를 정확히 입력해주세요", "error"); return; } setDeleting(true); try { const res = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error); await supabase.auth.signOut(); router.push("/login?msg=deleted"); } catch (err) { toast("탈퇴 실패: " + err.message, "error"); setDeleting(false); } };
@@ -107,6 +122,26 @@ export default function SettingsPage() {
             <button onClick={saveNickname} disabled={savingNick} style={{ padding: "10px 18px", borderRadius: 10, background: savingNick ? "#94a3b8" : "#1a2744", border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: savingNick ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{savingNick ? "저장 중..." : "저장"}</button>
           </div>
           <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 5 }}>닉네임을 설정하지 않으면 커뮤니티에서 자동 생성된 이름으로 표시됩니다.</p>
+        </div>
+
+        {/* 전화번호 */}
+        <div style={{ marginBottom: 6, marginTop: 14 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 6 }}>
+            전화번호 <span style={{ color: "#e8445a", fontSize: 10, fontWeight: 700 }}>수리요청 알림톡 수신</span>
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="010-0000-0000"
+              type="tel"
+              style={{ flex: 1, padding: "10px 13px", fontSize: 13, color: "var(--text)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, outline: "none" }}
+            />
+            <button onClick={savePhone} disabled={savingPhone} style={{ padding: "10px 18px", borderRadius: 10, background: savingPhone ? "#94a3b8" : "#1a2744", border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: savingPhone ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+              {savingPhone ? "저장 중..." : "저장"}
+            </button>
+          </div>
+          <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 5 }}>세입자 수리 요청 접수 시 카카오 알림톡을 받는 번호입니다.</p>
         </div>
       </div>
 
