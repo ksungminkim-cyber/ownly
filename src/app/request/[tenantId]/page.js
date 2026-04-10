@@ -33,6 +33,8 @@ export default function RepairRequestPage() {
     setSubmitting(true);
     setErrMsg("");
     const memo = urgent ? "[긴급] " + desc : desc;
+
+    // 1. repairs 테이블에 저장
     const { error } = await supabase.from("repairs").insert([{
       tenant_id: tenantId,
       user_id: tenant.user_id,
@@ -44,11 +46,36 @@ export default function RepairRequestPage() {
       vendor: "",
       property_name: tenant.address || "",
     }]);
-    if (error) { setErrMsg(error.message); setSubmitting(false); }
-    else { setDone(true); }
+
+    if (error) {
+      setErrMsg(error.message);
+      setSubmitting(false);
+      return;
+    }
+
+    // 2. 임대인에게 카카오 알림톡 발송 (실패해도 접수는 완료)
+    try {
+      await fetch("/api/repair-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantId,
+          category: cat,
+          memo: desc,
+          address: tenant.address || "",
+          tenantName: tenant.name || "",
+        }),
+      });
+    } catch (_) {}
+
+    setDone(true);
   };
 
-  if (loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f5f4f0"}}><p style={{color:"#8a8a9a"}}>불러오는 중...</p></div>;
+  if (loading) return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f5f4f0"}}>
+      <p style={{color:"#8a8a9a",fontSize:14}}>불러오는 중...</p>
+    </div>
+  );
 
   if (notFound) return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f5f4f0",padding:20}}>
