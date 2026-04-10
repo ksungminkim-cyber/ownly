@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import React from "react";
 import { Spinner, AuthInput } from "../../components/shared";
@@ -38,6 +38,7 @@ export default function AuthPage() {
     if (form.pw.length < 6)        errs.pw    = "6자 이상 입력하세요";
     if (tab === "signup" && !form.name)  errs.name  = "이름을 입력하세요";
     if (tab === "signup" && !form.agree) errs.agree = "약관에 동의해주세요";
+    if (tab === "signup" && !form.phone) errs.phone = "전화번호를 입력하세요";
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setLoading(true); setMsg("");
@@ -225,7 +226,7 @@ export default function AuthPage() {
               </p>
             )}
             {tab === "signup" && (
-              <AuthInput label="전화번호 (선택)" type="tel" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" />
+              <AuthInput label="전화번호 *" type="tel" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" error={errors.phone} />
             )}
             <AuthInput label="비밀번호" type="password" value={form.pw} onChange={set("pw")}
               placeholder={tab === "signup" ? "6자 이상" : "비밀번호"} error={errors.pw} />
