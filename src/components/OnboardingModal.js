@@ -14,20 +14,20 @@ const QUICK_FEATURES = [
   { icon: "📝", title: "내용증명 원클릭 발행", desc: "변호사 없이 법적 서식 생성" },
 ];
 
-// ✅ 완전히 독립적인 닫기 함수 — router 의존성 제거
-function closeAndGo(onClose, path) {
-  try { localStorage.setItem("ownly_onboarding_done", "1"); } catch {}
-  onClose();
-  if (path) {
-    // 약간의 딜레이 후 이동 — 모달이 unmount된 후 이동
-    setTimeout(() => { window.location.href = path; }, 50);
-  }
-}
-
 export default function OnboardingModal({ onClose }) {
   const [step, setStep] = useState(0);
   const [propertyType, setPropertyType] = useState("주거");
   const current = STEPS[step];
+
+  // ✅ localStorage 먼저 저장 → onClose 호출 → 이동
+  // 순서가 핵심: storage 저장이 setShowOnboarding(false) 이전에 완료되어야 useEffect 재실행 방지
+  const handleClose = (path) => {
+    try { localStorage.setItem("ownly_onboarding_done", "1"); } catch {}
+    onClose(); // setShowOnboarding(false) — 이미 storage에 저장됐으므로 useEffect 재실행해도 모달 안 뜸
+    if (path) {
+      setTimeout(() => { window.location.href = path; }, 100);
+    }
+  };
 
   const goNext = () => setStep(s => Math.min(s + 1, STEPS.length - 1));
   const goLast = () => setStep(STEPS.length - 1);
@@ -35,18 +35,14 @@ export default function OnboardingModal({ onClose }) {
   return (
     <div
       style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
-      onClick={(e) => { if (e.target === e.currentTarget) closeAndGo(onClose, null); }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(null); }}
     >
       <div style={{ background: "#fff", borderRadius: 24, width: "100%", maxWidth: 480, overflow: "hidden", boxShadow: "0 24px 80px rgba(26,39,68,0.25)" }}>
-
-        {/* 진행 바 */}
         <div style={{ height: 4, background: "#f0efe9" }}>
           <div style={{ height: "100%", borderRadius: 4, background: "linear-gradient(90deg,#1a2744,#5b4fcf)", width: `${((step + 1) / STEPS.length) * 100}%`, transition: "width .4s" }} />
         </div>
-
         <div style={{ padding: "32px 32px 28px" }}>
 
-          {/* STEP 0 — 환영 */}
           {step === 0 && (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>{current.emoji}</div>
@@ -65,7 +61,6 @@ export default function OnboardingModal({ onClose }) {
             </div>
           )}
 
-          {/* STEP 1 — 물건 등록 */}
           {step === 1 && (
             <div>
               <div style={{ fontSize: 44, marginBottom: 12, textAlign: "center" }}>{current.emoji}</div>
@@ -73,7 +68,7 @@ export default function OnboardingModal({ onClose }) {
               <p style={{ fontSize: 13, color: "#8a8a9a", marginBottom: 20, textAlign: "center" }}>{current.subtitle}</p>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10 }}>어떤 물건을 관리하시나요?</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 18 }}>
-                {[{ type: "주거", icon: "🏠", desc: "아파트·빌라·오피스텔" }, { type: "상가", icon: "🏪", desc: "1층 상가·오피스" }, { type: "토지", icon: "🌱", desc: "나대지·농지·임야" }].map(item => (
+                {[{ type: "주거", icon: "🏠", desc: "아파트·빌라" }, { type: "상가", icon: "🏪", desc: "1층 상가·오피스" }, { type: "토지", icon: "🌱", desc: "나대지·농지" }].map(item => (
                   <button key={item.type} onClick={() => setPropertyType(item.type)} style={{ padding: "12px 8px", borderRadius: 12, cursor: "pointer", textAlign: "center", border: `2px solid ${propertyType === item.type ? "#1a2744" : "#ebe9e3"}`, background: propertyType === item.type ? "rgba(26,39,68,0.05)" : "transparent" }}>
                     <div style={{ fontSize: 22, marginBottom: 5 }}>{item.icon}</div>
                     <p style={{ fontSize: 12, fontWeight: 700, color: "#1a2744", marginBottom: 2 }}>{item.type}</p>
@@ -95,7 +90,6 @@ export default function OnboardingModal({ onClose }) {
             </div>
           )}
 
-          {/* STEP 2 — 완료 */}
           {step === 2 && (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>{current.emoji}</div>
@@ -108,7 +102,7 @@ export default function OnboardingModal({ onClose }) {
                   { icon: "💰", label: "수금 현황 확인", desc: "이번 달 납부 상태", color: "#0fa573", path: "/dashboard/payments" },
                   { icon: "🧾", label: "세금 미리 계산", desc: "종합소득세 추정", color: "#e8960a", path: "/dashboard/tax" },
                 ].map(item => (
-                  <button key={item.path} onClick={() => closeAndGo(onClose, item.path)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, border: `1px solid ${item.color}25`, background: item.color + "08", cursor: "pointer", width: "100%" }}>
+                  <button key={item.path} onClick={() => handleClose(item.path)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, border: `1px solid ${item.color}25`, background: item.color + "08", cursor: "pointer", width: "100%" }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
                     <div style={{ textAlign: "left" }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", margin: 0 }}>{item.label}</p>
@@ -125,22 +119,20 @@ export default function OnboardingModal({ onClose }) {
           <button
             onClick={() => {
               if (step === 0) { goNext(); return; }
-              if (step === 1) { closeAndGo(onClose, "/dashboard/properties"); return; }
-              if (step === 2) { closeAndGo(onClose, null); return; }
+              if (step === 1) { handleClose("/dashboard/properties"); return; }
+              if (step === 2) { handleClose(null); return; }
             }}
-            style={{ width: "100%", padding: "14px", borderRadius: 14, marginTop: 20, background: "linear-gradient(135deg,#1a2744,#2d4270)", border: "none", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: "0 4px 16px rgba(26,39,68,0.25)" }}
+            style={{ width: "100%", padding: "14px", borderRadius: 14, marginTop: 20, background: "linear-gradient(135deg,#1a2744,#2d4270)", border: "none", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer" }}
           >
             {current.cta}
           </button>
 
-          {/* 스킵 */}
           {current.skip && (
             <button onClick={goLast} style={{ width: "100%", padding: "10px", marginTop: 8, borderRadius: 10, background: "transparent", border: "none", color: "#8a8a9a", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               나중에 등록하기
             </button>
           )}
 
-          {/* 스텝 인디케이터 */}
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 14 }}>
             {STEPS.map((_, i) => (
               <div key={i} style={{ width: i === step ? 20 : 6, height: 6, borderRadius: 3, background: i === step ? "#1a2744" : "#e0ddd8", transition: "all .3s" }} />
