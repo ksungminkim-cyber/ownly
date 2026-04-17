@@ -1,216 +1,243 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useApp } from "../context/AppContext";
 
 const STEPS = [
   {
-    icon: "🏠",
-    title: "첫 번째: 물건을 등록하세요",
-    desc: "주거·상가·토지 유형별로 임대 물건을 등록합니다.\n주소, 월세, 보증금, 계약 기간을 입력하면 돼요.",
-    cta: "지금 물건 등록하기 →",
-    path: "/dashboard/properties",
-    tip: "물건 하나 등록하는 데 1분이면 충분해요.",
-    color: "#1a2744",
-    bg: "rgba(26,39,68,0.06)",
-    checkKey: "hasProperties",
-    benefit: "등록 후 월세 수금·만료일 자동 추적 시작",
+    id: "welcome",
+    emoji: "👋",
+    title: "온리에 오신 걸 환영합니다",
+    subtitle: "내 임대 물건, 온리 하나로",
+    desc: "수금부터 계약·세금·내용증명까지\n임대 관리에 필요한 모든 것을 한 곳에서.",
+    cta: "시작하기",
+    skip: false,
   },
   {
-    icon: "👤",
-    title: "두 번째: 세입자를 연결하세요",
-    desc: "등록한 물건에 세입자 정보를 연결합니다.\n이름, 전화번호, 납부일을 입력하세요.",
-    cta: "세입자 등록하러 가기 →",
-    path: "/dashboard/tenants",
-    tip: "납부일을 설정하면 매달 수금 예정일이 캘린더에 표시돼요.",
-    color: "#4f46e5",
-    bg: "rgba(79,70,229,0.06)",
-    checkKey: "hasTenants",
-    benefit: "연결 후 미납 알림·연락처 관리 자동화",
+    id: "register",
+    emoji: "🏠",
+    title: "첫 물건을 등록해보세요",
+    subtitle: "2분이면 충분합니다",
+    desc: null,
+    cta: "물건 등록하기",
+    skip: true,
   },
   {
-    icon: "💰",
-    title: "세 번째: 수금 현황을 확인하세요",
-    desc: "매월 납부 여부를 확인하고,\n미납 세입자를 즉시 파악할 수 있어요.",
-    cta: "수금 현황 확인하기 →",
-    path: "/dashboard/payments",
-    tip: "납부처리 한 번이면 장부에 자동으로 기록돼요.",
-    color: "#0fa573",
-    bg: "rgba(15,165,115,0.06)",
-    checkKey: null,
-    benefit: "수금 데이터가 쌓이면 연간 수익 리포트 생성",
+    id: "done",
+    emoji: "🎉",
+    title: "준비 완료!",
+    subtitle: "이제 관리를 시작하세요",
+    desc: "세입자를 연결하고 수금 현황을 추적하면\n미납 알림과 계약 만료 알림을 자동으로 받을 수 있어요.",
+    cta: "대시보드로 이동",
+    skip: false,
   },
 ];
 
-// ✅ 완료 화면
-function DoneScreen({ onClose }) {
-  return (
-    <div style={{ textAlign: "center", padding: "8px 0" }}>
-      <div style={{ fontSize: 56, marginBottom: 16, animation: "bounce-in .5s ease" }}>🎉</div>
-      <h2 style={{ fontSize: 22, fontWeight: 900, color: "#1a2744", marginBottom: 8, letterSpacing: "-.4px" }}>
-        온리 시작 준비 완료!
-      </h2>
-      <p style={{ fontSize: 14, color: "#8a8a9a", lineHeight: 1.8, marginBottom: 24 }}>
-        이제 임대 관리의 모든 것을<br/>온리 하나로 처리할 수 있어요.
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
-        {[
-          { icon: "✅", text: "월세 수금 자동 추적" },
-          { icon: "✅", text: "계약 만료일 알림" },
-          { icon: "✅", text: "세금 신고 시뮬레이터" },
-          { icon: "✅", text: "수리비 → 장부 자동 연동" },
-        ].map(({ icon, text }) => (
-          <div key={text} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(15,165,115,0.06)", borderRadius: 10, padding: "10px 14px" }}>
-            <span style={{ fontSize: 14, color: "#0fa573" }}>{icon}</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#1a2744" }}>{text}</span>
-          </div>
-        ))}
-      </div>
-      <button
-        onClick={onClose}
-        style={{ width: "100%", padding: "14px", borderRadius: 12, background: "linear-gradient(135deg,#1a2744,#2d4270)", color: "#fff", border: "none", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: "0 4px 16px rgba(26,39,68,0.2)" }}
-      >
-        대시보드로 시작하기 🚀
-      </button>
-      <style>{`
-        @keyframes bounce-in {
-          0% { transform: scale(0.3); opacity: 0; }
-          60% { transform: scale(1.15); }
-          100% { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
-    </div>
-  );
-}
+const QUICK_FEATURES = [
+  { icon: "💰", title: "월세 수금 자동 추적", desc: "납부일마다 현황 자동 업데이트" },
+  { icon: "📅", title: "계약 만료 60일 전 알림", desc: "공실 없이 갱신 협상 시작" },
+  { icon: "🧾", title: "세금 시뮬레이터", desc: "예상 종합소득세 미리 파악" },
+  { icon: "📝", title: "내용증명 원클릭 발행", desc: "변호사 없이 법적 서식 생성" },
+];
 
-export default function OnboardingModal() {
+export default function OnboardingModal({ onClose }) {
   const router = useRouter();
-  const { tenants } = useApp();
-  const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
-  const [done, setDone] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  const [propertyType, setPropertyType] = useState("주거");
+  const current = STEPS[step];
 
-  useEffect(() => {
-    const completed = localStorage.getItem("ownly_onboarded");
-    if (!completed) {
-      const t = setTimeout(() => setOpen(true), 800);
-      return () => clearTimeout(t);
-    }
-  }, []);
-
-  const finish = () => {
-    localStorage.setItem("ownly_onboarded", "1");
-    setOpen(false);
-    setDone(false);
-    setStep(0);
-  };
-
-  const goStep = (path) => {
-    if (step < STEPS.length - 1) {
+  const goNext = () => {
+    if (animating) return;
+    setAnimating(true);
+    setTimeout(() => {
       setStep(s => s + 1);
-    } else {
-      setDone(true);
+      setAnimating(false);
+    }, 200);
+  };
+
+  const handleCta = () => {
+    if (step === 0) { goNext(); return; }
+    if (step === 1) {
+      // 물건 등록 페이지로 이동 후 모달 닫기
+      onClose();
+      router.push("/dashboard/properties");
+      return;
     }
-    router.push(path);
+    if (step === 2) {
+      onClose();
+      return;
+    }
   };
 
-  const handleComplete = () => {
-    setDone(true);
+  const handleSkip = () => {
+    if (step < STEPS.length - 1) {
+      setStep(STEPS.length - 1);
+    }
   };
-
-  if (!open) return null;
-
-  const s = STEPS[step];
-  const progress = ((step) / STEPS.length) * 100;
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backdropFilter: "blur(4px)" }}
-    >
-      <div style={{ background: "var(--surface)", borderRadius: 22, padding: "28px 26px 24px", maxWidth: 420, width: "100%", boxShadow: "0 32px 80px rgba(0,0,0,0.25)", position: "relative", animation: "fade-in .2s ease" }}>
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "20px",
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 24, width: "100%", maxWidth: 480,
+        overflow: "hidden", boxShadow: "0 24px 80px rgba(26,39,68,0.25)",
+        opacity: animating ? 0 : 1, transform: animating ? "translateY(8px)" : "translateY(0)",
+        transition: "opacity .2s, transform .2s",
+      }}>
+        {/* 진행 바 */}
+        <div style={{ height: 4, background: "#f0efe9" }}>
+          <div style={{
+            height: "100%", borderRadius: 4,
+            background: "linear-gradient(90deg, #1a2744, #5b4fcf)",
+            width: `${((step + 1) / STEPS.length) * 100}%`,
+            transition: "width .4s ease",
+          }} />
+        </div>
 
-        {done ? (
-          <DoneScreen onClose={finish} />
-        ) : (
-          <>
-            {/* ✅ 진행률 바 — 상단 */}
-            <div style={{ marginBottom: 22 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", letterSpacing: "1px", textTransform: "uppercase" }}>
-                  시작 가이드
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: s.color }}>
-                  {step + 1} / {STEPS.length}
-                </span>
-              </div>
-              <div style={{ height: 5, borderRadius: 5, background: "var(--border)", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${((step + 1) / STEPS.length) * 100}%`, background: `linear-gradient(90deg, ${s.color}, ${s.color}cc)`, borderRadius: 5, transition: "width .4s ease" }} />
-              </div>
-              {/* 단계 인디케이터 */}
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-                {STEPS.map((st, i) => (
-                  <span key={i} style={{ fontSize: 10, fontWeight: 700, color: i <= step ? st.color : "#c0c0cc" }}>
-                    {i < step ? "✓ " : ""}{["물건", "세입자", "수금"][i]}
-                  </span>
+        <div style={{ padding: "32px 32px 28px" }}>
+          {/* 스텝 0: 환영 */}
+          {step === 0 && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 56, marginBottom: 20 }}>{current.emoji}</div>
+              <h1 style={{ fontSize: 22, fontWeight: 900, color: "#1a2744", marginBottom: 8 }}>
+                {current.title}
+              </h1>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#5b4fcf", marginBottom: 16 }}>
+                {current.subtitle}
+              </p>
+              <p style={{ fontSize: 14, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 28, whiteSpace: "pre-line" }}>
+                {current.desc}
+              </p>
+              {/* 핵심 기능 4개 */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24, textAlign: "left" }}>
+                {QUICK_FEATURES.map(f => (
+                  <div key={f.title} style={{ background: "#f8f7f4", borderRadius: 12, padding: "12px 14px" }}>
+                    <span style={{ fontSize: 20, display: "block", marginBottom: 6 }}>{f.icon}</span>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#1a2744", marginBottom: 3 }}>{f.title}</p>
+                    <p style={{ fontSize: 11, color: "#8a8a9a", lineHeight: 1.4 }}>{f.desc}</p>
+                  </div>
                 ))}
               </div>
             </div>
+          )}
 
-            {/* 아이콘 */}
-            <div style={{ width: 68, height: 68, borderRadius: 20, background: s.bg, border: `2px solid ${s.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, margin: "0 auto 18px" }}>
-              {s.icon}
+          {/* 스텝 1: 물건 등록 유도 */}
+          {step === 1 && (
+            <div>
+              <div style={{ fontSize: 48, marginBottom: 16, textAlign: "center" }}>{current.emoji}</div>
+              <h2 style={{ fontSize: 20, fontWeight: 900, color: "#1a2744", marginBottom: 6, textAlign: "center" }}>{current.title}</h2>
+              <p style={{ fontSize: 13, color: "#8a8a9a", marginBottom: 24, textAlign: "center" }}>{current.subtitle}</p>
+
+              {/* 물건 유형 선택 */}
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10 }}>어떤 물건을 관리하시나요?</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 20 }}>
+                {[
+                  { type: "주거", icon: "🏠", desc: "아파트·빌라·오피스텔" },
+                  { type: "상가", icon: "🏪", desc: "1층 상가·오피스" },
+                  { type: "토지", icon: "🌱", desc: "나대지·농지·임야" },
+                ].map(item => (
+                  <button key={item.type} onClick={() => setPropertyType(item.type)} style={{
+                    padding: "14px 10px", borderRadius: 12, cursor: "pointer", textAlign: "center",
+                    border: `2px solid ${propertyType === item.type ? "#1a2744" : "#ebe9e3"}`,
+                    background: propertyType === item.type ? "rgba(26,39,68,0.05)" : "transparent",
+                    transition: "all .15s",
+                  }}>
+                    <div style={{ fontSize: 24, marginBottom: 6 }}>{item.icon}</div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#1a2744", marginBottom: 2 }}>{item.type}</p>
+                    <p style={{ fontSize: 10, color: "#8a8a9a" }}>{item.desc}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* 필요 정보 미리보기 */}
+              <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "14px 16px", marginBottom: 8 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#1a2744", marginBottom: 10 }}>등록 시 필요한 정보</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {[
+                    "📍 주소 (도로명 검색 지원)",
+                    "👤 세입자 이름 + 연락처",
+                    "💰 월세·보증금·계약 기간",
+                  ].map(item => (
+                    <div key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 16, height: 16, borderRadius: 4, background: "#0fa573", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span style={{ color: "#fff", fontSize: 10 }}>✓</span>
+                      </div>
+                      <span style={{ fontSize: 12, color: "#6a6a7a" }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* 내용 */}
-            <h2 style={{ fontSize: 19, fontWeight: 900, color: "var(--text)", textAlign: "center", marginBottom: 10, letterSpacing: "-.4px" }}>
-              {s.title}
-            </h2>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", lineHeight: 1.8, marginBottom: 8, whiteSpace: "pre-line" }}>
-              {s.desc}
-            </p>
+          {/* 스텝 2: 완료 */}
+          {step === 2 && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 56, marginBottom: 20 }}>{current.emoji}</div>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: "#1a2744", marginBottom: 8 }}>{current.title}</h2>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#5b4fcf", marginBottom: 16 }}>{current.subtitle}</p>
+              <p style={{ fontSize: 14, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 24, whiteSpace: "pre-line" }}>{current.desc}</p>
 
-            {/* ✅ 팁 + 혜택 */}
-            <div style={{ background: s.bg, borderRadius: 10, padding: "10px 14px", marginBottom: 8, textAlign: "center" }}>
-              <p style={{ fontSize: 12, color: s.color, fontWeight: 700, margin: 0 }}>💡 {s.tip}</p>
+              {/* 다음 추천 액션 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, textAlign: "left" }}>
+                {[
+                  { icon: "👤", label: "세입자 연결하기", desc: "수금·계약 추적 시작", color: "#5b4fcf", page: "tenants" },
+                  { icon: "💰", label: "수금 현황 확인", desc: "이번 달 납부 상태", color: "#0fa573", page: "payments" },
+                  { icon: "🧾", label: "세금 미리 계산", desc: "종합소득세 추정", color: "#e8960a", page: "tax" },
+                ].map(item => (
+                  <button key={item.page} onClick={() => { onClose(); router.push("/dashboard/" + item.page); }} style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                    borderRadius: 12, border: `1px solid ${item.color}25`,
+                    background: item.color + "08", cursor: "pointer", width: "100%",
+                  }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
+                    <div style={{ textAlign: "left" }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", margin: 0 }}>{item.label}</p>
+                      <p style={{ fontSize: 11, color: "#8a8a9a", margin: 0 }}>{item.desc}</p>
+                    </div>
+                    <span style={{ marginLeft: "auto", fontSize: 12, color: item.color, fontWeight: 700 }}>→</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ background: "rgba(15,165,115,0.05)", border: "1px solid rgba(15,165,115,0.15)", borderRadius: 10, padding: "8px 14px", marginBottom: 20, textAlign: "center" }}>
-              <p style={{ fontSize: 11, color: "#0fa573", fontWeight: 600, margin: 0 }}>🎯 {s.benefit}</p>
-            </div>
+          )}
 
-            {/* 메인 CTA */}
-            <button
-              onClick={() => goStep(s.path)}
-              style={{ width: "100%", padding: "13px", borderRadius: 12, background: `linear-gradient(135deg,${s.color},${s.color}cc)`, color: "#fff", border: "none", fontWeight: 800, fontSize: 14, cursor: "pointer", marginBottom: 8, boxShadow: `0 4px 16px ${s.color}30` }}
-            >
-              {s.cta}
+          {/* CTA 버튼 */}
+          <button onClick={handleCta} style={{
+            width: "100%", padding: "14px", borderRadius: 14, marginTop: 20,
+            background: "linear-gradient(135deg, #1a2744, #2d4270)",
+            border: "none", color: "#fff", fontWeight: 800, fontSize: 15,
+            cursor: "pointer", boxShadow: "0 4px 16px rgba(26,39,68,0.25)",
+          }}>
+            {current.cta}
+          </button>
+
+          {/* 스킵 */}
+          {current.skip && (
+            <button onClick={handleSkip} style={{
+              width: "100%", padding: "10px", marginTop: 8, borderRadius: 10,
+              background: "transparent", border: "none", color: "#8a8a9a",
+              fontSize: 13, fontWeight: 600, cursor: "pointer",
+            }}>
+              나중에 등록하기
             </button>
+          )}
 
-            {/* 다음/이전 */}
-            <div style={{ display: "flex", gap: 8 }}>
-              {step > 0 && (
-                <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: "10px", borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-                  ← 이전
-                </button>
-              )}
-              {step < STEPS.length - 1 ? (
-                <button onClick={() => setStep(s => s + 1)} style={{ flex: 2, padding: "10px", borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                  다음 →
-                </button>
-              ) : (
-                <button onClick={handleComplete} style={{ flex: 2, padding: "10px", borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                  완료 ✓
-                </button>
-              )}
-            </div>
-
-            {/* 건너뛰기 — 덜 눈에 띄게 */}
-            <p style={{ textAlign: "center", marginTop: 12 }}>
-              <button onClick={finish} style={{ background: "none", border: "none", fontSize: 11, color: "#c0c0cc", cursor: "pointer" }}>
-                나중에 하기
-              </button>
-            </p>
-          </>
-        )}
+          {/* 스텝 인디케이터 */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 16 }}>
+            {STEPS.map((_, i) => (
+              <div key={i} style={{
+                width: i === step ? 20 : 6, height: 6, borderRadius: 3,
+                background: i === step ? "#1a2744" : "#e0ddd8",
+                transition: "all .3s",
+              }} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
