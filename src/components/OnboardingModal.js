@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const STEPS = [
   { id: "welcome", cta: "시작하기", skip: false },
@@ -7,19 +7,29 @@ const STEPS = [
   { id: "done", cta: "대시보드로 이동", skip: false },
 ];
 
-export default function OnboardingModal({ onClose }) {
+// ✅ React state에 의존하지 않고 DOM에서 직접 모달을 숨김
+// onClose prop 완전히 제거 — React 리렌더링 race condition 원천 차단
+export default function OnboardingModal() {
   const [step, setStep] = useState(0);
   const [pType, setPType] = useState("주거");
+  const [visible, setVisible] = useState(true);
 
   const close = (path) => {
-    // localStorage 먼저 저장
     try { localStorage.setItem("ownly_onboarding_done", "1"); } catch(e) {}
-    // onClose를 다음 tick에 실행해서 React 상태 race condition 방지
-    setTimeout(() => {
-      if (typeof onClose === "function") onClose();
-      if (path) window.location.href = path;
-    }, 0);
+    setVisible(false);
+    if (path) {
+      setTimeout(() => { window.location.href = path; }, 80);
+    }
   };
+
+  // 이미 완료됐으면 즉시 숨김
+  useEffect(() => {
+    if (localStorage.getItem("ownly_onboarding_done")) {
+      setVisible(false);
+    }
+  }, []);
+
+  if (!visible) return null;
 
   const next = () => setStep(s => Math.min(s + 1, 2));
   const last = () => setStep(2);
