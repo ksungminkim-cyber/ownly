@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const STEPS = [
@@ -46,6 +46,17 @@ export default function OnboardingModal({ onClose }) {
   const [propertyType, setPropertyType] = useState("주거");
   const current = STEPS[step];
 
+  // ✅ 모달 닫기 — localStorage 저장 + onClose 호출을 한 곳에서
+  const handleClose = (navigateTo) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ownly_onboarding_done", "1");
+    }
+    onClose(); // 부모의 setShowOnboarding(false) 호출
+    if (navigateTo) {
+      router.push(navigateTo);
+    }
+  };
+
   const goNext = () => {
     if (animating) return;
     setAnimating(true);
@@ -58,21 +69,20 @@ export default function OnboardingModal({ onClose }) {
   const handleCta = () => {
     if (step === 0) { goNext(); return; }
     if (step === 1) {
-      // 물건 등록 페이지로 이동 후 모달 닫기
-      onClose();
-      router.push("/dashboard/properties");
+      // 물건 등록 페이지로 이동
+      handleClose("/dashboard/properties");
       return;
     }
     if (step === 2) {
-      onClose();
+      // 대시보드 이동 — 이미 대시보드에 있으므로 그냥 닫기
+      handleClose();
       return;
     }
   };
 
   const handleSkip = () => {
-    if (step < STEPS.length - 1) {
-      setStep(STEPS.length - 1);
-    }
+    // 스킵 시 마지막 스텝으로 이동
+    setStep(STEPS.length - 1);
   };
 
   return (
@@ -99,6 +109,7 @@ export default function OnboardingModal({ onClose }) {
         </div>
 
         <div style={{ padding: "32px 32px 28px" }}>
+
           {/* 스텝 0: 환영 */}
           {step === 0 && (
             <div style={{ textAlign: "center" }}>
@@ -112,7 +123,6 @@ export default function OnboardingModal({ onClose }) {
               <p style={{ fontSize: 14, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 28, whiteSpace: "pre-line" }}>
                 {current.desc}
               </p>
-              {/* 핵심 기능 4개 */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24, textAlign: "left" }}>
                 {QUICK_FEATURES.map(f => (
                   <div key={f.title} style={{ background: "#f8f7f4", borderRadius: 12, padding: "12px 14px" }}>
@@ -131,8 +141,6 @@ export default function OnboardingModal({ onClose }) {
               <div style={{ fontSize: 48, marginBottom: 16, textAlign: "center" }}>{current.emoji}</div>
               <h2 style={{ fontSize: 20, fontWeight: 900, color: "#1a2744", marginBottom: 6, textAlign: "center" }}>{current.title}</h2>
               <p style={{ fontSize: 13, color: "#8a8a9a", marginBottom: 24, textAlign: "center" }}>{current.subtitle}</p>
-
-              {/* 물건 유형 선택 */}
               <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10 }}>어떤 물건을 관리하시나요?</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 20 }}>
                 {[
@@ -152,16 +160,10 @@ export default function OnboardingModal({ onClose }) {
                   </button>
                 ))}
               </div>
-
-              {/* 필요 정보 미리보기 */}
-              <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "14px 16px", marginBottom: 8 }}>
+              <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "14px 16px" }}>
                 <p style={{ fontSize: 11, fontWeight: 700, color: "#1a2744", marginBottom: 10 }}>등록 시 필요한 정보</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {[
-                    "📍 주소 (도로명 검색 지원)",
-                    "👤 세입자 이름 + 연락처",
-                    "💰 월세·보증금·계약 기간",
-                  ].map(item => (
+                  {["📍 주소 (도로명 검색 지원)", "👤 세입자 이름 + 연락처", "💰 월세·보증금·계약 기간"].map(item => (
                     <div key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 16, height: 16, borderRadius: 4, background: "#0fa573", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <span style={{ color: "#fff", fontSize: 10 }}>✓</span>
@@ -181,15 +183,14 @@ export default function OnboardingModal({ onClose }) {
               <h2 style={{ fontSize: 22, fontWeight: 900, color: "#1a2744", marginBottom: 8 }}>{current.title}</h2>
               <p style={{ fontSize: 13, fontWeight: 600, color: "#5b4fcf", marginBottom: 16 }}>{current.subtitle}</p>
               <p style={{ fontSize: 14, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 24, whiteSpace: "pre-line" }}>{current.desc}</p>
-
-              {/* 다음 추천 액션 */}
+              {/* 추천 액션 — 클릭 시 바로 이동 + 모달 닫기 */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8, textAlign: "left" }}>
                 {[
-                  { icon: "👤", label: "세입자 연결하기", desc: "수금·계약 추적 시작", color: "#5b4fcf", page: "tenants" },
-                  { icon: "💰", label: "수금 현황 확인", desc: "이번 달 납부 상태", color: "#0fa573", page: "payments" },
-                  { icon: "🧾", label: "세금 미리 계산", desc: "종합소득세 추정", color: "#e8960a", page: "tax" },
+                  { icon: "👤", label: "세입자 연결하기", desc: "수금·계약 추적 시작", color: "#5b4fcf", page: "/dashboard/tenants" },
+                  { icon: "💰", label: "수금 현황 확인", desc: "이번 달 납부 상태", color: "#0fa573", page: "/dashboard/payments" },
+                  { icon: "🧾", label: "세금 미리 계산", desc: "종합소득세 추정", color: "#e8960a", page: "/dashboard/tax" },
                 ].map(item => (
-                  <button key={item.page} onClick={() => { onClose(); router.push("/dashboard/" + item.page); }} style={{
+                  <button key={item.page} onClick={() => handleClose(item.page)} style={{
                     display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
                     borderRadius: 12, border: `1px solid ${item.color}25`,
                     background: item.color + "08", cursor: "pointer", width: "100%",
