@@ -2,11 +2,54 @@
 
 const TYPE_CONFIG = { 주거: { icon: "🏠", color: C.indigo, subs: ["아파트","빌라","오피스텔","단독주택","원룸","투룸"] }, 상가: { icon: "🏪", color: C.amber, subs: ["1층 상가","집합상가","근린상가","오피스"] }, 오피스텔: { icon: "🏢", color: C.purple, subs: ["오피스텔(주거)","오피스텔(업무)"] }, 토지: { icon: "🌳", color: "#0d9488", subs: ["나대지","농지","임야","대지"] } };
 
-function buildListingText(v, gf) {
-  const sub = gf(v,"sub_type","sub")||""; const addr = gf(v,"addr","address")||"";
-  const rent = Number(gf(v,"expected_rent","expectedRent")||0); const dep = Number(gf(v,"deposit","dep")||0); const maint = Number(v.maintenance||0);
-  return [`[${sub||gf(v,"p_type","pType")||"주거"} 임대 매물]`,`📍 위치: ${addr}`,dep>0?`💵 보증금: ${dep.toLocaleString()}만원`:null,rent>0?`💰 월세: ${rent.toLocaleString()}만원`:null,maint>0?`🏢 관리비: ${maint.toLocaleString()}만원 별도`:null,v.note?`📝 특이사항: ${v.note}`:null,"","✅ 즉시 입주 가능","📞 문의 주시면 빠른 답변 드립니다"].filter(l=>l!==null).join("\n");
+// 공실 기간별 액션플랜 단계
+const ACTION_PLAN = {
+  new: {
+    label: "신규 공실 (0~14일)", color: "#0fa573", icon: "📢",
+    steps: [
+      { id: "photo", icon: "📸", text: "매물 사진 촬영 (밝은 낮 시간, 최소 10장)" },
+      { id: "copy", icon: "📋", text: "아래 매물 정보 복사 → 네이버·직방·다방 동시 등록" },
+      { id: "agent", icon: "🤝", text: "인근 중개사 2~3곳에 매물 공유" },
+      { id: "price", icon: "💰", text: "AI 시세 분석으로 적정 임대료 확인" },
+    ]
+  },
+  warn: {
+    label: "주의 단계 (15~60일)", color: C.amber, icon: "⚠️",
+    steps: [
+      { id: "reprice", icon: "📉", text: "임대료 5~10% 인하 검토 (AI 시세 재확인)" },
+      { id: "moreagent", icon: "🏘️", text: "중개사 추가 접촉 — 이번 달 내 성사 시 중개비 인센티브 제안" },
+      { id: "listing", icon: "🔄", text: "매물 게시 갱신 (7일마다 끌어올리기)" },
+      { id: "repair", icon: "🔧", text: "소규모 수리·청소로 매물 컨디션 개선" },
+    ]
+  },
+  danger: {
+    label: "장기 공실 (61~90일)", color: "#f97316", icon: "🔔",
+    steps: [
+      { id: "bigcut", icon: "💸", text: "임대료 10~20% 인하 또는 보증금 조정 고려" },
+      { id: "remodel", icon: "🎨", text: "도배·장판 등 리모델링으로 경쟁력 회복" },
+      { id: "tax", icon: "🧾", text: "공실 기간 필요경비(관리비·대출이자) 세금 관리 탭에 등록" },
+      { id: "shortterm", icon: "📅", text: "단기 임대 또는 용도 변경 검토" },
+    ]
+  },
+  critical: {
+    label: "위험 단계 (90일+)", color: C.rose, icon: "🚨",
+    steps: [
+      { id: "consult", icon: "👨‍💼", text: "세무사·공인중개사 전문 상담 — 매각 vs 유지 손익 비교" },
+      { id: "pricereset", icon: "🔃", text: "시세 20~30% 인하 또는 권리금 조정 협상" },
+      { id: "contents", icon: "🏪", text: "팝업스토어·단기 임대 플랫폼 활용 검토" },
+      { id: "sellplan", icon: "📊", text: "보유·매각 시뮬레이션으로 의사결정 근거 확보" },
+    ]
+  }
+};
+
+function getActionPlan(days) {
+  if (days >= 90) return ACTION_PLAN.critical;
+  if (days >= 61) return ACTION_PLAN.danger;
+  if (days >= 15) return ACTION_PLAN.warn;
+  return ACTION_PLAN.new;
 }
+
+function buildListingText(v, gf) { const sub = gf(v,"sub_type","sub")||""; const addr = gf(v,"addr","address")||""; const rent = Number(gf(v,"expected_rent","expectedRent")||0); const dep = Number(gf(v,"deposit","dep")||0); const maint = Number(v.maintenance||0); return [`[${sub||gf(v,"p_type","pType")||"주거"} 임대 매물]`,`📍 위치: ${addr}`,dep>0?`💵 보증금: ${dep.toLocaleString()}만원`:null,rent>0?`💰 월세: ${rent.toLocaleString()}만원`:null,maint>0?`🏢 관리비: ${maint.toLocaleString()}만원 별도`:null,v.note?`📝 특이사항: ${v.note}`:null,"","✅ 즉시 입주 가능","📞 문의 주시면 빠른 답변 드립니다"].filter(l=>l!==null).join("\n"); }
 
 export default function VacancyPage() { return <PlanGate feature="vacancy"><VacancyContent /></PlanGate>; }
 
@@ -18,6 +61,8 @@ function VacancyContent() {
   const [filterType, setFilterType] = useState("전체");
   const [completeTarget, setCompleteTarget] = useState(null);
   const [copyTarget, setCopyTarget] = useState(null);
+  const [openPlan, setOpenPlan] = useState(null); // 액션플랜 열린 공실 id
+  const [checkedSteps, setCheckedSteps] = useState({}); // {vacancyId_stepId: bool}
 
   const initForm = () => ({ addr:"", pType:"주거", sub:"아파트", vacantSince:new Date().toISOString().slice(0,10), expectedRent:"", dep:"", maintenance:"", note:"" });
   const [form, setForm] = useState(initForm());
@@ -35,15 +80,14 @@ function VacancyContent() {
   const showMaint = form.pType==="상가"||form.pType==="오피스텔";
   const totalRent = Number(form.expectedRent||0)+Number(form.maintenance||0);
 
+  const toggleStep = (vacId, stepId) => {
+    const key = `${vacId}_${stepId}`;
+    setCheckedSteps(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const handleAdd = async()=>{ if(!form.addr){toast("주소를 입력하세요","error");return;} setSaving(true); try{ await addVacancy({addr:form.addr,p_type:form.pType,sub_type:form.sub,vacant_since:form.vacantSince,expected_rent:Number(form.expectedRent||0),deposit:Number(form.dep||0),maintenance:Number(form.maintenance||0),note:form.note,color:COLORS[Math.floor(Math.random()*COLORS.length)]}); toast("공실이 등록되었습니다"); setShowModal(false); setForm(initForm()); }catch{ toast("등록 중 오류가 발생했습니다","error"); }finally{ setSaving(false); } };
   const handleComplete = async()=>{ const v=completeTarget; if(!v)return; try{ v._source==="tenant" ? await updateTenant(v.tenantId,{status:"정상"}) : await deleteVacancy(v.id); toast("임대 완료 처리되었습니다"); setCompleteTarget(null); router.push("/dashboard/properties"); }catch{ toast("처리 중 오류가 발생했습니다","error"); setCompleteTarget(null); } };
-
-  const copyListing = (v) => {
-    const text = buildListingText(v, gf);
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(()=>toast("📋 복사 완료! 네이버·직방·다방에 바로 붙여넣기 하세요")).catch(()=>setCopyTarget(v));
-    } else { setCopyTarget(v); }
-  };
+  const copyListing = (v) => { const text = buildListingText(v, gf); if (navigator.clipboard) { navigator.clipboard.writeText(text).then(()=>toast("📋 복사 완료! 네이버·직방·다방에 바로 붙여넣기 하세요")).catch(()=>setCopyTarget(v)); } else { setCopyTarget(v); } };
 
   return (
     <div className="page-in page-padding" style={{ maxWidth:960 }}>
@@ -59,8 +103,14 @@ function VacancyContent() {
         </div>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:13, marginBottom:20 }}>
-        {[{l:"공실률",v:vacancyRate+"%",c:vacancyRate>10?C.rose:C.emerald,sub:vacancyRate>10?"주의 필요":"양호"},{l:"공실 수",v:allVacancies.length+"실",c:C.amber,sub:`전체 ${totalUnits}실 중`},{l:"월간 손실 추정",v:monthlyLoss.toLocaleString()+"만원",c:C.rose,sub:"공실 기대 월세 합계"},{l:"누적 손실 추정",v:Math.round(cumulativeLoss).toLocaleString()+"만원",c:"#c2410c",sub:"공실 시작일 기준"},{l:"평균 공실 기간",v:allVacancies.length>0?Math.round(allVacancies.reduce((s,v)=>s+vacantDays(gf(v,"vacant_since","vacantSince")||new Date().toISOString().slice(0,10)),0)/allVacancies.length)+"일":"—",c:C.navy,sub:"공실 평균"}].map(k=>(
+      {/* ✅ 상단 지표 카드 - 누적 손실 강조 */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:13, marginBottom: cumulativeLoss > 0 ? 0 : 20 }}>
+        {[
+          {l:"공실률",v:vacancyRate+"%",c:vacancyRate>10?C.rose:C.emerald,sub:vacancyRate>10?"주의 필요":"양호"},
+          {l:"공실 수",v:allVacancies.length+"실",c:C.amber,sub:`전체 ${totalUnits}실 중`},
+          {l:"월간 손실 추정",v:monthlyLoss.toLocaleString()+"만원",c:C.rose,sub:"공실 기대 월세 합계"},
+          {l:"평균 공실 기간",v:allVacancies.length>0?Math.round(allVacancies.reduce((s,v)=>s+vacantDays(gf(v,"vacant_since","vacantSince")||new Date().toISOString().slice(0,10)),0)/allVacancies.length)+"일":"—",c:C.navy,sub:"공실 평균"},
+        ].map(k=>(
           <div key={k.l} style={{ background:"#fff", border:"1px solid #ebe9e3", borderRadius:15, padding:"18px 20px" }}>
             <p style={{ fontSize:10, color:"#8a8a9a", fontWeight:700, textTransform:"uppercase", letterSpacing:".5px", marginBottom:7 }}>{k.l}</p>
             <p style={{ fontSize:22, fontWeight:800, color:k.c }}>{k.v}</p>
@@ -68,6 +118,24 @@ function VacancyContent() {
           </div>
         ))}
       </div>
+
+      {/* ✅ 누적 손실 강조 배너 */}
+      {cumulativeLoss > 0 && (
+        <div style={{ margin:"14px 0 20px", padding:"18px 22px", background:"linear-gradient(135deg, #7f1d1d, #991b1b)", borderRadius:15, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+          <div>
+            <p style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.6)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 }}>공실 시작일 기준 누적 손실 추정</p>
+            <p style={{ fontSize:32, fontWeight:900, color:"#fff", margin:0, letterSpacing:"-1px" }}>
+              {Math.round(cumulativeLoss).toLocaleString()}<span style={{ fontSize:16, fontWeight:600, marginLeft:4 }}>만원</span>
+            </p>
+            <p style={{ fontSize:12, color:"rgba(255,255,255,0.65)", marginTop:4 }}>
+              하루 더 공실이면 <b style={{ color:"#fca5a5" }}>+{Math.round(monthlyLoss/30).toLocaleString()}만원</b> 추가 손실
+            </p>
+          </div>
+          <button onClick={()=>router.push("/dashboard/premium/ai-report")} style={{ padding:"11px 20px", borderRadius:11, background:"rgba(255,255,255,0.15)", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer", whiteSpace:"nowrap" }}>
+            🤖 AI 시세 분석으로 해결하기 →
+          </button>
+        </div>
+      )}
 
       {allVacancies.length>0 && (
         <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
@@ -79,54 +147,108 @@ function VacancyContent() {
         </div>
       )}
 
-      {allVacancies.length===0 ? <EmptyState icon="✅" title="공실이 없습니다" desc="모든 호실이 임대 중입니다" action="공실 등록" onAction={()=>setShowModal(true)} />
-      : filtered.length===0 ? <EmptyState icon="🔍" title="해당 유형의 공실이 없습니다" desc="다른 유형 필터를 선택해보세요" />
-      : (
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+      {allVacancies.length===0 ? (
+        <EmptyState icon="✅" title="공실이 없습니다" desc="모든 호실이 임대 중입니다" action="공실 등록" onAction={()=>setShowModal(true)} />
+      ) : filtered.length===0 ? (
+        <EmptyState icon="🔍" title="해당 유형의 공실이 없습니다" desc="다른 유형 필터를 선택해보세요" />
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           {filtered.map(v=>{
-            const pType=gf(v,"p_type","pType")||"주거"; const sub=gf(v,"sub_type","sub")||""; const addr=gf(v,"addr","address")||"";
+            const pType=gf(v,"p_type","pType")||"주거";
+            const sub=gf(v,"sub_type","sub")||"";
+            const addr=gf(v,"addr","address")||"";
             const since=gf(v,"vacant_since","vacantSince")||new Date().toISOString().slice(0,10);
-            const rent=Number(gf(v,"expected_rent","expectedRent")||0); const dep=Number(gf(v,"deposit","dep")||0); const maint=Number(v.maintenance||0);
-            const days=vacantDays(since); const cfg=TYPE_CONFIG[pType]||TYPE_CONFIG["주거"];
-            const urgency=days>=90?{c:C.rose,label:"⚠️ 장기공실"}:days>=30?{c:C.amber,label:"🔔 주의"}:{c:C.emerald,label:"🟢 신규"};
+            const rent=Number(gf(v,"expected_rent","expectedRent")||0);
+            const dep=Number(gf(v,"deposit","dep")||0);
+            const maint=Number(v.maintenance||0);
+            const days=vacantDays(since);
+            const cfg=TYPE_CONFIG[pType]||TYPE_CONFIG["주거"];
+            const urgency=days>=90?{c:C.rose,label:"🚨 장기공실"}:days>=61?{c:"#f97316",label:"🔔 위험"}:days>=15?{c:C.amber,label:"⚠️ 주의"}:{c:C.emerald,label:"🟢 신규"};
             const cardLoss=Math.round(rent*Math.max(0,days/30.44));
-            const guide=days>=90
-              ?{msg:"장기공실 90일 초과 — 임대료 인하 또는 리모델링 검토를 권장합니다. AI 시세 분석으로 주변 시세를 확인하세요.",c:C.rose,icon:"🚨"}
-              :days>=30
-              ?{msg:"30일 이상 공실 — 네이버·직방 매물 노출을 확인하고 중개사 접촉을 늘리세요. 아래 복사 버튼으로 즉시 공유하세요.",c:C.amber,icon:"💡"}
-              :{msg:"매물 등록 직후 — 아래 복사 버튼으로 네이버·직방·다방에 즉시 게시하세요. 평균 2주 이내 임대 완료됩니다.",c:"#0fa573",icon:"📢"};
+            const plan = getActionPlan(days);
+            const isOpen = openPlan === v.id;
+            const doneCount = plan.steps.filter(s => checkedSteps[`${v.id}_${s.id}`]).length;
+
             return (
-              <div key={v.id} className="hover-lift" style={{ background:"#fff", border:`1px solid ${urgency.c}22`, borderRadius:16, padding:"18px 22px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:"flex", gap:6, marginBottom:8, flexWrap:"wrap" }}>
-                      <span style={{ fontSize:10, fontWeight:700, color:cfg.color, background:cfg.color+"18", padding:"2px 8px", borderRadius:5 }}>{cfg.icon} {sub||pType}</span>
-                      <span style={{ fontSize:10, fontWeight:700, color:urgency.c, background:urgency.c+"15", padding:"2px 8px", borderRadius:5 }}>{urgency.label} D+{days}</span>
-                      {v._source==="tenant"&&<span style={{ fontSize:10, fontWeight:700, color:"#5b4fcf", background:"rgba(91,79,207,0.1)", padding:"2px 8px", borderRadius:5 }}>🔗 물건 관리 연동</span>}
-                      {days>=90&&<span style={{ fontSize:10, fontWeight:700, color:"#fff", background:C.rose, padding:"2px 8px", borderRadius:5 }}>누적손실 {cardLoss.toLocaleString()}만원</span>}
+              <div key={v.id} style={{ background:"#fff", border:`1.5px solid ${urgency.c}30`, borderRadius:16, overflow:"hidden" }}>
+                {/* 카드 메인 */}
+                <div style={{ padding:"18px 22px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:"flex", gap:6, marginBottom:8, flexWrap:"wrap" }}>
+                        <span style={{ fontSize:10, fontWeight:700, color:cfg.color, background:cfg.color+"18", padding:"2px 8px", borderRadius:5 }}>{cfg.icon} {sub||pType}</span>
+                        <span style={{ fontSize:10, fontWeight:700, color:urgency.c, background:urgency.c+"15", padding:"2px 8px", borderRadius:5 }}>{urgency.label} D+{days}</span>
+                        {v._source==="tenant"&&<span style={{ fontSize:10, fontWeight:700, color:"#5b4fcf", background:"rgba(91,79,207,0.1)", padding:"2px 8px", borderRadius:5 }}>🔗 물건 관리 연동</span>}
+                      </div>
+                      <p style={{ fontSize:15, fontWeight:700, color:"#1a2744", marginBottom:5 }}>{addr}</p>
+                      <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
+                        {rent>0&&<span style={{ fontSize:12, color:"#8a8a9a" }}>💰 기대 월세 <b style={{ color:"#1a2744" }}>{rent.toLocaleString()}만원</b></span>}
+                        {dep>0&&<span style={{ fontSize:12, color:"#8a8a9a" }}>🏦 보증금 <b style={{ color:"#1a2744" }}>{dep.toLocaleString()}만원</b></span>}
+                        {maint>0&&<span style={{ fontSize:12, color:"#8a8a9a" }}>🏢 관리비 <b style={{ color:"#1a2744" }}>{maint.toLocaleString()}만원</b></span>}
+                      </div>
+                      {v.note&&<p style={{ fontSize:12, color:"#8a8a9a", marginTop:5 }}>📝 {v.note}</p>}
+                      <p style={{ fontSize:11, color:"#8a8a9a", marginTop:4 }}>공실 시작: {since}</p>
+
+                      {/* 누적 손실 인라인 */}
+                      {cardLoss > 0 && (
+                        <div style={{ marginTop:8, display:"inline-flex", alignItems:"center", gap:6, background:urgency.c+"12", border:`1px solid ${urgency.c}30`, borderRadius:8, padding:"5px 10px" }}>
+                          <span style={{ fontSize:11, fontWeight:800, color:urgency.c }}>누적 손실 추정 {cardLoss.toLocaleString()}만원</span>
+                          <span style={{ fontSize:10, color:urgency.c, opacity:0.7 }}>({days}일 기준)</span>
+                        </div>
+                      )}
                     </div>
-                    <p style={{ fontSize:15, fontWeight:700, color:"#1a2744", marginBottom:5 }}>{addr}</p>
-                    <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
-                      {rent>0&&<span style={{ fontSize:12, color:"#8a8a9a" }}>💰 기대 월세 <b style={{ color:"#1a2744" }}>{rent.toLocaleString()}만원</b></span>}
-                      {dep>0&&<span style={{ fontSize:12, color:"#8a8a9a" }}>🏦 보증금 <b style={{ color:"#1a2744" }}>{dep.toLocaleString()}만원</b></span>}
-                      {maint>0&&<span style={{ fontSize:12, color:"#8a8a9a" }}>🏢 관리비 <b style={{ color:"#1a2744" }}>{maint.toLocaleString()}만원</b></span>}
+
+                    <div style={{ display:"flex", flexDirection:"column", gap:7, alignItems:"stretch", minWidth:140 }}>
+                      <button onClick={()=>setCompleteTarget(v)} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:`1px solid ${C.emerald}40`, background:C.emerald+"12", color:"#0fa573" }}>✅ 임대 완료</button>
+                      <button onClick={()=>copyListing(v)} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid rgba(59,91,219,0.35)", background:"rgba(59,91,219,0.07)", color:"#3b5bdb" }}>📋 매물 정보 복사</button>
+                      <button onClick={()=>router.push("/dashboard/premium/ai-report")} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid rgba(15,165,115,0.3)", background:"rgba(15,165,115,0.06)", color:"#0fa573" }}>🤖 AI 시세 분석</button>
+                      <p style={{ fontSize:10, color:"#8a8a9a", textAlign:"center", margin:0 }}>공실 {days}일째</p>
                     </div>
-                    {v.note&&<p style={{ fontSize:12, color:"#8a8a9a", marginTop:5 }}>📝 {v.note}</p>}
-                    <p style={{ fontSize:11, color:"#8a8a9a", marginTop:4 }}>공실 시작: {since}</p>
-                    {/* ✅ ① 기간별 액션 가이드 */}
-                    <div style={{ marginTop:10, padding:"9px 13px", background:guide.c+"10", border:`1px solid ${guide.c}30`, borderRadius:9, display:"flex", alignItems:"flex-start", gap:8 }}>
-                      <span style={{ fontSize:14, flexShrink:0 }}>{guide.icon}</span>
-                      <p style={{ fontSize:11, color:guide.c, fontWeight:600, margin:0, lineHeight:1.6 }}>{guide.msg}</p>
-                    </div>
-                  </div>
-                  <div style={{ display:"flex", flexDirection:"column", gap:7, alignItems:"stretch", minWidth:140 }}>
-                    <button onClick={()=>setCompleteTarget(v)} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:`1px solid ${C.emerald}40`, background:C.emerald+"12", color:"#0fa573" }}>✅ 임대 완료</button>
-                    {/* ✅ ① 매물 정보 원클릭 복사 */}
-                    <button onClick={()=>copyListing(v)} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid rgba(59,91,219,0.35)", background:"rgba(59,91,219,0.07)", color:"#3b5bdb" }}>📋 매물 정보 복사</button>
-                    <button onClick={()=>router.push("/dashboard/premium/ai-report")} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid rgba(15,165,115,0.3)", background:"rgba(15,165,115,0.06)", color:"#0fa573" }}>🤖 AI 시세 분석</button>
-                    <p style={{ fontSize:10, color:"#8a8a9a", textAlign:"center", margin:0 }}>공실 {days}일째</p>
                   </div>
                 </div>
+
+                {/* ✅ 액션플랜 위자드 토글 */}
+                <div
+                  onClick={()=>setOpenPlan(isOpen ? null : v.id)}
+                  style={{ padding:"11px 22px", background:plan.color+"0d", borderTop:`1px solid ${plan.color}20`, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between" }}
+                >
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:14 }}>{plan.icon}</span>
+                    <span style={{ fontSize:12, fontWeight:700, color:plan.color }}>{plan.label} 액션플랜</span>
+                    <span style={{ fontSize:11, color:plan.color, background:plan.color+"20", padding:"1px 8px", borderRadius:10, fontWeight:600 }}>{doneCount}/{plan.steps.length} 완료</span>
+                  </div>
+                  <span style={{ fontSize:12, color:plan.color, fontWeight:700 }}>{isOpen ? "▲ 닫기" : "▼ 펼치기"}</span>
+                </div>
+
+                {/* 액션플랜 스텝 */}
+                {isOpen && (
+                  <div style={{ padding:"14px 22px 18px", background:plan.color+"06", borderTop:`1px dashed ${plan.color}20` }}>
+                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                      {plan.steps.map((step, i) => {
+                        const done = !!checkedSteps[`${v.id}_${step.id}`];
+                        return (
+                          <div
+                            key={step.id}
+                            onClick={()=>toggleStep(v.id, step.id)}
+                            style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:done?"rgba(15,165,115,0.06)":"#fff", border:`1px solid ${done?"#0fa57340":"#ebe9e3"}`, borderRadius:10, cursor:"pointer", transition:"all .15s" }}
+                          >
+                            <div style={{ width:22, height:22, borderRadius:6, border:`2px solid ${done?"#0fa573":plan.color+"60"}`, background:done?"#0fa573":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                              {done && <span style={{ color:"#fff", fontSize:13, fontWeight:900 }}>✓</span>}
+                            </div>
+                            <span style={{ fontSize:13, color:"#8a8a9a", fontWeight:700, flexShrink:0 }}>0{i+1}</span>
+                            <span style={{ fontSize:13 }}>{step.icon}</span>
+                            <span style={{ fontSize:13, color:done?"#8a8a9a":"#1a2744", fontWeight:done?400:600, textDecoration:done?"line-through":"none", flex:1 }}>{step.text}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {doneCount === plan.steps.length && (
+                      <div style={{ marginTop:12, padding:"10px 14px", background:"rgba(15,165,115,0.1)", borderRadius:10, textAlign:"center" }}>
+                        <p style={{ fontSize:13, fontWeight:700, color:"#0fa573", margin:0 }}>🎉 이 단계 액션플랜 완료! 임대 완료 처리를 해주세요.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -134,14 +256,7 @@ function VacancyContent() {
       )}
 
       <Modal open={!!copyTarget} onClose={()=>setCopyTarget(null)} width={480}>
-        {copyTarget&&(
-          <div>
-            <h3 style={{ fontSize:16, fontWeight:800, color:"#1a2744", marginBottom:6 }}>📋 매물 정보 복사</h3>
-            <p style={{ fontSize:12, color:"#8a8a9a", marginBottom:14 }}>아래를 선택 후 복사 → 네이버·직방·다방에 붙여넣기</p>
-            <textarea readOnly value={buildListingText(copyTarget,gf)} rows={10} onClick={e=>e.target.select()} style={{ width:"100%", padding:"12px", fontSize:13, background:"#f8f7f4", border:"1px solid #ebe9e3", borderRadius:10, resize:"none", fontFamily:"inherit", color:"#1a2744", cursor:"text" }} />
-            <button onClick={()=>setCopyTarget(null)} style={{ width:"100%", marginTop:10, padding:"11px", borderRadius:10, background:"#1a2744", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>닫기</button>
-          </div>
-        )}
+        {copyTarget&&( <div> <h3 style={{ fontSize:16, fontWeight:800, color:"#1a2744", marginBottom:6 }}>📋 매물 정보 복사</h3> <p style={{ fontSize:12, color:"#8a8a9a", marginBottom:14 }}>아래를 선택 후 복사 → 네이버·직방·다방에 붙여넣기</p> <textarea readOnly value={buildListingText(copyTarget,gf)} rows={10} onClick={e=>e.target.select()} style={{ width:"100%", padding:"12px", fontSize:13, background:"#f8f7f4", border:"1px solid #ebe9e3", borderRadius:10, resize:"none", fontFamily:"inherit", color:"#1a2744", cursor:"text" }} /> <button onClick={()=>setCopyTarget(null)} style={{ width:"100%", marginTop:10, padding:"11px", borderRadius:10, background:"#1a2744", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>닫기</button> </div> )}
       </Modal>
 
       <ConfirmDialog open={!!completeTarget} title="임대 완료 처리" desc={completeTarget?`${gf(completeTarget,"addr","address")} 공실을 임대 완료 처리합니다. 처리 후 물건 관리 페이지로 이동해서 새 세입자 정보를 입력하시겠습니까?`:""} onConfirm={handleComplete} onCancel={()=>setCompleteTarget(null)} />
