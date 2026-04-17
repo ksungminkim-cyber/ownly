@@ -12,20 +12,22 @@ export default function OnboardingModal({ onClose }) {
   const [pType, setPType] = useState("주거");
 
   const close = (path) => {
+    // localStorage 먼저 저장
     try { localStorage.setItem("ownly_onboarding_done", "1"); } catch(e) {}
-    if (typeof onClose === "function") { onClose(); }
-    if (path) { setTimeout(() => { window.location.href = path; }, 80); }
+    // onClose를 다음 tick에 실행해서 React 상태 race condition 방지
+    setTimeout(() => {
+      if (typeof onClose === "function") onClose();
+      if (path) window.location.href = path;
+    }, 0);
   };
 
   const next = () => setStep(s => Math.min(s + 1, 2));
   const last = () => setStep(2);
-
   const ctaClick = () => {
     if (step === 0) { next(); return; }
     if (step === 1) { close("/dashboard/properties"); return; }
     close(null);
   };
-
   const bar = `${((step + 1) / 3) * 100}%`;
 
   return (
@@ -34,23 +36,17 @@ export default function OnboardingModal({ onClose }) {
       style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.55)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }}
     >
       <div style={{ background:"#fff", borderRadius:24, width:"100%", maxWidth:480, overflow:"hidden", boxShadow:"0 24px 80px rgba(26,39,68,0.25)" }}>
-
-        {/* 진행 바 */}
         <div style={{ height:4, background:"#f0efe9" }}>
           <div style={{ height:"100%", borderRadius:4, background:"linear-gradient(90deg,#1a2744,#5b4fcf)", width:bar, transition:"width .4s" }} />
         </div>
-
         <div style={{ padding:"32px 32px 28px" }}>
 
-          {/* 스텝 0 - 환영 */}
           {step === 0 && (
             <div style={{ textAlign:"center" }}>
               <div style={{ fontSize:52, marginBottom:16 }}>👋</div>
               <h1 style={{ fontSize:22, fontWeight:900, color:"#1a2744", marginBottom:6 }}>온리에 오신 걸 환영합니다</h1>
               <p style={{ fontSize:13, fontWeight:600, color:"#5b4fcf", marginBottom:14 }}>내 임대 물건, 온리 하나로</p>
-              <p style={{ fontSize:13, color:"#6a6a7a", lineHeight:1.7, marginBottom:24 }}>
-                수금부터 계약·세금·내용증명까지<br/>임대 관리에 필요한 모든 것을 한 곳에서.
-              </p>
+              <p style={{ fontSize:13, color:"#6a6a7a", lineHeight:1.7, marginBottom:24 }}>수금부터 계약·세금·내용증명까지<br/>임대 관리에 필요한 모든 것을 한 곳에서.</p>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:8, textAlign:"left" }}>
                 {[
                   { icon:"💰", t:"월세 수금 자동 추적", d:"납부일마다 현황 자동 업데이트" },
@@ -68,7 +64,6 @@ export default function OnboardingModal({ onClose }) {
             </div>
           )}
 
-          {/* 스텝 1 - 물건 등록 */}
           {step === 1 && (
             <div>
               <div style={{ fontSize:44, marginBottom:12, textAlign:"center" }}>🏠</div>
@@ -76,13 +71,9 @@ export default function OnboardingModal({ onClose }) {
               <p style={{ fontSize:13, color:"#8a8a9a", marginBottom:20, textAlign:"center" }}>2분이면 충분합니다</p>
               <p style={{ fontSize:11, fontWeight:700, color:"#8a8a9a", textTransform:"uppercase", letterSpacing:"1px", marginBottom:10 }}>어떤 물건을 관리하시나요?</p>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:18 }}>
-                {[
-                  { type:"주거", icon:"🏠", desc:"아파트·빌라" },
-                  { type:"상가", icon:"🏪", desc:"1층 상가" },
-                  { type:"토지", icon:"🌱", desc:"나대지·농지" },
-                ].map(item => (
+                {[{ type:"주거", icon:"🏠", desc:"아파트·빌라" }, { type:"상가", icon:"🏪", desc:"1층 상가" }, { type:"토지", icon:"🌱", desc:"나대지·농지" }].map(item => (
                   <button key={item.type} onClick={() => setPType(item.type)}
-                    style={{ padding:"12px 8px", borderRadius:12, cursor:"pointer", textAlign:"center", border:`2px solid ${pType === item.type ? "#1a2744" : "#ebe9e3"}`, background: pType === item.type ? "rgba(26,39,68,0.05)" : "transparent" }}>
+                    style={{ padding:"12px 8px", borderRadius:12, cursor:"pointer", textAlign:"center", border:`2px solid ${pType===item.type?"#1a2744":"#ebe9e3"}`, background:pType===item.type?"rgba(26,39,68,0.05)":"transparent" }}>
                     <div style={{ fontSize:22, marginBottom:5 }}>{item.icon}</div>
                     <p style={{ fontSize:12, fontWeight:700, color:"#1a2744", marginBottom:2 }}>{item.type}</p>
                     <p style={{ fontSize:10, color:"#8a8a9a" }}>{item.desc}</p>
@@ -103,15 +94,12 @@ export default function OnboardingModal({ onClose }) {
             </div>
           )}
 
-          {/* 스텝 2 - 완료 */}
           {step === 2 && (
             <div style={{ textAlign:"center" }}>
               <div style={{ fontSize:52, marginBottom:16 }}>🎉</div>
               <h2 style={{ fontSize:22, fontWeight:900, color:"#1a2744", marginBottom:6 }}>준비 완료!</h2>
               <p style={{ fontSize:13, fontWeight:600, color:"#5b4fcf", marginBottom:14 }}>이제 관리를 시작하세요</p>
-              <p style={{ fontSize:13, color:"#6a6a7a", lineHeight:1.7, marginBottom:20 }}>
-                세입자를 연결하고 수금 현황을 추적하면<br/>미납 알림과 계약 만료 알림을 자동으로 받을 수 있어요.
-              </p>
+              <p style={{ fontSize:13, color:"#6a6a7a", lineHeight:1.7, marginBottom:20 }}>세입자를 연결하고 수금 현황을 추적하면<br/>미납 알림과 계약 만료 알림을 자동으로 받을 수 있어요.</p>
               <div style={{ display:"flex", flexDirection:"column", gap:8, textAlign:"left" }}>
                 {[
                   { icon:"👤", label:"세입자 연결하기", desc:"수금·계약 추적 시작", color:"#5b4fcf", path:"/dashboard/tenants" },
@@ -119,7 +107,7 @@ export default function OnboardingModal({ onClose }) {
                   { icon:"🧾", label:"세금 미리 계산", desc:"종합소득세 추정", color:"#e8960a", path:"/dashboard/tax" },
                 ].map(item => (
                   <button key={item.path} onClick={() => close(item.path)}
-                    style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:12, border:`1px solid ${item.color}25`, background:item.color + "08", cursor:"pointer", width:"100%" }}>
+                    style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:12, border:`1px solid ${item.color}25`, background:item.color+"08", cursor:"pointer", width:"100%" }}>
                     <span style={{ fontSize:20, flexShrink:0 }}>{item.icon}</span>
                     <div style={{ textAlign:"left" }}>
                       <p style={{ fontSize:13, fontWeight:700, color:"#1a2744", margin:0 }}>{item.label}</p>
@@ -132,7 +120,6 @@ export default function OnboardingModal({ onClose }) {
             </div>
           )}
 
-          {/* 메인 CTA 버튼 */}
           <button onClick={ctaClick}
             style={{ width:"100%", padding:"14px", borderRadius:14, marginTop:20, background:"linear-gradient(135deg,#1a2744,#2d4270)", border:"none", color:"#fff", fontWeight:800, fontSize:15, cursor:"pointer" }}>
             {STEPS[step].cta}
@@ -147,7 +134,7 @@ export default function OnboardingModal({ onClose }) {
 
           <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:14 }}>
             {[0,1,2].map(i => (
-              <div key={i} style={{ width: i === step ? 20 : 6, height:6, borderRadius:3, background: i === step ? "#1a2744" : "#e0ddd8", transition:"all .3s" }} />
+              <div key={i} style={{ width:i===step?20:6, height:6, borderRadius:3, background:i===step?"#1a2744":"#e0ddd8", transition:"all .3s" }} />
             ))}
           </div>
         </div>
