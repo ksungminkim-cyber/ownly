@@ -1,30 +1,23 @@
-"use client"; import { useState } from "react"; import { useRouter } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast, PageLoader } from "../../components/shared"; import OnboardingModal from "../../components/OnboardingModal"; import { SearchOverlay } from "../../components/GlobalSearch"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; function DashboardFooter() { const LINKS = [ { label: "개인정보 처리방침", href: "/legal/privacy" }, { label: "서비스 이용약관", href: "/legal/terms" }, { label: "공지사항", href: "/legal/notice" }, { label: "자주 묻는 질문", href: "/legal/faq" }, { label: "이용자권리 및 유의사항", href: "/legal/rights" }, ]; return ( <footer style={{ borderTop: "1px solid var(--border)", padding: "20px 28px", background: "var(--bg)", fontFamily: "'Pretendard','DM Sans',sans-serif" }}> <div style={{ display: "flex", flexWrap: "wrap", gap: "0 4px", alignItems: "center", marginBottom: 10 }}> {LINKS.map((link, i) => ( <span key={link.label} style={{ display: "flex", alignItems: "center" }}> <a href={link.href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, fontWeight: 600, color: "#6b6b80", cursor: "pointer", padding: "0 8px", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#1a2744"} onMouseLeave={e => e.currentTarget.style.color = "#6b6b80"}>{link.label}</a> {i < LINKS.length - 1 && <span style={{ color: "#d0d0d8", fontSize: 10 }}>|</span>} </span> ))} <span style={{ color: "#d0d0d8", fontSize: 10 }}>|</span> <a href="mailto:inquiry@mclean21.com" style={{ fontSize: 11, fontWeight: 600, color: "#6b6b80", padding: "0 8px", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#1a2744"} onMouseLeave={e => e.currentTarget.style.color = "#6b6b80"}>고객센터 inquiry@mclean21.com</a> </div> <div style={{ display: "flex", flexWrap: "wrap", gap: "0 20px", fontSize: 11, color: "#9a9aaa", lineHeight: 2 }}><span>상호명: (주)맥클린</span><span>대표: 김성민</span><span>사업자등록번호: 137-81-52231</span><span>통신판매업신고: 제2026-경기김포-2785호</span><span>이메일: inquiry@mclean21.com</span></div> <p style={{ fontSize: 10.5, color: "#b0b0be", marginTop: 6, lineHeight: 1.7 }}>Ownly(온리)에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다.</p> <p style={{ fontSize: 10, color: "#c0c0cc", marginTop: 4 }}>© 2025 McLean Inc. All rights reserved.</p> </footer> ); }
-function DashboardShell({ children }) {
-  const router = useRouter();
-  const { loading } = useApp();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const handleLogout = async () => { await supabase.auth.signOut(); router.push("/login"); };
-  return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}>
-      <MobileHeader onMoreClick={() => setDrawerOpen(true)} onSearchClick={() => setSearchOpen(true)} />
-      <div style={{ display: "flex" }}>
-        <Sidebar onLogout={handleLogout} onSearchClick={() => setSearchOpen(true)} />
-        <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "var(--bg)", minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <div style={{ flex: 1 }}>{children}</div>
-          <RealEstateTicker />
-          <DashboardFooter />
-        </main>
-      </div>
-      <BottomNav onMore={() => setDrawerOpen(true)} />
-      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onLogout={handleLogout} />
-      {/* ✅ 검색 오버레이 — 사이드바/헤더 버튼으로 열림 + Cmd+K 부가 지원 */}
-      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <Toast />
-      {loading && <PageLoader />}
+"use client"; import { useState } from "react"; import { useRouter } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast, PageLoader } from "../../components/shared"; import OnboardingModal from "../../components/OnboardingModal"; import { SearchOverlay } from "../../components/GlobalSearch"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; function DashboardFooter() { const LINKS = [ { label: "개인정보 처리방침", href: "/legal/privacy" }, { label: "서비스 이용약관", href: "/legal/terms" }, { label: "공지사항", href: "/legal/notice" }, { label: "자주 묻는 질문", href: "/legal/faq" }, { label: "이용자권리 및 유의사항", href: "/legal/rights" }, ]; return ( <footer style={{ borderTop: "1px solid var(--border)", padding: "20px 28px", background: "var(--bg)", fontFamily: "'Pretendard','DM Sans',sans-serif" }}> <div style={{ display: "flex", flexWrap: "wrap", gap: "0 4px", alignItems: "center", marginBottom: 10 }}> {LINKS.map((link, i) => ( <span key={link.label} style={{ display: "flex", alignItems: "center" }}> <a href={link.href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, fontWeight: 600, color: "#6b6b80", cursor: "pointer", padding: "0 8px", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#1a2744"} onMouseLeave={e => e.currentTarget.style.color = "#6b6b80"}>{link.label}</a> {i < LINKS.length - 1 && <span style={{ color: "#d0d0d8", fontSize: 10 }}>|</span>} </span> ))} <span style={{ color: "#d0d0d8", fontSize: 10 }}>|</span> <a href="mailto:inquiry@mclean21.com" style={{ fontSize: 11, fontWeight: 600, color: "#6b6b80", padding: "0 8px", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#1a2744"} onMouseLeave={e => e.currentTarget.style.color = "#6b6b80"}>고객센터 inquiry@mclean21.com</a> </div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "0 20px", fontSize: 11, color: "#9a9aaa", lineHeight: 2 }}>
+      <span>상호명: (주)맥클린</span>
+      <span>대표: 김성민</span>
+      <span>사업자등록번호: 137-81-52231</span>
+      <span>통신판매업신고: 제2026-경기김포-2785호</span>
+      <span>사업장 소재지: 경기도 김포시 양촌읍 유현삭시로241번길 86</span>
+      <span>전화: 02-334-2211</span>
+      <span>이메일: inquiry@mclean21.com</span>
     </div>
-  );
-}
+    <p style={{ fontSize: 10.5, color: "#b0b0be", marginTop: 6, lineHeight: 1.7 }}>Ownly(온리)에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다.</p>
+    <p style={{ fontSize: 10, color: "#c0c0cc", marginTop: 4 }}>© 2025 McLean Inc. All rights reserved.</p>
+  </footer> ); } function DashboardShell({ children }) { const router = useRouter(); const { loading } = useApp(); const [drawerOpen, setDrawerOpen] = useState(false); const [searchOpen, setSearchOpen] = useState(false); const handleLogout = async () => { await supabase.auth.signOut(); router.push("/login"); }; return ( <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}> <MobileHeader onMoreClick={() => setDrawerOpen(true)} onSearchClick={() => setSearchOpen(true)} /> <div style={{ display: "flex" }}> <Sidebar onLogout={handleLogout} onSearchClick={() => setSearchOpen(true)} /> <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "var(--bg)", minWidth: 0, display: "flex", flexDirection: "column" }}> <div style={{ flex: 1 }}>{children}</div> <RealEstateTicker /> <DashboardFooter /> </main> </div> <BottomNav onMore={() => setDrawerOpen(true)} /> <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onLogout={handleLogout} /> <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} /> <Toast /> {loading && <PageLoader />} </div> ); }
+
 export default function DashboardLayout({ children }) {
-  return (<AppProvider><OnboardingModal /><DashboardShell>{children}</DashboardShell></AppProvider>);
+  return (
+    <AppProvider>
+      {/* ✅ OnboardingModal은 여기 layout에서만 렌더링 — page.js에서 중복 렌더링 하면 안 됨 */}
+      <OnboardingModal />
+      <DashboardShell>{children}</DashboardShell>
+    </AppProvider>
+  );
 }
