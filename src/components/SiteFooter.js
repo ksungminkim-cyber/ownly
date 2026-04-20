@@ -6,121 +6,55 @@ export default function SiteFooter() {
     <footer style={{
       width: "100%",
       background: "#0f172a",
-      color: "#fff",
-      padding: "56px 24px 40px",
       fontFamily: "'Pretendard','DM Sans',sans-serif",
+      padding: "28px 32px 24px",
     }}>
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>
 
-        {/* 상단 — 브랜드 + 링크 그리드 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 40, marginBottom: 48, flexWrap: "wrap" }}>
+        {/* 상단: 브랜드 + 링크 한 줄 */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
 
           {/* 브랜드 */}
-          <div style={{ gridColumn: "span 1" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#3b5bdb,#5b4fcf)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-                  <polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.95"/>
-                </svg>
-              </div>
-              <span style={{ fontSize: 17, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>온리</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: "linear-gradient(135deg,#3b5bdb,#5b4fcf)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="none">
+                <polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.95"/>
+              </svg>
             </div>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.8, marginBottom: 20 }}>
-              내 임대 물건,<br/>온리 하나로.
-            </p>
-            <a href="mailto:inquiry@mclean21.com"
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "rgba(255,255,255,0.5)", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "6px 12px" }}>
-              ✉ inquiry@mclean21.com
-            </a>
+            <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-0.3px" }}>온리</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginLeft: 2 }}>— 내 임대 물건, 온리 하나로</span>
           </div>
 
-          {/* 서비스 */}
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 16 }}>Service</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                { label: "수금 관리", href: "/dashboard/payments" },
-                { label: "계약 관리", href: "/dashboard/contracts" },
-                { label: "세금 시뮬레이터", href: "/dashboard/tax" },
-                { label: "AI 입지 분석", href: "/dashboard/premium/ai-report" },
-                { label: "내용증명 발행", href: "/dashboard/certified" },
-              ].map(l => (
-                <Link key={l.label} href={l.href}
-                  style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none", transition: "color .15s" }}
-                  onMouseEnter={e => e.currentTarget.style.color = "#fff"}
-                  onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}>
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* 리소스 */}
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 16 }}>Resources</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                { label: "임대인 가이드", href: "/blog" },
-                { label: "임대차 3법", href: "/dashboard/premium/lease-check" },
-                { label: "수익률 계산기", href: "/dashboard/premium/calculator" },
-                { label: "임대인 커뮤니티", href: "/dashboard/community" },
-                { label: "요금제", href: "/pricing" },
-              ].map(l => (
-                <Link key={l.label} href={l.href}
-                  style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none" }}
-                  onMouseEnter={e => e.currentTarget.style.color = "#fff"}
-                  onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}>
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* 법적 */}
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 16 }}>Legal</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                { label: "서비스 이용약관", href: "/legal/terms" },
-                { label: "개인정보처리방침", href: "/legal/privacy" },
-                { label: "공지사항", href: "/legal/notice" },
-                { label: "자주 묻는 질문", href: "/legal/faq" },
-              ].map(l => (
-                <Link key={l.label} href={l.href}
-                  style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none" }}
-                  onMouseEnter={e => e.currentTarget.style.color = "#fff"}
-                  onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}>
-                  {l.label}
-                </Link>
-              ))}
-            </div>
+          {/* 링크 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+            {[
+              { label: "서비스 이용약관", href: "/legal/terms" },
+              { label: "개인정보처리방침", href: "/legal/privacy" },
+              { label: "공지사항", href: "/legal/notice" },
+              { label: "FAQ", href: "/legal/faq" },
+              { label: "임대인 가이드", href: "/blog" },
+              { label: "커뮤니티", href: "/dashboard/community" },
+            ].map(l => (
+              <Link key={l.label} href={l.href}
+                style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", textDecoration: "none" }}
+                onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
+                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}>
+                {l.label}
+              </Link>
+            ))}
           </div>
         </div>
 
         {/* 구분선 */}
-        <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 28 }} />
+        <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 16 }} />
 
-        {/* 하단 — 사업자 정보 */}
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
-          <div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", fontSize: 11, color: "rgba(255,255,255,0.28)", lineHeight: 2 }}>
-              <span>(주)맥클린</span>
-              <span>대표 김성민</span>
-              <span>사업자등록번호 137-81-52231</span>
-              <span>통신판매업신고 제2026-경기김포-2785호</span>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", fontSize: 11, color: "rgba(255,255,255,0.28)", lineHeight: 2 }}>
-              <span>📍 경기도 김포시 양촌읍 유현삭시로241번길 86</span>
-              <span>📞 02-334-2211</span>
-              <span>✉ inquiry@mclean21.com</span>
-            </div>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 6, lineHeight: 1.6 }}>
-              Ownly(온리)에서 제공하는 정보는 임대 관리 참고용이며, 세무·법률 판단의 근거로 활용할 수 없습니다.
-            </p>
+        {/* 하단: 사업자 정보 + 카피라이트 */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "2px 16px", fontSize: 11, color: "rgba(255,255,255,0.25)", lineHeight: 1.8 }}>
+            <span>(주)맥클린 · 대표 김성민 · 사업자등록번호 137-81-52231 · 통신판매업신고 제2026-경기김포-2785호</span>
+            <span>📍 경기도 김포시 양촌읍 유현삭시로241번길 86 · 📞 02-334-2211 · ✉ inquiry@mclean21.com</span>
           </div>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", whiteSpace: "nowrap" }}>
-            © 2025 McLean Inc.
-          </p>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", whiteSpace: "nowrap" }}>© 2025 McLean Inc.</span>
         </div>
 
       </div>
