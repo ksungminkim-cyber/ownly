@@ -150,3 +150,24 @@ export function daysLeft(endDate) {
   const d = Math.ceil((new Date(endDate) - new Date()) / 86400000);
   return d < 0 ? 0 : d;
 }
+
+// 주소에서 "N층·N호·N동" 등 호실 식별자를 제거해 같은 건물을 묶는 키 생성
+export function buildingKey(addr) {
+  if (!addr) return "";
+  return String(addr)
+    .replace(/[,()]/g, " ")
+    .replace(/\s*[0-9BbⅠⅡⅢ지하]+\s*(층|호|동|호실|유닛|unit|floor)\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// 물건 리스트를 건물별로 그룹핑
+export function groupByBuilding(tenants) {
+  const groups = new Map();
+  for (const t of tenants) {
+    const key = buildingKey(t.addr);
+    if (!groups.has(key)) groups.set(key, { key, addr: key, units: [] });
+    groups.get(key).units.push(t);
+  }
+  return Array.from(groups.values()).sort((a, b) => b.units.length - a.units.length);
+}
