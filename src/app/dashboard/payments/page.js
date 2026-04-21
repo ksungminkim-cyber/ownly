@@ -23,6 +23,41 @@
               )}
             </div> </div> ); })} </div> )}
 
+      {/* 공실 물건 — 청구 대상 아님 안내 */}
+      {(() => {
+        const vacantList = tenants.filter(t => t.status === "공실");
+        if (vacantList.length === 0) return null;
+        const vacantDays = (since) => { if (!since) return null; const d = Math.ceil((new Date() - new Date(since))/86400000); return d < 0 ? 0 : d; };
+        const expectedLost = vacantList.reduce((s, t) => s + (Number(t.rent) || 0) + (Number(t.maintenance) || 0), 0);
+        return (
+          <div style={{ marginTop: 16, background: "rgba(232,68,90,0.04)", border: "1px solid rgba(232,68,90,0.18)", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(232,68,90,0.15)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 800, color: "#e8445a", marginBottom: 2 }}>🚪 공실 {vacantList.length}실 — 청구 대상 아님</p>
+                <p style={{ fontSize: 11, color: "#8a8a9a" }}>이달 예상 손실 합계 <b style={{ color: "#e8445a" }}>{expectedLost.toLocaleString()}만원</b> · 공실 관리에서 해소 전략을 확인하세요</p>
+              </div>
+              <button onClick={() => router.push("/dashboard/vacancy")}
+                style={{ padding: "7px 14px", borderRadius: 9, border: "1px solid rgba(232,68,90,0.35)", background: "#fff", color: "#e8445a", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>공실 관리 →</button>
+            </div>
+            <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+              {vacantList.map(t => {
+                const days = vacantDays(t.start_date);
+                return (
+                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#fff", borderRadius: 9, gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: t.pType === "상가" ? C.amber : C.indigo, background: (t.pType === "상가" ? C.amber : C.indigo) + "18", padding: "2px 7px", borderRadius: 5, flexShrink: 0 }}>{t.sub || t.pType}</span>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: "#1a2744", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.addr}</p>
+                      {days !== null && days > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: days >= 180 ? "#7c1d1d" : days >= 91 ? "#e8445a" : days >= 61 ? "#f97316" : days >= 15 ? C.amber : C.emerald, whiteSpace: "nowrap" }}>D+{days}</span>}
+                    </div>
+                    <span style={{ fontSize: 11, color: "#8a8a9a" }}>기대 월세 <b style={{ color: "#1a2744" }}>{Number(t.rent || 0).toLocaleString()}만</b></span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ✅ 관리비 항목 상세 모달 */}
       <Modal open={!!maintItemsModal} onClose={() => setMaintItemsModal(null)} width={480}>
         {maintItemsModal && (

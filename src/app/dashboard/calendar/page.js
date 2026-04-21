@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo, useEffect } from "react"; import { SectionLabel } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; const MONTH_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"]; const DAY_KO = ["일","월","화","수","목","금","토"]; export default function CalendarPage() { const { tenants, contracts, payments, vacancies, refreshData } = useApp(); const today = new Date(); const [year, setYear] = useState(today.getFullYear()); const [month, setMonth] = useState(today.getMonth()); const [selected, setSelected] = useState(null); useEffect(() => { refreshData(); }, []); const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); setSelected(null); }; const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); setSelected(null); }; const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); setSelected(today.getDate()); }; const daysInMonth = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); const getPayDayForMonth = (t, yr, mo) => { const pd = Number(t.pay_day); if (!pd || pd === 0) return 1; if (pd === 99) return new Date(yr, mo + 1, 0).getDate(); const lastDay = new Date(yr, mo + 1, 0).getDate(); return Math.min(pd, lastDay); };
+"use client"; import { useState, useMemo, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; const MONTH_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"]; const DAY_KO = ["일","월","화","수","목","금","토"]; export default function CalendarPage() { const router = useRouter(); const { tenants, contracts, payments, vacancies, refreshData } = useApp(); const today = new Date(); const [year, setYear] = useState(today.getFullYear()); const [month, setMonth] = useState(today.getMonth()); const [selected, setSelected] = useState(null); useEffect(() => { refreshData(); }, []); const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); setSelected(null); }; const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); setSelected(null); }; const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); setSelected(today.getDate()); }; const daysInMonth = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); const getPayDayForMonth = (t, yr, mo) => { const pd = Number(t.pay_day); if (!pd || pd === 0) return 1; if (pd === 99) return new Date(yr, mo + 1, 0).getDate(); const lastDay = new Date(yr, mo + 1, 0).getDate(); return Math.min(pd, lastDay); };
 
   // 공실 일수 계산
   const vacantDays = (since) => {
@@ -116,6 +116,38 @@
           <SectionLabel>LEASE CALENDAR</SectionLabel>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a2744" }}>임대차 캘린더</h1>
         </div>
+
+        {/* 공실 요약 배너 */}
+        {(() => {
+          const vacantItems = [
+            ...tenants.filter(t => t.status === "공실").map(t => ({ addr: t.addr, since: t.start_date, rent: Number(t.rent || 0) + Number(t.maintenance || 0) })),
+            ...(vacancies || []).map(v => ({ addr: v.addr, since: v.vacant_since || v.vacantSince, rent: Number(v.expected_rent || v.expectedRent || 0) + Number(v.maintenance || 0) })),
+          ];
+          if (vacantItems.length === 0) return null;
+          const daysOf = (s) => { if (!s) return 0; const d = Math.ceil((new Date() - new Date(s)) / 86400000); return d < 0 ? 0 : d; };
+          const maxDays = Math.max(...vacantItems.map(v => daysOf(v.since)));
+          const monthlyLoss = vacantItems.reduce((s, v) => s + v.rent, 0);
+          const cumulativeLoss = Math.round(vacantItems.reduce((s, v) => s + v.rent * (daysOf(v.since) / 30.44), 0));
+          const severityColor = maxDays >= 180 ? "#7c1d1d" : maxDays >= 91 ? "#e8445a" : maxDays >= 61 ? "#f97316" : maxDays >= 15 ? "#e8960a" : "#0fa573";
+          const severityLabel = maxDays >= 180 ? "⛔ 초장기" : maxDays >= 91 ? "🚨 장기" : maxDays >= 61 ? "🔔 중기" : maxDays >= 15 ? "⚠️ 주의" : "🟢 신규";
+          return (
+            <div onClick={() => router.push("/dashboard/vacancy")}
+              style={{ marginBottom: 18, padding: "14px 18px", borderRadius: 13, background: `linear-gradient(135deg,${severityColor}12,${severityColor}04)`, border: `1.5px solid ${severityColor}30`, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 800, color: severityColor, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 3 }}>{severityLabel} · 공실 {vacantItems.length}실</p>
+                  <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744" }}>최장 D+{maxDays}일 · 누적 손실 <span style={{ color: severityColor }}>{cumulativeLoss.toLocaleString()}만원</span></p>
+                </div>
+                <div style={{ width: 1, height: 32, background: severityColor + "30" }} />
+                <div>
+                  <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 2 }}>월간 예상 손실</p>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: severityColor }}>{monthlyLoss.toLocaleString()}만원/월</p>
+                </div>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: severityColor, whiteSpace: "nowrap" }}>공실 관리로 →</span>
+            </div>
+          );
+        })()}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <button onClick={prevMonth} style={{ width: 34, height: 34, borderRadius: 9, background: "#ffffff", border: "1px solid #ebe9e3", color: "#1a2744", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
