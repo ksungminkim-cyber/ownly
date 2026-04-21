@@ -161,12 +161,20 @@ export function buildingKey(addr) {
     .trim();
 }
 
-// 물건 리스트를 건물별로 그룹핑
-export function groupByBuilding(tenants) {
+// 물건 리스트를 건물별로 그룹핑 (building_id 우선, 없으면 주소 기반)
+export function groupByBuilding(tenants, buildings = []) {
   const groups = new Map();
+  const buildingsById = new Map(buildings.map(b => [b.id, b]));
   for (const t of tenants) {
-    const key = buildingKey(t.addr);
-    if (!groups.has(key)) groups.set(key, { key, addr: key, units: [] });
+    if (t.building_id && buildingsById.has(t.building_id)) {
+      const b = buildingsById.get(t.building_id);
+      const k = "building:" + b.id;
+      if (!groups.has(k)) groups.set(k, { key: k, addr: b.address, name: b.name, buildingId: b.id, units: [] });
+      groups.get(k).units.push(t);
+      continue;
+    }
+    const key = "addr:" + buildingKey(t.addr);
+    if (!groups.has(key)) groups.set(key, { key, addr: buildingKey(t.addr), name: null, buildingId: null, units: [] });
     groups.get(key).units.push(t);
   }
   return Array.from(groups.values()).sort((a, b) => b.units.length - a.units.length);
