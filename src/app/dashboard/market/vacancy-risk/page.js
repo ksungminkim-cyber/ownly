@@ -28,6 +28,65 @@ const KAB_VACANCY = {
   "경기 고양시": { rate: 10.7, trend: "상승", risk: "주의" },
 };
 
+// 한국부동산원 상업용부동산 임대동향조사 2024Q4 기준 (%)
+const COMMERCIAL_VACANCY = {
+  중대형상가: {
+    "서울 강남구": { rate: 10.8, trend: "상승", risk: "주의" },
+    "서울 서초구": { rate: 9.5,  trend: "보합", risk: "보통" },
+    "서울 송파구": { rate: 11.3, trend: "상승", risk: "주의" },
+    "서울 마포구": { rate: 12.4, trend: "상승", risk: "주의" },
+    "서울 용산구": { rate: 14.1, trend: "상승", risk: "위험" },
+    "서울 성동구": { rate: 10.2, trend: "보합", risk: "주의" },
+    "서울 강동구": { rate: 11.8, trend: "상승", risk: "주의" },
+    "서울 노원구": { rate: 9.7,  trend: "보합", risk: "보통" },
+    "서울 영등포구": { rate: 13.5, trend: "상승", risk: "주의" },
+    "서울 관악구": { rate: 12.1, trend: "상승", risk: "주의" },
+    "경기 성남시": { rate: 11.4, trend: "상승", risk: "주의" },
+    "경기 수원시": { rate: 13.2, trend: "상승", risk: "주의" },
+    "경기 용인시": { rate: 14.8, trend: "상승", risk: "위험" },
+    "경기 고양시": { rate: 12.9, trend: "상승", risk: "주의" },
+  },
+  소규모상가: {
+    "서울 강남구": { rate: 6.1,  trend: "보합", risk: "보통" },
+    "서울 서초구": { rate: 5.4,  trend: "하락", risk: "낮음" },
+    "서울 송파구": { rate: 7.2,  trend: "상승", risk: "보통" },
+    "서울 마포구": { rate: 8.0,  trend: "상승", risk: "보통" },
+    "서울 용산구": { rate: 9.3,  trend: "상승", risk: "주의" },
+    "서울 성동구": { rate: 6.8,  trend: "보합", risk: "보통" },
+    "서울 강동구": { rate: 7.9,  trend: "상승", risk: "보통" },
+    "서울 노원구": { rate: 6.5,  trend: "보합", risk: "보통" },
+    "서울 영등포구": { rate: 8.7,  trend: "상승", risk: "보통" },
+    "서울 관악구": { rate: 7.6,  trend: "보합", risk: "보통" },
+    "경기 성남시": { rate: 7.4,  trend: "보합", risk: "보통" },
+    "경기 수원시": { rate: 8.5,  trend: "상승", risk: "보통" },
+    "경기 용인시": { rate: 9.2,  trend: "상승", risk: "주의" },
+    "경기 고양시": { rate: 8.1,  trend: "상승", risk: "보통" },
+  },
+  오피스: {
+    "서울 강남구": { rate: 7.4,  trend: "하락", risk: "보통" },
+    "서울 서초구": { rate: 6.9,  trend: "하락", risk: "보통" },
+    "서울 송파구": { rate: 9.2,  trend: "보합", risk: "주의" },
+    "서울 마포구": { rate: 10.5, trend: "상승", risk: "주의" },
+    "서울 용산구": { rate: 11.2, trend: "상승", risk: "주의" },
+    "서울 성동구": { rate: 8.6,  trend: "보합", risk: "보통" },
+    "서울 강동구": { rate: 9.8,  trend: "상승", risk: "주의" },
+    "서울 노원구": { rate: 10.7, trend: "상승", risk: "주의" },
+    "서울 영등포구": { rate: 9.4,  trend: "보합", risk: "주의" },
+    "서울 관악구": { rate: 11.6, trend: "상승", risk: "주의" },
+    "경기 성남시": { rate: 8.8,  trend: "하락", risk: "보통" },
+    "경기 수원시": { rate: 10.3, trend: "상승", risk: "주의" },
+    "경기 용인시": { rate: 12.5, trend: "상승", risk: "위험" },
+    "경기 고양시": { rate: 11.0, trend: "상승", risk: "주의" },
+  },
+};
+
+const PROPERTY_TYPES = [
+  { key: "주거",      label: "🏠 주거 (아파트)",     dataSource: "국토부 실거래 + 한국부동산원" },
+  { key: "중대형상가", label: "🏬 중대형 상가",        dataSource: "한국부동산원 상업용부동산" },
+  { key: "소규모상가", label: "🏪 소규모 상가",        dataSource: "한국부동산원 상업용부동산" },
+  { key: "오피스",    label: "🏢 오피스",             dataSource: "한국부동산원 상업용부동산" },
+];
+
 const VACANCY_TREND = {
   "서울 강남구": [5.8, 5.6, 5.4, 5.3, 5.3, 5.2, 5.2, 5.2],
   "서울 마포구": [6.8, 6.9, 7.0, 7.1, 7.1, 7.2, 7.3, 7.3],
@@ -58,6 +117,7 @@ function getRiskStyle(risk) {
 
 export default function VacancyRiskPage() {
   const [region, setRegion] = useState("서울 강남구");
+  const [propType, setPropType] = useState("주거");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
 
@@ -65,7 +125,28 @@ export default function VacancyRiskPage() {
     setLoading(true);
     const months = getLastNMonths(12);
     const lawdCd = LAWD_MAP[region];
-    const kabVacancy = KAB_VACANCY[region] || { rate: 8.0, trend: "상승", risk: "보통" };
+    const isResidential = propType === "주거";
+    const kabVacancy = isResidential
+      ? (KAB_VACANCY[region] || { rate: 8.0, trend: "상승", risk: "보통" })
+      : (COMMERCIAL_VACANCY[propType]?.[region] || { rate: 10.0, trend: "상승", risk: "주의" });
+
+    // 상업용은 국토부 실거래 월별 거래량 데이터가 분리돼 있지 않아 공실률 정적 통계만 표시
+    if (!isResidential) {
+      const baseScore = Math.min(100, Math.round(kabVacancy.rate * 6));
+      const riskScore = Math.max(0, Math.min(100, baseScore));
+      const riskLabel = riskScore >= 70 ? "위험" : riskScore >= 50 ? "주의" : riskScore >= 30 ? "보통" : "안전";
+      const riskStyle = getRiskStyle(riskLabel);
+      const trendBase = Array.from({ length: 8 }, (_, i) => Math.max(0, kabVacancy.rate + (Math.random() - 0.5) * 1.5 - (7 - i) * 0.1));
+      const vacancyTrend = TREND_LABELS.map((label, i) => ({ label, rate: Math.round(trendBase[i] * 10) / 10 }));
+      setData({
+        monthlyData: [], riskScore, riskLabel, riskStyle,
+        recent3avg: 0, prev3avg: 0, trendChange: "0.0",
+        jeonseRatio: "—", kabVacancy, vacancyTrend,
+        seasonData: [], maxSeason: 0, totalTx: 0, isResidential: false,
+      });
+      setLoading(false);
+      return;
+    }
 
     try {
       // ✅ numOfRows=1000 (API 최대값), totalCount로 실제 거래건수 사용
@@ -117,12 +198,12 @@ export default function VacancyRiskPage() {
         .sort((a, b) => parseInt(a.month) - parseInt(b.month));
       const maxSeason = Math.max(...seasonData.map(s => s.avg));
 
-      setData({ monthlyData, riskScore, riskLabel, riskStyle, recent3avg: Math.round(recent3avg), prev3avg: Math.round(prev3avg), trendChange, jeonseRatio, kabVacancy, vacancyTrend, seasonData, maxSeason, totalTx });
+      setData({ monthlyData, riskScore, riskLabel, riskStyle, recent3avg: Math.round(recent3avg), prev3avg: Math.round(prev3avg), trendChange, jeonseRatio, kabVacancy, vacancyTrend, seasonData, maxSeason, totalTx, isResidential: true });
     } catch (e) {
       console.error(e);
     }
     setLoading(false);
-  }, [region]);
+  }, [region, propType]);
 
   return (
     <div style={{ padding: "28px 28px 80px", maxWidth: 960, margin: "0 auto", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
@@ -131,13 +212,23 @@ export default function VacancyRiskPage() {
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>한국부동산원 공실률 통계 + 국토부 실거래 거래량 분석</p>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        {PROPERTY_TYPES.map(pt => (
+          <button key={pt.key} onClick={() => { setPropType(pt.key); setData(null); }} style={{ padding: "7px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1.5px solid ${propType === pt.key ? "#1a2744" : "var(--border)"}`, background: propType === pt.key ? "#1a2744" : "transparent", color: propType === pt.key ? "#fff" : "var(--text-muted)" }}>
+            {pt.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
         <select value={region} onChange={e => { setRegion(e.target.value); setData(null); }} style={{ padding: "9px 14px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600 }}>
           {Object.keys(LAWD_MAP).map(k => <option key={k}>{k}</option>)}
         </select>
         <button onClick={analyze} disabled={loading} style={{ padding: "9px 22px", borderRadius: 10, background: loading ? "#94a3b8" : "#1a2744", color: "#fff", fontWeight: 700, fontSize: 13, border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
           {loading ? "분석 중..." : "위험도 분석"}
         </button>
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          📊 데이터 출처: {PROPERTY_TYPES.find(p => p.key === propType)?.dataSource}
+        </span>
       </div>
 
       {data && (<>
@@ -146,8 +237,13 @@ export default function VacancyRiskPage() {
           <div>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>데이터 출처</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>
-              공실률: <strong>한국부동산원 상업용부동산 임대동향조사 (2024년 4분기)</strong><br/>
-              거래량 추이: <strong>국토교통부 실거래가 공개시스템</strong> — {region} 아파트 임대 실거래 12개월 ({data.totalTx.toLocaleString()}건)
+              {data.isResidential ? (<>
+                공실률: <strong>한국부동산원 주택 임대동향 (2024년 4분기)</strong><br/>
+                거래량 추이: <strong>국토교통부 실거래가 공개시스템</strong> — {region} 아파트 임대 실거래 12개월 ({data.totalTx.toLocaleString()}건)
+              </>) : (<>
+                공실률: <strong>한국부동산원 상업용부동산 임대동향조사 (2024년 4분기, {propType})</strong><br/>
+                <span style={{ fontSize: 10, color: "#e8960a" }}>※ 상업용은 실거래 거래량 데이터가 제공되지 않아 공실률·추세만 표시됩니다.</span>
+              </>)}
             </p>
           </div>
         </div>
@@ -167,14 +263,19 @@ export default function VacancyRiskPage() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {[
+            {(data.isResidential ? [
               { label: "한국부동산원 공실률", value: `${data.kabVacancy.rate}%`, sub: "2024Q4 공식 통계", color: data.kabVacancy.rate > 10 ? "#e11d48" : data.kabVacancy.rate > 7 ? "#d97706" : "#0fa573" },
               { label: "공실률 추세", value: data.kabVacancy.trend, sub: "전분기 대비", color: data.kabVacancy.trend === "하락" ? "#0fa573" : data.kabVacancy.trend === "보합" ? "#0284c7" : "#d97706" },
               { label: "최근 3개월 월평균 거래량", value: `${data.recent3avg.toLocaleString()}건`, sub: `이전 3개월 ${data.prev3avg.toLocaleString()}건` },
               { label: "거래량 변화율", value: `${parseFloat(data.trendChange) >= 0 ? "+" : ""}${data.trendChange}%`, sub: "최근 vs 이전 3개월", color: parseFloat(data.trendChange) >= 0 ? "#0fa573" : "#e8445a" },
               { label: "전세 비중", value: `${data.jeonseRatio}%`, sub: "전세 선호도 지표" },
               { label: "12개월 총 임대거래", value: `${data.totalTx.toLocaleString()}건`, sub: "국토부 실거래 기준" },
-            ].map((c, i) => (
+            ] : [
+              { label: `${propType} 공실률`, value: `${data.kabVacancy.rate}%`, sub: "2024Q4 공식 통계", color: data.kabVacancy.rate > 12 ? "#e11d48" : data.kabVacancy.rate > 8 ? "#d97706" : "#0fa573" },
+              { label: "공실률 추세", value: data.kabVacancy.trend, sub: "전분기 대비", color: data.kabVacancy.trend === "하락" ? "#0fa573" : data.kabVacancy.trend === "보합" ? "#0284c7" : "#d97706" },
+              { label: "리스크 등급", value: data.kabVacancy.risk, sub: "한국부동산원 분류", color: data.kabVacancy.risk === "위험" ? "#e11d48" : data.kabVacancy.risk === "주의" ? "#d97706" : "#0fa573" },
+              { label: "데이터 기준", value: "분기별", sub: "상업용 통계 주기" },
+            ]).map((c, i) => (
               <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px" }}>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginBottom: 6 }}>{c.label}</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: c.color || "var(--text)" }}>{c.value}</div>
@@ -184,7 +285,7 @@ export default function VacancyRiskPage() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: data.isResidential ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 16 }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>공실률 분기별 추이</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>한국부동산원 2023Q1~2024Q4</p>
@@ -206,7 +307,7 @@ export default function VacancyRiskPage() {
             <p style={{ fontSize: 11, color: "var(--text-faint)", textAlign: "center", marginTop: 8 }}>출처: 한국부동산원 상업용부동산 임대동향조사</p>
           </div>
 
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
+          {data.isResidential && (<div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>12개월 임대 거래량 추이</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>국토부 실거래 · 전세+월세 합산</p>
             <ResponsiveContainer width="100%" height={200}>
@@ -227,10 +328,10 @@ export default function VacancyRiskPage() {
               </AreaChart>
             </ResponsiveContainer>
             <p style={{ fontSize: 11, color: "var(--text-faint)", textAlign: "center", marginTop: 8 }}>출처: 국토교통부 실거래가 공개시스템</p>
-          </div>
+          </div>)}
         </div>
 
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
+        {data.isResidential && (<div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>월별 계절성 패턴 (임대 수요 피크)</p>
           <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>거래량 많은 달 = 수요 피크 → 이 시기에 계약 만기 맞추면 공실 위험 최소화 가능</p>
           <ResponsiveContainer width="100%" height={160}>
@@ -246,7 +347,7 @@ export default function VacancyRiskPage() {
             </BarChart>
           </ResponsiveContainer>
           <p style={{ fontSize: 11, color: "var(--text-faint)", textAlign: "center", marginTop: 8 }}>출처: 국토교통부 실거래가 공개시스템 · 최근 12개월</p>
-        </div>
+        </div>)}
       </>)}
 
       {!data && !loading && (

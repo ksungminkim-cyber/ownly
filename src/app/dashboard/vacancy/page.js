@@ -23,7 +23,7 @@ const ACTION_PLAN = {
     ]
   },
   danger: {
-    label: "장기 공실 (61~90일)", color: "#f97316", icon: "🔔",
+    label: "중기 공실 (61~90일)", color: "#f97316", icon: "🔔",
     steps: [
       { id: "bigcut", icon: "💸", text: "임대료 10~20% 인하 또는 보증금 조정 고려" },
       { id: "remodel", icon: "🎨", text: "도배·장판 등 리모델링으로 경쟁력 회복" },
@@ -32,24 +32,46 @@ const ACTION_PLAN = {
     ]
   },
   critical: {
-    label: "위험 단계 (90일+)", color: C.rose, icon: "🚨",
+    label: "장기 공실 (91~180일)", color: C.rose, icon: "🚨",
     steps: [
       { id: "consult", icon: "👨‍💼", text: "세무사·공인중개사 전문 상담 — 매각 vs 유지 손익 비교" },
       { id: "pricereset", icon: "🔃", text: "시세 20~30% 인하 또는 권리금 조정 협상" },
       { id: "contents", icon: "🏪", text: "팝업스토어·단기 임대 플랫폼 활용 검토" },
       { id: "sellplan", icon: "📊", text: "보유·매각 시뮬레이션으로 의사결정 근거 확보" },
     ]
+  },
+  longterm: {
+    label: "초장기 공실 (180일+)", color: "#7c1d1d", icon: "⛔",
+    steps: [
+      { id: "rezone", icon: "🏗️", text: "용도 변경·리모델링 전환 검토 (상가→사무실·주거, 사무실→쉐어오피스)" },
+      { id: "rentfree", icon: "🎁", text: "렌트프리 1~3개월 제안 + 단계별 임대료 구조 (1년차 저가, 2년차 정상) 설계" },
+      { id: "brokerboost", icon: "💎", text: "중개수수료 2배 인센티브 제시 — 복수 중개사 경쟁 유도" },
+      { id: "shortplatform", icon: "🏪", text: "공유오피스·팝업·위워크 스타일 단기 임대 플랫폼 적극 활용" },
+      { id: "sellcompare", icon: "⚖️", text: "매각 vs 유지 시뮬레이션 — 기회비용(1년 손실)을 기준가에 반영" },
+      { id: "taxoptimize", icon: "🧾", text: "장기 공실 필요경비 종합소득세 절세 구조 최적화 (세무사 상담 필수)" },
+    ]
   }
 };
 
 function getActionPlan(days) {
-  if (days >= 90) return ACTION_PLAN.critical;
+  if (days >= 180) return ACTION_PLAN.longterm;
+  if (days >= 91) return ACTION_PLAN.critical;
   if (days >= 61) return ACTION_PLAN.danger;
   if (days >= 15) return ACTION_PLAN.warn;
   return ACTION_PLAN.new;
 }
 
 function buildListingText(v, gf) { const sub = gf(v,"sub_type","sub")||""; const addr = gf(v,"addr","address")||""; const rent = Number(gf(v,"expected_rent","expectedRent")||0); const dep = Number(gf(v,"deposit","dep")||0); const maint = Number(v.maintenance||0); return [`[${sub||gf(v,"p_type","pType")||"주거"} 임대 매물]`,`📍 위치: ${addr}`,dep>0?`💵 보증금: ${dep.toLocaleString()}만원`:null,rent>0?`💰 월세: ${rent.toLocaleString()}만원`:null,maint>0?`🏢 관리비: ${maint.toLocaleString()}만원 별도`:null,v.note?`📝 특이사항: ${v.note}`:null,"","✅ 즉시 입주 가능","📞 문의 주시면 빠른 답변 드립니다"].filter(l=>l!==null).join("\n"); }
+
+// 상가 biz 필드(JSON 또는 plain text)에서 업종명만 추출
+function extractIndustry(biz) {
+  if (!biz) return "";
+  try {
+    const obj = JSON.parse(biz);
+    if (obj && typeof obj === "object") return obj.industry || "";
+  } catch {}
+  return String(biz);
+}
 
 export default function VacancyPage() { return <PlanGate feature="vacancy"><VacancyContent /></PlanGate>; }
 
@@ -69,7 +91,7 @@ function VacancyContent() {
   const set = (k) => (val) => setForm(f=>({...f,[k]:val}));
   const gf = (v,...keys) => { for(const k of keys) if(v[k]!==undefined&&v[k]!==null) return v[k]; return ""; };
 
-  const tenantVacancies = useMemo(()=>tenants.filter(t=>t.status==="공실").map(t=>({_source:"tenant",id:"t_"+t.id,tenantId:t.id,addr:t.addr,p_type:t.pType,sub_type:t.sub,vacant_since:t.start_date||new Date().toISOString().slice(0,10),expected_rent:t.rent||0,deposit:t.dep||0,maintenance:t.maintenance||0,note:t.biz?`호실: ${t.biz}`:"",color:t.color})),[tenants]);
+  const tenantVacancies = useMemo(()=>tenants.filter(t=>t.status==="공실").map(t=>{const industry=extractIndustry(t.biz);return {_source:"tenant",id:"t_"+t.id,tenantId:t.id,addr:t.addr,p_type:t.pType,sub_type:t.sub,vacant_since:t.start_date||new Date().toISOString().slice(0,10),expected_rent:t.rent||0,deposit:t.dep||0,maintenance:t.maintenance||0,note:industry?`추천 업종: ${industry}`:"",color:t.color};}),[tenants]);
   const allVacancies = useMemo(()=>{ const s=new Set(vacancies.map(v=>v.addr)); return [...vacancies,...tenantVacancies.filter(tv=>!s.has(tv.addr))]; },[vacancies,tenantVacancies]);
   const totalUnits = tenants.filter(t=>t.status!=="공실").length + allVacancies.length;
   const vacancyRate = totalUnits>0 ? Math.round((allVacancies.length/totalUnits)*100) : 0;
@@ -163,7 +185,7 @@ function VacancyContent() {
             const maint=Number(v.maintenance||0);
             const days=vacantDays(since);
             const cfg=TYPE_CONFIG[pType]||TYPE_CONFIG["주거"];
-            const urgency=days>=90?{c:C.rose,label:"🚨 장기공실"}:days>=61?{c:"#f97316",label:"🔔 위험"}:days>=15?{c:C.amber,label:"⚠️ 주의"}:{c:C.emerald,label:"🟢 신규"};
+            const urgency=days>=180?{c:"#7c1d1d",label:"⛔ 초장기"}:days>=91?{c:C.rose,label:"🚨 장기공실"}:days>=61?{c:"#f97316",label:"🔔 중기"}:days>=15?{c:C.amber,label:"⚠️ 주의"}:{c:C.emerald,label:"🟢 신규"};
             const cardLoss=Math.round(rent*Math.max(0,days/30.44));
             const plan = getActionPlan(days);
             const isOpen = openPlan === v.id;
