@@ -11,10 +11,18 @@ const C = {
 };
 
 const GRADE_META = {
-  A: { color: C.emerald, bg: "rgba(15,165,115,0.1)", label: "최우수 입지", desc: "적극 매입 추천" },
-  B: { color: C.indigo,  bg: "rgba(59,91,219,0.1)",  label: "우수 입지",   desc: "매입 검토 권장" },
-  C: { color: C.amber,   bg: "rgba(232,150,10,0.1)", label: "보통 입지",   desc: "신중한 검토 필요" },
-  D: { color: C.rose,    bg: "rgba(232,68,90,0.1)",  label: "주의 입지",   desc: "투자 재검토 권장" },
+  manage: {
+    A: { color: C.emerald, bg: "rgba(15,165,115,0.1)", label: "최우수 입지", desc: "현행 전략 유지" },
+    B: { color: C.indigo,  bg: "rgba(59,91,219,0.1)",  label: "우수 입지",   desc: "소폭 조정 권장" },
+    C: { color: C.amber,   bg: "rgba(232,150,10,0.1)", label: "보통 입지",   desc: "임대 전략 재검토" },
+    D: { color: C.rose,    bg: "rgba(232,68,90,0.1)",  label: "주의 입지",   desc: "적극적 조정 필요" },
+  },
+  new: {
+    A: { color: C.emerald, bg: "rgba(15,165,115,0.1)", label: "최우수 입지", desc: "적극 매입 추천" },
+    B: { color: C.indigo,  bg: "rgba(59,91,219,0.1)",  label: "우수 입지",   desc: "매입 검토 권장" },
+    C: { color: C.amber,   bg: "rgba(232,150,10,0.1)", label: "보통 입지",   desc: "신중한 검토 필요" },
+    D: { color: C.rose,    bg: "rgba(232,68,90,0.1)",  label: "주의 입지",   desc: "투자 재검토 권장" },
+  },
 };
 const TYPE_ICONS = { 주거: "🏠", 상가: "🏪", 오피스텔: "🏢", 토지: "🌳" };
 
@@ -164,7 +172,7 @@ export default function AIReportPage() {
       const res = await fetch("/api/ai-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: addrToAnalyze, propertyType: propType }),
+        body: JSON.stringify({ address: addrToAnalyze, propertyType: propType, mode: "manage" }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -232,7 +240,8 @@ export default function AIReportPage() {
     }
   };
 
-  const gm = report ? (GRADE_META[report.grade] || GRADE_META["C"]) : null;
+  const gmSet = GRADE_META[report?.mode === "new" ? "new" : "manage"];
+  const gm = report ? (gmSet[report.grade] || gmSet.C) : null;
   const subScores = report ? {
     "교통": Math.min(100, Math.max(30, report.score + Math.round((Math.random() - 0.5) * 14))),
     "생활": Math.min(100, Math.max(30, report.score + Math.round((Math.random() - 0.5) * 16))),

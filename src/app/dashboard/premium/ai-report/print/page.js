@@ -8,10 +8,18 @@ const C = {
   surface: "#ffffff", border: "#e8e6e0", muted: "#8a8a9a", faint: "#f8f7f4",
 };
 const GRADE_META = {
-  A: { color: C.emerald, bg: "rgba(15,165,115,0.1)", label: "최우수 입지", desc: "적극 매입 추천" },
-  B: { color: C.indigo,  bg: "rgba(59,91,219,0.1)",  label: "우수 입지",   desc: "매입 검토 권장" },
-  C: { color: C.amber,   bg: "rgba(232,150,10,0.1)", label: "보통 입지",   desc: "신중한 검토 필요" },
-  D: { color: C.rose,    bg: "rgba(232,68,90,0.1)",  label: "주의 입지",   desc: "투자 재검토 권장" },
+  manage: {
+    A: { color: C.emerald, bg: "rgba(15,165,115,0.1)", label: "최우수 입지", desc: "현행 전략 유지" },
+    B: { color: C.indigo,  bg: "rgba(59,91,219,0.1)",  label: "우수 입지",   desc: "소폭 조정 권장" },
+    C: { color: C.amber,   bg: "rgba(232,150,10,0.1)", label: "보통 입지",   desc: "임대 전략 재검토" },
+    D: { color: C.rose,    bg: "rgba(232,68,90,0.1)",  label: "주의 입지",   desc: "적극적 조정 필요" },
+  },
+  new: {
+    A: { color: C.emerald, bg: "rgba(15,165,115,0.1)", label: "최우수 입지", desc: "적극 매입 추천" },
+    B: { color: C.indigo,  bg: "rgba(59,91,219,0.1)",  label: "우수 입지",   desc: "매입 검토 권장" },
+    C: { color: C.amber,   bg: "rgba(232,150,10,0.1)", label: "보통 입지",   desc: "신중한 검토 필요" },
+    D: { color: C.rose,    bg: "rgba(232,68,90,0.1)",  label: "주의 입지",   desc: "투자 재검토 권장" },
+  },
 };
 const TYPE_ICONS = { 주거: "🏠", 상가: "🏪", 오피스텔: "🏢", 토지: "🌳" };
 
@@ -49,7 +57,8 @@ function PrintContent() {
     </div>
   );
 
-  const gm = GRADE_META[report.grade] || GRADE_META["C"];
+  const gmSet = GRADE_META[report.mode === "new" ? "new" : "manage"];
+  const gm = gmSet[report.grade] || gmSet.C;
   const scoreColor = report.score >= 80 ? C.emerald : report.score >= 65 ? C.indigo : report.score >= 50 ? C.amber : C.rose;
 
   return (

@@ -20,6 +20,8 @@ export default function AuthPage() {
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    if (mode === "signup" || mode === "login") setTab(mode);
     const err = params.get("error");
     if (err === "naver_denied")        setErrors({ submit: "네이버 로그인이 취소되었습니다." });
     else if (err === "naver_failed")   setErrors({ submit: "네이버 로그인 중 오류가 발생했습니다. 다시 시도해주세요." });
