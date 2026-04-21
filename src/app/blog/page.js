@@ -56,6 +56,15 @@ const POSTS = [
     date: "2025.03",
     readTime: "5분",
   },
+  {
+    slug: "long-term-commercial-vacancy",
+    title: "상가 장기 공실 탈출 플레이북 — 6개월 이상 비어있다면",
+    desc: "용도 변경·렌트프리·중개수수료 2배·팝업스토어 등 장기 공실을 해소하는 고급 전략. 매각 시뮬레이션과 세금 최적화까지 임대인이 반드시 알아야 할 선택지.",
+    tag: "공실 관리",
+    tagColor: "#7c1d1d",
+    date: "2026.04",
+    readTime: "8분",
+  },
 ];
 
 export default function BlogPage() {

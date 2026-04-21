@@ -12,6 +12,36 @@ const CAT_COLORS = { "공실매물":"#0fa573","자유":"#8a8a9a","절세팁":"#0
 const BAD_WORDS = ["씨발","시발","씨팔","ㅅㅂ","개새끼","개새","새끼","놈팡이","지랄","병신","미친놈","미친년","썅","쌍년","쌍놈","개년","개놈","꺼져","죽어","살인","강간","성폭행","성희롱","성추행","보지","자지","음란","야동","섹스","섹시","누드","포르노","야설","성기","자위","fuck","shit","bitch","asshole","pussy","dick","cock","nigger","faggot","창녀","매춘","윤락","원조교제","조건만남","만남조건","성매매"];
 function containsBadWord(text) { if (!text) return false; const lower = text.toLowerCase().replace(/\s/g,""); return BAD_WORDS.some(w => lower.includes(w.toLowerCase())); }
 
+// 글 카테고리·키워드에 따라 추천할 온리 기능 배너
+function getFeatureNudge(post) {
+  if (!post) return null;
+  const text = `${post.title || ""} ${post.content || ""}`.toLowerCase();
+  const cat = post.category;
+  // 공실 관련
+  if (cat === "공실매물" || /공실|광고|월세\s*내리|세입자\s*구/.test(text)) {
+    return { icon:"🤖", color:"#0fa573", title:"AI 입지 분석으로 적정 시세 확인", desc:"공실이 길어질수록 기회비용이 커집니다. 주변 시세 기반 적정 임대료를 AI가 분석합니다.", href:"/dashboard/premium/ai-report" };
+  }
+  if (/공실\s*\d+(개월|달)|오래\s*안/.test(text)) {
+    return { icon:"📉", color:"#e8445a", title:"공실 손실 계산 + 해소 액션플랜", desc:"누적 손실을 정확히 파악하고 공실 기간별 단계별 대응 전략을 확인하세요.", href:"/dashboard/vacancy" };
+  }
+  // 세금
+  if (cat === "절세팁" || /종합소득세|세금|신고|세무사/.test(text)) {
+    return { icon:"🧾", color:"#e8960a", title:"세금 시뮬레이터로 예상 세액 확인", desc:"임대소득 기반 종합소득세·부가세를 자동 추정하고 절세 포인트를 체크합니다.", href:"/dashboard/tax" };
+  }
+  // 계약 · 법률
+  if (cat === "계약·법률" || /갱신청구권|계약갱신|임대차\s*3법|5%\s*상한/.test(text)) {
+    return { icon:"⚖️", color:"#3b5bdb", title:"임대차 3법 체크 + 임대료 인상 계산", desc:"계약갱신청구권 적용 여부와 법정 상한(5%) 기준 인상액을 자동 계산합니다.", href:"/dashboard/premium/lease-check" };
+  }
+  if (/미납|독촉|내용증명|퇴거|명도/.test(text)) {
+    return { icon:"📨", color:"#e8445a", title:"내용증명 PDF 즉시 발행", desc:"월세 미납·계약 위반 등 6가지 법적 서식을 자동 생성해 우체국 등기로 발송할 수 있습니다.", href:"/dashboard/certified" };
+  }
+  // 세입자 관리
+  if (cat === "세입자관리" || /만료|갱신\s*의향/.test(text)) {
+    return { icon:"📅", color:"#5b4fcf", title:"계약 만료 알림 + 갱신 의향 관리", desc:"D-60 이내 만료 임박 물건을 자동 알림으로 받고 세입자 의향을 추적하세요.", href:"/dashboard/renewal" };
+  }
+  return null;
+}
+
 export default function CommunityPage() {
   const { user, tenants, userPlan } = useApp();
   const [posts, setPosts] = useState([]);
@@ -63,6 +93,18 @@ export default function CommunityPage() {
 
   useEffect(() => { loadPosts(); if (user) loadMyLikes(); }, [category, user]);
 
+  // URL ?post=ID 로 딥링크 진입 시 해당 글 자동 오픈
+  useEffect(() => {
+    if (typeof window === "undefined" || posts.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get("post");
+    if (postId && (!activePost || String(activePost.id) !== postId)) {
+      const target = posts.find(p => String(p.id) === postId);
+      if (target) openPost(target);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posts]);
+
   const loadPosts = async () => {
     setLoading(true);
     let q = supabase.from("community_posts").select("*").order("created_at", { ascending: false });
@@ -88,6 +130,11 @@ export default function CommunityPage() {
     setPanelOpen(true);
     setEditingPost(false);
     setReplyTo(null);
+    if (typeof window !== "undefined") {
+      const u = new URL(window.location.href);
+      u.searchParams.set("post", String(post.id));
+      window.history.replaceState({}, "", u.toString());
+    }
     const { data } = await supabase.from("community_comments")
       .select("*").eq("post_id", post.id).order("created_at");
     setComments(data || []);
@@ -99,7 +146,20 @@ export default function CommunityPage() {
     setEditingPost(false);
     setEditingCommentId(null);
     setReplyTo(null);
+    if (typeof window !== "undefined") {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("post");
+      window.history.replaceState({}, "", u.toString());
+    }
     setTimeout(() => setActivePost(null), 300);
+  };
+
+  const copyPostLink = (postId) => {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/dashboard/community/posts/${postId}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => toast("🔗 링크가 복사되었습니다")).catch(() => toast(url, "error"));
+    }
   };
 
   // ─── 이미지 핸들링 ───
@@ -382,13 +442,15 @@ export default function CommunityPage() {
               {/* 작성자 정보 */}
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
                 <div style={{ width:34, height:34, borderRadius:"50%", background:`linear-gradient(135deg,${C.indigo},${C.purple})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:800, flexShrink:0 }}>{activePost.author_name?.[0]?.toUpperCase()||"?"}</div>
-                <div>
+                <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                     <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{activePost.author_name}</span>
                     {activePost.badge_label && <span style={{ fontSize:9, fontWeight:700, color:activePost.badge_color||"#8a8a9a", background:activePost.badge_bg||"#f0efe9", padding:"1px 6px", borderRadius:20 }}>{activePost.badge_label}</span>}
                   </div>
                   <span style={{ fontSize:11, color:"var(--text-muted)" }}>{timeAgo(activePost.created_at)}</span>
                 </div>
+                <button onClick={() => copyPostLink(activePost.id)}
+                  style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.indigo}30`, background:`${C.indigo}08`, color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>🔗 링크 복사</button>
               </div>
 
               {/* ✅ 글 수정 모드 */}
@@ -430,6 +492,22 @@ export default function CommunityPage() {
                   {myLikes.has(activePost.id)?"❤️":"🤍"} {activePost.likes} 좋아요
                 </button>
               </div>
+
+              {/* 온리 기능 넷지 (카테고리/키워드 기반) */}
+              {(() => {
+                const nudge = getFeatureNudge(activePost);
+                if (!nudge) return null;
+                return (
+                  <a href={nudge.href} style={{ display:"flex", gap:10, alignItems:"center", padding:"12px 14px", borderRadius:11, background:`${nudge.color}0d`, border:`1px solid ${nudge.color}33`, textDecoration:"none", marginBottom:16 }}>
+                    <span style={{ fontSize:22, flexShrink:0 }}>{nudge.icon}</span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <p style={{ fontSize:12, fontWeight:800, color:nudge.color, marginBottom:2 }}>{nudge.title}</p>
+                      <p style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.5 }}>{nudge.desc}</p>
+                    </div>
+                    <span style={{ fontSize:12, fontWeight:700, color:nudge.color, whiteSpace:"nowrap" }}>바로가기 →</span>
+                  </a>
+                );
+              })()}
 
               {/* ─── 댓글 목록 ─── */}
               <p style={{ fontSize:12, fontWeight:700, color:"var(--text)", marginBottom:12 }}>댓글 {comments.length}개</p>

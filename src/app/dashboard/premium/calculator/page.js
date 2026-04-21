@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
 
@@ -16,6 +16,87 @@ const TABS = [
   { key:"deposit",  label:"🔑 보증금 반환 계산기",   plan:"plus" },
   { key:"vacancy",  label:"📉 공실 손실 계산기",     plan:"plus" },
 ];
+
+// ── 시나리오 저장/불러오기 (localStorage, 계산기별 최대 10개) ───────────
+function loadScenariosFromStorage(calcType) {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(`ownly_calc_${calcType}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function useScenarios(calcType) {
+  const [scenarios, setScenarios] = useState(() => loadScenariosFromStorage(calcType));
+  const persist = (next) => {
+    setScenarios(next);
+    try { localStorage.setItem(`ownly_calc_${calcType}`, JSON.stringify(next)); } catch {}
+  };
+  const save = (name, data) => {
+    const s = { id: Date.now(), name: name || `시나리오 ${scenarios.length + 1}`, data, createdAt: new Date().toISOString() };
+    persist([s, ...scenarios].slice(0, 10));
+    return s;
+  };
+  const remove = (id) => persist(scenarios.filter(s => s.id !== id));
+  return { scenarios, save, remove };
+}
+
+// 내 물건 선택 + 시나리오 저장/불러오기 공통 바
+function ScenarioBar({ calcType, state, onLoadProperty, onLoadScenario }) {
+  const { tenants } = useApp();
+  const { scenarios, save, remove } = useScenarios(calcType);
+  const [showSave, setShowSave] = useState(false);
+  const [name, setName] = useState("");
+  return (
+    <div style={{ background: C.faint, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+      <span style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.5px", textTransform: "uppercase" }}>🔗 연동</span>
+      {tenants.length > 0 && (
+        <select defaultValue="" onChange={e => { const t = tenants.find(x => String(x.id) === e.target.value); if (t) { onLoadProperty(t); e.target.value = ""; } }}
+          style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 600, color: C.navy, cursor: "pointer" }}>
+          <option value="">내 물건에서 불러오기 ▾</option>
+          {tenants.map(t => <option key={t.id} value={t.id}>{(t.addr || "").slice(0, 20)} · {t.name || "공실"}</option>)}
+        </select>
+      )}
+      {scenarios.length > 0 && (
+        <select defaultValue="" onChange={e => { const s = scenarios.find(x => String(x.id) === e.target.value); if (s) { onLoadScenario(s.data); e.target.value = ""; } }}
+          style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 600, color: C.navy, cursor: "pointer" }}>
+          <option value="">📂 저장된 시나리오 ({scenarios.length}) ▾</option>
+          {scenarios.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      )}
+      <button onClick={() => setShowSave(true)}
+        style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: C.navy, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>💾 현재 저장</button>
+      {scenarios.length > 0 && (
+        <details style={{ fontSize: 11 }}>
+          <summary style={{ cursor: "pointer", color: C.muted, fontWeight: 600 }}>관리</summary>
+          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4, maxHeight: 120, overflow: "auto" }}>
+            {scenarios.map(s => (
+              <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 8px", background: "#fff", borderRadius: 6 }}>
+                <span style={{ fontSize: 11, color: C.navy }}>{s.name}</span>
+                <button onClick={() => remove(s.id)} style={{ padding: "2px 6px", fontSize: 10, color: C.rose, background: "transparent", border: "none", cursor: "pointer" }}>삭제</button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+      {showSave && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={() => setShowSave(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 20, width: 320, display: "flex", flexDirection: "column", gap: 12 }}>
+            <p style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>시나리오 이름</p>
+            <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="예: 강남 오피스 공실 3개월"
+              style={{ padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, outline: "none" }}
+              onKeyDown={e => { if (e.key === "Enter") { save(name, state); setName(""); setShowSave(false); } }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setShowSave(false)} style={{ flex: 1, padding: "9px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>취소</button>
+              <button onClick={() => { save(name, state); setName(""); setShowSave(false); }}
+                style={{ flex: 2, padding: "9px", borderRadius: 8, border: "none", background: C.navy, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>저장</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── 공통 슬라이더 ────────────────────────────────────────────────
 function Slider({ label, value, setter, min, max, step=100, unit="만원", tip }) {
@@ -62,6 +143,18 @@ function ROICalc() {
   const [loan,  setLoan]  = useState(30000);
   const [rate,  setRate]  = useState(4.5);
 
+  const loadProperty = (t) => {
+    if (t.dep) setDep(Number(t.dep));
+    if (t.rent) setRent(Number(t.rent));
+  };
+  const loadScenario = (d) => {
+    if (d.price !== undefined) setPrice(d.price);
+    if (d.rent !== undefined) setRent(d.rent);
+    if (d.dep !== undefined) setDep(d.dep);
+    if (d.loan !== undefined) setLoan(d.loan);
+    if (d.rate !== undefined) setRate(d.rate);
+  };
+
   const annualRent    = rent * 12;
   const loanInterest  = (loan * rate) / 100;
   const acquisitionTax = Math.round(price * 0.046);
@@ -76,6 +169,8 @@ function ROICalc() {
   const roiColor      = roiNum >= 5 ? C.emerald : roiNum >= 3 ? C.amber : C.rose;
 
   return (
+    <>
+    <ScenarioBar calcType="roi" state={{ price, rent, dep, loan, rate }} onLoadProperty={loadProperty} onLoadScenario={loadScenario} />
     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
         <p style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"1px", textTransform:"uppercase" }}>물건 정보 입력</p>
@@ -126,6 +221,7 @@ function ROICalc() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -293,6 +389,19 @@ function VacancyCalc() {
   const [vacancy,  setVacancy]  = useState(3);
   const [taxRate,  setTaxRate]  = useState(15);
 
+  const loadProperty = (t) => {
+    if (t.rent) setRent(Number(t.rent));
+    if (t.maintenance) setMgt(Number(t.maintenance));
+  };
+  const loadScenario = (d) => {
+    if (d.rent !== undefined) setRent(d.rent);
+    if (d.mgt !== undefined) setMgt(d.mgt);
+    if (d.loan !== undefined) setLoan(d.loan);
+    if (d.rate !== undefined) setRate(d.rate);
+    if (d.vacancy !== undefined) setVacancy(d.vacancy);
+    if (d.taxRate !== undefined) setTaxRate(d.taxRate);
+  };
+
   const monthlyLost   = rent + mgt;
   const totalLost     = monthlyLost * vacancy;
   const loanCost      = Math.round((loan * rate / 100) / 12) * vacancy;
@@ -303,6 +412,8 @@ function VacancyCalc() {
   const effectiveYield = (((annualRent - totalLost - loanCost) / ((rent+mgt)*12 || 1)) * 100).toFixed(1);
 
   return (
+    <>
+    <ScenarioBar calcType="vacancy" state={{ rent, mgt, loan, rate, vacancy, taxRate }} onLoadProperty={loadProperty} onLoadScenario={loadScenario} />
     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
         <p style={{ fontSize:12, fontWeight:700, color:C.muted, letterSpacing:"1px", textTransform:"uppercase" }}>물건 정보</p>
@@ -357,6 +468,7 @@ function VacancyCalc() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
