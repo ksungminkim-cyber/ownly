@@ -100,45 +100,31 @@ export async function GET(req) {
       userId = createData.id;
     }
 
-    // 4. 매직링크 발급
-    const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}/generate-link`, {
+    // 4. 매직링크 발급 — Supabase Admin API 표준 엔드포인트
+    const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${supabaseSecret}`,
         apikey: supabaseSecret,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ type: "magiclink" }),
+      body: JSON.stringify({
+        type: "magiclink",
+        email,
+        options: { redirect_to: `${origin}/auth/callback` },
+      }),
     });
     const linkData = await linkRes.json();
     const clearCookie = "naver_state=; Path=/; HttpOnly; Max-Age=0";
 
-    if (linkData.action_link) {
-      const actionUrl = new URL(linkData.action_link);
-      const accessToken = actionUrl.searchParams.get("access_token");
-      const refreshToken = actionUrl.searchParams.get("refresh_token");
-      if (accessToken) {
-        const dest = `${origin}/auth/callback#access_token=${accessToken}&refresh_token=${refreshToken}&type=magiclink`;
-        return new Response(null, {
-          status: 302,
-          headers: { Location: dest, "Set-Cookie": clearCookie },
-        });
-      }
-    }
-
-    // action_link 없는 경우 — hashed_token 방식 시도
-    if (linkData.hashed_token) {
-      const dest = `${origin}/auth/confirm?token_hash=${linkData.hashed_token}&type=magiclink&next=/dashboard`;
+    // action_link = Supabase verify URL. 유저가 클릭하면 Supabase가 토큰 검증 후
+    // redirect_to (우리 /auth/callback) 로 세션 hash와 함께 리다이렉트함.
+    // 서버에서 바로 이 URL로 302 보내면 유저가 클릭할 필요 없이 자동 처리됨.
+    const actionLink = linkData.action_link || linkData.properties?.action_link;
+    if (actionLink) {
       return new Response(null, {
         status: 302,
-        headers: { Location: dest, "Set-Cookie": clearCookie },
-      });
-    }
-
-    if (linkData.confirm_url) {
-      return new Response(null, {
-        status: 302,
-        headers: { Location: linkData.confirm_url, "Set-Cookie": clearCookie },
+        headers: { Location: actionLink, "Set-Cookie": clearCookie },
       });
     }
 
