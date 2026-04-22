@@ -45,6 +45,9 @@ export default function RepairRequestPage() {
       receipt_yn: false,
       vendor: "",
       property_name: tenant.address || "",
+      status: "open",
+      source: "tenant",
+      priority: urgent ? "urgent" : "normal",
     }]);
 
     if (error) {

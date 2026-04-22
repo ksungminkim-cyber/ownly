@@ -2,11 +2,27 @@
 
 export default function RepairsPage() {
   // ✅ AppContext에서 repairs, addRepair 사용 (장부 자동 연동)
-  const { tenants, repairs, addRepair, refreshData } = useApp();
+  const { tenants, repairs, addRepair, updateRepair, refreshData } = useApp();
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [filterCat, setFilterCat] = useState("전체");
+  const [filterStatus, setFilterStatus] = useState("전체");
+
+  const STATUS_CONFIG = {
+    open:        { label: "접수",   color: "#e8445a", bg: "rgba(232,68,90,0.1)" },
+    in_progress: { label: "처리 중", color: "#e8960a", bg: "rgba(232,150,10,0.1)" },
+    done:        { label: "완료",   color: "#0fa573", bg: "rgba(15,165,115,0.1)" },
+  };
+
+  const changeStatus = async (r, nextStatus) => {
+    try {
+      await updateRepair(r.id, { status: nextStatus, ...(nextStatus === "done" ? { completed_at: new Date().toISOString() } : {}) });
+      toast(nextStatus === "in_progress" ? "처리 시작했습니다" : nextStatus === "done" ? "완료 처리됐습니다" : "상태 변경됐습니다");
+    } catch (e) {
+      toast("상태 변경 중 오류: " + (e.message || ""), "error");
+    }
+  };
   const [form, setForm] = useState({ date: new Date().toISOString().slice(0,10), category: "기타", vendor: "", cost: 0, memo: "", receipt_yn: false, tenant_id: "", property_name: "" });
 
   const save = async () => {
@@ -22,8 +38,11 @@ export default function RepairsPage() {
     finally { setSaving(false); }
   };
 
-  const filtered = filterCat === "전체" ? (repairs||[]) : (repairs||[]).filter(r => r.category === filterCat);
+  let filtered = filterCat === "전체" ? (repairs||[]) : (repairs||[]).filter(r => r.category === filterCat);
+  if (filterStatus !== "전체") filtered = filtered.filter(r => (r.status || "done") === filterStatus);
   const totalCost = filtered.reduce((s, r) => s + (r.cost || 0), 0);
+  const openCount = (repairs||[]).filter(r => r.status === "open").length;
+  const inProgCount = (repairs||[]).filter(r => r.status === "in_progress").length;
 
   return ( <div className="page-in page-padding" style={{ maxWidth: 900 }}> <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:26, flexWrap:"wrap", gap:12 }}> <div> <SectionLabel>MAINTENANCE</SectionLabel> <h1 style={{ fontSize:24, fontWeight:800, color:C.navy, letterSpacing:"-.4px" }}>수리·유지보수 이력</h1>
       {/* ✅ 장부 자동 연동 안내 */}
@@ -32,28 +51,56 @@ export default function RepairsPage() {
 
     <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:13, marginBottom:20 }}> {[ { label:"전체 건수", value:`${(repairs||[]).length}건`, color:C.navy }, { label:"총 수리비용", value:`${(repairs||[]).reduce((s,r)=>s+(r.cost||0),0).toLocaleString()}만원`, color:C.rose }, { label:"영수증 보관", value:`${(repairs||[]).filter(r=>r.receipt_yn).length}건`, color:C.emerald }, ].map(k => ( <div key={k.label} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 18px" }}> <p style={{ fontSize:10, color:C.muted, fontWeight:700, textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 }}>{k.label}</p> <p style={{ fontSize:20, fontWeight:800, color:k.color }}>{k.value}</p> </div> ))} </div>
 
+    {/* 상태 필터 */}
+    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:10 }}>
+      {[
+        { k: "전체", label: "전체" },
+        { k: "open", label: `📥 접수 ${openCount > 0 ? `(${openCount})` : ""}` },
+        { k: "in_progress", label: `⚙️ 처리 중 ${inProgCount > 0 ? `(${inProgCount})` : ""}` },
+        { k: "done", label: "✅ 완료" },
+      ].map(s => (
+        <button key={s.k} onClick={() => setFilterStatus(s.k)}
+          style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:700, cursor:"pointer", border:`1px solid ${filterStatus===s.k ? C.navy : C.border}`, background: filterStatus===s.k ? C.navy : "transparent", color: filterStatus===s.k ? "#fff" : C.muted }}>
+          {s.label}
+        </button>
+      ))}
+    </div>
     <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:16 }}> {["전체", ...CATEGORIES].map(c => ( <button key={c} onClick={() => setFilterCat(c)} style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", border:`1px solid ${filterCat===c ? C.navy : C.border}`, background: filterCat===c ? C.navy : "transparent", color: filterCat===c ? "#fff" : C.muted }}>{CATEGORY_ICONS[c] || ""} {c}</button> ))} </div>
 
     {filtered.length === 0 ? (
       <EmptyState icon="🔨" title="수리 이력이 없습니다" desc="수리·교체 내역을 기록해두면 세금 신고 시 비용 처리에 도움이 됩니다" hint="수리비를 등록하면 간편 장부에도 자동으로 기록됩니다" />
     ) : (
       <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:17, overflow:"hidden" }}>
-        <div style={{ padding:"10px 20px", background:"#0a0a10", display:"grid", gridTemplateColumns:"90px 80px 1fr 100px 80px 80px 50px", gap:8 }}>
-          {["날짜","분류","상세","업체","비용","영수증","장부"].map(h=>( <span key={h} style={{ fontSize:10, color:"#8a8a9a", fontWeight:700, textTransform:"uppercase", letterSpacing:".5px" }}>{h}</span> ))}
+        <div style={{ padding:"10px 20px", background:"#0a0a10", display:"grid", gridTemplateColumns:"80px 70px 1fr 90px 70px 90px 80px", gap:8 }}>
+          {["날짜","분류","상세","업체","비용","상태","작업"].map(h=>( <span key={h} style={{ fontSize:10, color:"#8a8a9a", fontWeight:700, textTransform:"uppercase", letterSpacing:".5px" }}>{h}</span> ))}
         </div>
         {filtered.map((r, i) => (
-          <div key={r.id} style={{ display:"grid", gridTemplateColumns:"90px 80px 1fr 100px 80px 80px 50px", gap:8, padding:"13px 20px", borderTop:`1px solid ${C.border}`, background:i%2===0?"transparent":C.faint, alignItems:"center" }}>
+          <div key={r.id} style={{ display:"grid", gridTemplateColumns:"80px 70px 1fr 90px 70px 90px 80px", gap:8, padding:"13px 20px", borderTop:`1px solid ${C.border}`, background:i%2===0?"transparent":C.faint, alignItems:"center" }}>
             <span style={{ fontSize:12, color:C.muted }}>{r.date}</span>
             <span style={{ fontSize:11, fontWeight:700, color:C.navy }}>{CATEGORY_ICONS[r.category]} {r.category}</span>
             <div>
-              <p style={{ fontSize:13, fontWeight:600, color:C.navy }}>{r.property_name || "미지정"}</p>
+              <p style={{ fontSize:13, fontWeight:600, color:C.navy, display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                {r.property_name || "미지정"}
+                {r.source === "tenant" && <span style={{ fontSize:9, fontWeight:800, color:"#5b4fcf", background:"rgba(91,79,207,0.1)", padding:"1px 6px", borderRadius:4 }}>👤 세입자 요청</span>}
+                {r.priority === "urgent" && <span style={{ fontSize:9, fontWeight:800, color:"#e8445a", background:"rgba(232,68,90,0.1)", padding:"1px 6px", borderRadius:4 }}>🚨 긴급</span>}
+              </p>
               {r.memo && <p style={{ fontSize:11, color:C.muted, marginTop:2 }}>{r.memo}</p>}
             </div>
             <span style={{ fontSize:12, color:C.muted }}>{r.vendor || "-"}</span>
-            <span style={{ fontSize:13, fontWeight:700, color:C.rose }}>{(r.cost||0).toLocaleString()}만원</span>
-            <span style={{ fontSize:11, color:r.receipt_yn?C.emerald:C.muted }}>{r.receipt_yn?"✅ 보관":"—"}</span>
-            {/* ✅ 장부 자동 기록 표시 */}
-            <span style={{ fontSize:9, fontWeight:700, color: r.auto_generated ? "#5b4fcf" : C.muted, background: r.auto_generated ? "rgba(91,79,207,0.1)" : "transparent", padding: r.auto_generated ? "2px 5px" : "0", borderRadius:4 }}>{r.auto_generated ? "자동" : "—"}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:C.rose }}>{r.cost ? (r.cost).toLocaleString() + "만" : "—"}</span>
+            {(() => { const st = STATUS_CONFIG[r.status || "done"]; return <span style={{ fontSize:10, fontWeight:800, color:st.color, background:st.bg, padding:"3px 8px", borderRadius:20, whiteSpace:"nowrap", textAlign:"center" }}>{st.label}</span>; })()}
+            <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+              {(r.status === "open" || !r.status) && r.source === "tenant" && (
+                <button onClick={() => changeStatus(r, "in_progress")}
+                  style={{ padding:"4px 8px", borderRadius:6, fontSize:10, fontWeight:700, cursor:"pointer", border:"1px solid rgba(232,150,10,0.3)", background:"rgba(232,150,10,0.08)", color:"#e8960a" }}>처리 시작</button>
+              )}
+              {r.status === "in_progress" && (
+                <button onClick={() => changeStatus(r, "done")}
+                  style={{ padding:"4px 8px", borderRadius:6, fontSize:10, fontWeight:700, cursor:"pointer", border:"1px solid rgba(15,165,115,0.3)", background:"rgba(15,165,115,0.08)", color:"#0fa573" }}>완료</button>
+              )}
+              {r.status === "done" && r.auto_generated && <span style={{ fontSize:9, fontWeight:700, color:"#5b4fcf" }}>📘 장부</span>}
+              {r.status === "done" && !r.auto_generated && <span style={{ fontSize:9, color:C.muted }}>—</span>}
+            </div>
           </div>
         ))}
         <div style={{ padding:"12px 20px", borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"flex-end", gap:20 }}>
