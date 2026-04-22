@@ -18,6 +18,24 @@ export default function TenantNotes({ tenantId, userId }) {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ type: "call", title: "", content: "", occurred_at: new Date().toISOString().slice(0, 16) });
   const [saving, setSaving] = useState(false);
+  const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const pickFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { toast("5MB 이하 파일만 업로드 가능합니다", "error"); return; }
+    setFile(f);
+    if (f.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setFilePreview(ev.target.result);
+      reader.readAsDataURL(f);
+    } else {
+      setFilePreview(null);
+    }
+  };
+  const clearFile = () => { setFile(null); setFilePreview(null); };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -36,20 +54,43 @@ export default function TenantNotes({ tenantId, userId }) {
   const handleAdd = async () => {
     if (!form.content.trim()) { toast("내용을 입력하세요", "error"); return; }
     setSaving(true);
-    const { error } = await supabase.from("tenant_notes").insert({
-      tenant_id: tenantId,
-      user_id: userId,
-      type: form.type,
-      title: form.title.trim() || null,
-      content: form.content.trim(),
-      occurred_at: form.occurred_at ? new Date(form.occurred_at).toISOString() : new Date().toISOString(),
-    });
-    setSaving(false);
-    if (error) { toast("저장 실패: " + error.message, "error"); return; }
-    toast("✅ 기록이 저장됐습니다");
-    setForm({ type: "call", title: "", content: "", occurred_at: new Date().toISOString().slice(0, 16) });
-    setAdding(false);
-    load();
+    let file_url = null, file_name = null, file_type = null;
+    try {
+      if (file) {
+        setUploadingFile(true);
+        const ext = (file.name.split(".").pop() || "bin").toLowerCase();
+        const path = `tenant-notes/${tenantId}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("community-images").upload(path, file, { cacheControl: "3600", upsert: false });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("community-images").getPublicUrl(path);
+        file_url = pub?.publicUrl;
+        file_name = file.name;
+        file_type = file.type.startsWith("image/") ? "image" : ext === "pdf" ? "pdf" : "other";
+        setUploadingFile(false);
+      }
+      const { error } = await supabase.from("tenant_notes").insert({
+        tenant_id: tenantId,
+        user_id: userId,
+        type: form.type,
+        title: form.title.trim() || null,
+        content: form.content.trim(),
+        occurred_at: form.occurred_at ? new Date(form.occurred_at).toISOString() : new Date().toISOString(),
+        file_url,
+        file_name,
+        file_type,
+      });
+      if (error) throw error;
+      toast("✅ 기록이 저장됐습니다");
+      setForm({ type: "call", title: "", content: "", occurred_at: new Date().toISOString().slice(0, 16) });
+      clearFile();
+      setAdding(false);
+      load();
+    } catch (err) {
+      toast("저장 실패: " + (err.message || ""), "error");
+    } finally {
+      setSaving(false);
+      setUploadingFile(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -90,6 +131,27 @@ export default function TenantNotes({ tenantId, userId }) {
             style={{ width: "100%", padding: "6px 10px", fontSize: 12, color: "#1a2744", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 6, marginBottom: 6 }} />
           <textarea placeholder="대화 내용·협상 조건·방문 결과 등" rows={3} value={form.content} onChange={(e) => setForm(f => ({ ...f, content: e.target.value }))}
             style={{ width: "100%", padding: "7px 10px", fontSize: 12, color: "#1a2744", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 6, resize: "vertical", outline: "none", fontFamily: "inherit" }} />
+
+          {/* 파일 첨부 */}
+          <div style={{ marginTop: 7 }}>
+            {!file ? (
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 10px", border: "1px dashed #c0c0cc", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "#8a8a9a", background: "#fff" }}>
+                📎 파일 첨부 (이미지·PDF, 5MB 이하)
+                <input type="file" accept="image/*,application/pdf" onChange={pickFile} style={{ display: "none" }} />
+              </label>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 6 }}>
+                {filePreview ? (
+                  <img src={filePreview} alt="preview" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                ) : (
+                  <span style={{ fontSize: 18 }}>📎</span>
+                )}
+                <span style={{ flex: 1, fontSize: 11, color: "#1a2744", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
+                <button onClick={clearFile} style={{ padding: "2px 8px", background: "transparent", border: "none", color: "#8a8a9a", fontSize: 14, cursor: "pointer" }}>×</button>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: "flex", gap: 6, marginTop: 7 }}>
             <button onClick={() => setAdding(false)}
               style={{ flex: 1, padding: "7px", borderRadius: 7, border: "1px solid #ebe9e3", background: "#fff", color: "#8a8a9a", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>취소</button>
@@ -126,6 +188,20 @@ export default function TenantNotes({ tenantId, userId }) {
                     style={{ padding: "2px 6px", background: "transparent", border: "none", color: "#c0c0cc", fontSize: 11, cursor: "pointer" }}>×</button>
                 </div>
                 <p style={{ fontSize: 12, color: "#3a3a4e", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{n.content}</p>
+                {n.file_url && (
+                  <div style={{ marginTop: 6 }}>
+                    {n.file_type === "image" ? (
+                      <a href={n.file_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block" }}>
+                        <img src={n.file_url} alt={n.file_name || "첨부"} style={{ maxWidth: 160, maxHeight: 120, borderRadius: 6, border: "1px solid #ebe9e3", cursor: "pointer" }} />
+                      </a>
+                    ) : (
+                      <a href={n.file_url} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 6, fontSize: 11, color: "#5b4fcf", fontWeight: 600, textDecoration: "none" }}>
+                        📎 {n.file_name || "첨부 파일"}
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

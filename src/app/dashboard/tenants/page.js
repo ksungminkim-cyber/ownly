@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import TenantNotes from "../../../components/TenantNotes"; import RenewalGuide from "../../../components/RenewalGuide";
+"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import TenantNotes from "../../../components/TenantNotes"; import RenewalGuide from "../../../components/RenewalGuide"; import RentHistoryChart from "../../../components/RentHistoryChart";
 // ✅ ② 갱신 제안서 컴포넌트
 function RenewalProposal({ tenant, onClose }) {
   const endDate = tenant.end_date || tenant.end || "";
@@ -209,9 +209,12 @@ export default function TenantsPage() { const router = useRouter(); const { tena
         </div>
 
         {detailTab === "contract" && (
-          <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 13, padding: "18px" }}>
-            <SectionLabel>CONTRACT</SectionLabel>
-            {[ ["보증금", (sel.dep / 10000).toFixed(1) + "억원", undefined], ["월세", Number(sel.rent).toLocaleString() + "만원", C.emerald], ["만료일", getEnd(sel), daysLeft(getEnd(sel)) <= 90 ? C.amber : undefined], ["잔여일", "D-" + daysLeft(getEnd(sel)), daysLeft(getEnd(sel)) <= 60 ? C.rose : C.emerald], ].map(([l, v, a]) => ( <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #ebe9e3" }}> <span style={{ fontSize: 12, color: "#8a8a9a" }}>{l}</span> <span style={{ fontSize: 13, fontWeight: 600, color: a || C.text }}>{v}</span> </div> ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 13, padding: "18px" }}>
+              <SectionLabel>CONTRACT</SectionLabel>
+              {[ ["보증금", (sel.dep / 10000).toFixed(1) + "억원", undefined], ["월세", Number(sel.rent).toLocaleString() + "만원", C.emerald], ["만료일", getEnd(sel), daysLeft(getEnd(sel)) <= 90 ? C.amber : undefined], ["잔여일", "D-" + daysLeft(getEnd(sel)), daysLeft(getEnd(sel)) <= 60 ? C.rose : C.emerald], ].map(([l, v, a]) => ( <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #ebe9e3" }}> <span style={{ fontSize: 12, color: "#8a8a9a" }}>{l}</span> <span style={{ fontSize: 13, fontWeight: 600, color: a || C.text }}>{v}</span> </div> ))}
+            </div>
+            <RentHistoryChart tenant={sel} />
           </div>
         )}
 

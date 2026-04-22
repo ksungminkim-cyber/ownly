@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { findLawdCodeFromAddr, findRegionFromAddr, LAWD_MAP } from "../lib/regions";
+import { toast } from "./shared";
 
 // 갱신 가이드 — 만료 120일 이내 세입자 대상, 벤치마크 기반 인상 제안
 // 주택임대차보호법 §7: 갱신 시 임대료 인상 5% 상한
@@ -153,10 +154,26 @@ export default function RenewalGuide({ tenant, daysLeft }) {
             </p>
           </div>
 
-          <p style={{ fontSize: 10, color: "#a0a0b0", lineHeight: 1.6 }}>
+          <p style={{ fontSize: 10, color: "#a0a0b0", lineHeight: 1.6, marginBottom: 10 }}>
             ※ {region} 최근 3개월 {isCommercial ? "오피스텔" : "아파트"} 월세 실거래 {benchmark.count}건 기준 ·
             재계약이 아닌 신규 계약은 상한 적용 없음
           </p>
+
+          {/* 협상문 자동 생성 */}
+          <button onClick={() => {
+            const endDate = tenant.end_date || tenant.end || tenant.contract_end;
+            const endStr = endDate ? new Date(endDate).toLocaleDateString("ko-KR") : "만료일";
+            const depStr = tenant.dep ? `보증금 ${(tenant.dep/10000).toFixed(1)}억원 · ` : "";
+            const body = `[계약 갱신 관련 안내]\n${tenant.name || "임차인"}님께,\n\n안녕하세요, ${tenant.addr || "임대"} 임대인입니다.\n${endStr} 계약 만료를 앞두고 갱신 관련 말씀드리고자 연락드립니다.\n\n📊 지역 시세 참고 (최근 3개월 실거래)\n· 현재 월세: ${currentRent.toLocaleString()}만원\n· ${region} ${isCommercial ? "오피스텔" : "아파트"} 월세 중위값: ${benchmark.median.toLocaleString()}만원\n· 차이: ${gap >= 0 ? "+" : ""}${gap.toLocaleString()}만원 (${gap >= 0 ? "시세 대비 낮음" : "시세 대비 높음"})\n\n${depStr}주택임대차보호법상 계약 갱신 시 임대료 인상 상한은 5%입니다.\n이에 따라 다음 계약은 월 ${suggestedRent.toLocaleString()}만원 (${increase > 0 ? "+" + increase.toLocaleString() + "만원 인상" : "현재가 유지"})으로 제안드립니다.\n\n검토하시고 편하신 시간에 연락 주시면 감사하겠습니다.\n감사합니다.`;
+            try {
+              navigator.clipboard.writeText(body).then(() => toast("📋 협상문이 복사됐습니다 — 카톡에 붙여넣으세요"));
+            } catch {
+              toast("클립보드 접근 실패 — 수동으로 복사해주세요", "error");
+            }
+          }}
+          style={{ width: "100%", padding: "9px", borderRadius: 8, background: "#fff", border: "1px solid rgba(91,79,207,0.3)", color: "#5b4fcf", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            📋 협상문 생성 · 복사하기
+          </button>
         </div>
       )}
     </div>
