@@ -1,4 +1,4 @@
-"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, EmptyState } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase";
+"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, toast } from "../../../components/shared"; import { C, daysLeft } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase";
 
 const TYPE_CONFIG = {
   unpaid:   { icon:"💰", label:"미납 알림",     color:"#e8445a",  bg:"rgba(232,68,90,0.08)" },
@@ -9,6 +9,22 @@ const TYPE_CONFIG = {
   manual:   { icon:"✉️", label:"직접 발송",     color:"#3b5bdb",  bg:"rgba(59,91,219,0.08)" },
 };
 
+const TEMPLATE_LABELS = {
+  unpaid: "미납",
+  unpaid_with_mgt: "미납+관리비",
+  upcoming: "납부예정",
+  upcoming_with_mgt: "납부예정+관리비",
+  expiring: "만료임박",
+};
+
+const TEMPLATE_TO_TAB = {
+  unpaid: "unpaid",
+  unpaid_with_mgt: "unpaid",
+  upcoming: "upcoming",
+  upcoming_with_mgt: "upcoming",
+  expiring: "expiring",
+};
+
 export default function NotificationsPage() {
   const { user, tenants } = useApp();
   const router = useRouter();
@@ -16,7 +32,33 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("전체");
   const [page, setPage] = useState(0);
+  const [resending, setResending] = useState({});
   const PAGE_SIZE = 20;
+
+  const resend = async (log) => {
+    if (!log || !log.tenant_id || !log.template_key) { toast("재발송에 필요한 정보가 부족합니다", "error"); return; }
+    const tenant = tenants.find(t => t.id === log.tenant_id);
+    if (!tenant) { toast("세입자를 찾을 수 없습니다 (삭제되었을 수 있음)", "error"); return; }
+    if (!tenant.phone) { toast("세입자 전화번호가 없습니다", "error"); return; }
+    const tab = TEMPLATE_TO_TAB[log.template_key] || "unpaid";
+    setResending(s => ({ ...s, [log.id]: true }));
+    try {
+      const dl = daysLeft(tenant.end_date || tenant.end || "");
+      const today = new Date().getDate();
+      const res = await fetch("/api/kakao/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tab, tenant: { ...tenant, daysLeft: dl, daysUntilPay: (tenant.pay_day || 5) - today }, userId: user?.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { toast("재발송 실패: " + (data.error || "알 수 없는 오류"), "error"); }
+      else { toast(tenant.name + "님 재발송 완료 ✓"); loadLogs(); }
+    } catch (err) {
+      toast("재발송 중 오류: " + err.message, "error");
+    } finally {
+      setResending(s => ({ ...s, [log.id]: false }));
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -129,9 +171,12 @@ export default function NotificationsPage() {
                 {/* 내용 */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 3 }}>
-                    <div>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{tc.label}</span>
-                      {tenant && <span style={{ fontSize: 12, color: "#8a8a9a", marginLeft: 8 }}>→ {tenant.name}</span>}
+                      {log.template_key && TEMPLATE_LABELS[log.template_key] && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#5b4fcf", background: "rgba(91,79,207,0.1)", padding: "1px 7px", borderRadius: 4 }}>{TEMPLATE_LABELS[log.template_key]}</span>
+                      )}
+                      {tenant && <span style={{ fontSize: 12, color: "#8a8a9a" }}>→ {tenant.name}</span>}
                     </div>
                     <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
                       <span style={{ fontSize: 10, fontWeight: 700, color: st.color, background: st.bg, padding: "2px 8px", borderRadius: 20 }}>{st.label}</span>
@@ -139,7 +184,18 @@ export default function NotificationsPage() {
                     </div>
                   </div>
                   {log.message && <p style={{ fontSize: 12, color: "#6a6a7a", lineHeight: 1.6, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{log.message}</p>}
-                  {log.channel && <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 2 }}>채널: {log.channel === "kakao" ? "카카오 알림톡" : log.channel === "email" ? "이메일" : log.channel === "sms" ? "문자" : log.channel}</p>}
+                  {log.error_message && (
+                    <p style={{ fontSize: 11, color: "#e8445a", marginTop: 4, background: "rgba(232,68,90,0.06)", padding: "4px 8px", borderRadius: 6, lineHeight: 1.5 }}>⚠️ {log.error_message}</p>
+                  )}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                    {log.channel && <p style={{ fontSize: 11, color: "#a0a0b0", margin: 0 }}>채널: {log.channel === "kakao" ? "카카오 알림톡" : log.channel === "email" ? "이메일" : log.channel === "sms" ? "문자" : log.channel}</p>}
+                    {log.channel === "kakao" && log.template_key && log.tenant_id && (
+                      <button onClick={() => resend(log)} disabled={resending[log.id]}
+                        style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: resending[log.id] ? "not-allowed" : "pointer", border: `1px solid ${C.indigo}40`, background: resending[log.id] ? "#f0efe9" : "rgba(26,39,68,0.06)", color: C.indigo, opacity: resending[log.id] ? 0.7 : 1 }}>
+                        {resending[log.id] ? "재발송 중..." : "↻ 재발송"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

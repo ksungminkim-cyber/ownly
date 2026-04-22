@@ -243,7 +243,7 @@ function PreviewModal({ open, onClose, tenant, tab, onSend, isSent, isSending })
 
 export default function KakaoAlertPage() {
   const router = useRouter();
-  const { tenants, payments } = useApp();
+  const { tenants, payments, user } = useApp();
   const [tab, setTab] = useState("unpaid");
   const [sent, setSent] = useState({});
   const [sending, setSending] = useState({});
@@ -286,7 +286,7 @@ export default function KakaoAlertPage() {
       const res = await fetch("/api/kakao/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tab: tabKey || tab, tenant: { ...t, daysLeft: dl, daysUntilPay: (t.pay_day || 5) - today } }),
+        body: JSON.stringify({ tab: tabKey || tab, tenant: { ...t, daysLeft: dl, daysUntilPay: (t.pay_day || 5) - today }, userId: user?.id }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) { setError(e => ({ ...e, [key]: data.error || "발송 실패" })); }
