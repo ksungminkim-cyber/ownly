@@ -1,5 +1,5 @@
 // src/app/dashboard/settings/page.js
-"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname";
+"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname"; import { isSupported as isPushSupported, getPermission as getPushPermission, isEnabled as isPushEnabled, requestPermission as requestPushPermission, setEnabled as setPushEnabled, getCategories as getPushCats, setCategories as setPushCats, notify as pushNotify } from "../../../lib/notifications";
 
 // 주간 뉴스레터 구독
 function NewsletterSubscription({ user }) {
@@ -86,6 +86,123 @@ function NewsletterSubscription({ user }) {
 }
 
 // ✅ ① 알림 설정 컴포넌트
+function BrowserNotificationSettings() {
+  const [supported, setSupported] = useState(true);
+  const [permission, setPermission] = useState("default");
+  const [enabled, setLocalEnabled] = useState(false);
+  const [cats, setCats] = useState({ payment: true, repair: true, expiry: true });
+
+  useEffect(() => {
+    setSupported(isPushSupported());
+    setPermission(getPushPermission());
+    setLocalEnabled(isPushEnabled());
+    setCats(getPushCats());
+  }, []);
+
+  const handleEnable = async () => {
+    const ok = await requestPushPermission();
+    if (ok) {
+      setPermission("granted");
+      setLocalEnabled(true);
+      toast("🔔 브라우저 알림이 활성화됐습니다");
+      pushNotify("payment", { title: "온리 알림 테스트", body: "알림이 정상 작동합니다", url: "/dashboard" });
+    } else {
+      setPermission(getPushPermission());
+      toast("브라우저 알림 권한을 허용해야 합니다", "error");
+    }
+  };
+
+  const handleDisable = () => {
+    setPushEnabled(false);
+    setLocalEnabled(false);
+    toast("브라우저 알림이 꺼졌습니다", "warning");
+  };
+
+  const toggleCat = (key) => {
+    const next = { ...cats, [key]: !cats[key] };
+    setCats(next);
+    setPushCats(next);
+  };
+
+  const sendTest = () => {
+    pushNotify("payment", { title: "🧪 테스트 알림", body: "알림이 잘 보이나요? 데스크탑 우측 하단을 확인하세요.", url: "/dashboard" });
+    toast("테스트 알림 발송 (브라우저 알림 영역 확인)");
+  };
+
+  if (!supported) {
+    return (
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 10 }}>🔔 브라우저 알림</p>
+        <p style={{ fontSize: 12, color: "#8a8a9a" }}>이 브라우저는 알림을 지원하지 않습니다.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 12 }}>🔔 브라우저 알림 (실시간)</p>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "var(--surface2)", borderRadius: 10, marginBottom: 14 }}>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 3 }}>
+            {enabled ? "✅ 활성화됨" : permission === "denied" ? "🚫 브라우저에서 차단됨" : "알림 받지 않음"}
+          </p>
+          <p style={{ fontSize: 11, color: "#8a8a9a", lineHeight: 1.6 }}>
+            {enabled ? "세입자 수리 요청·납부 확인 시 즉시 알림을 받습니다" :
+             permission === "denied" ? "브라우저 설정에서 사이트 알림을 허용으로 변경해주세요" :
+             "허용하면 다른 탭이나 앱을 쓰는 중에도 알림을 받습니다"}
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          {!enabled && permission !== "denied" && (
+            <button onClick={handleEnable} style={{ padding: "8px 16px", borderRadius: 9, background: "#1a2744", color: "#fff", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              허용하기
+            </button>
+          )}
+          {enabled && (
+            <>
+              <button onClick={sendTest} style={{ padding: "8px 14px", borderRadius: 9, background: "rgba(15,165,115,0.1)", color: "#0fa573", border: "1px solid rgba(15,165,115,0.3)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                테스트
+              </button>
+              <button onClick={handleDisable} style={{ padding: "8px 14px", borderRadius: 9, background: "transparent", color: "#8a8a9a", border: "1px solid var(--border)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                끄기
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {enabled && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[
+            { key: "payment", icon: "💰", label: "월세 입금 확인", sub: "세입자 납부 처리 시" },
+            { key: "repair", icon: "🔧", label: "수리 요청 접수", sub: "세입자가 새 수리 요청 등록 시 (긴급 포함)" },
+            { key: "expiry", icon: "📅", label: "계약 만료 임박", sub: "D-30 · D-7 도달 시 (준비 중)" },
+          ].map(({ key, icon, label, sub }) => (
+            <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+                <span style={{ fontSize: 16 }}>{icon}</span>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", margin: 0 }}>{label}</p>
+                  <p style={{ fontSize: 10, color: "#8a8a9a", margin: "2px 0 0" }}>{sub}</p>
+                </div>
+              </div>
+              <div onClick={() => toggleCat(key)}
+                style={{ width: 40, height: 22, borderRadius: 11, background: cats[key] ? "#1a2744" : "#d1d5db", cursor: "pointer", position: "relative", flexShrink: 0 }}>
+                <div style={{ position: "absolute", top: 3, left: cats[key] ? 21 : 3, width: 16, height: 16, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left .2s" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p style={{ fontSize: 10, color: "#b0b0be", marginTop: 14, lineHeight: 1.6 }}>
+        💡 브라우저를 열어둔 상태에서만 알림이 도착합니다. 앱을 닫은 후에도 받으려면 향후 웹푸시 기능을 추가할 예정이에요.
+      </p>
+    </div>
+  );
+}
+
 function NotificationSettings() {
   const NOTI_KEY = "ownly_noti_settings";
   const defaults = { monthlyReport: true, expiryAlert: true, unpaidAlert: true, depositReturn: true };
@@ -296,6 +413,7 @@ export default function SettingsPage() {
 
       {/* ✅ ① 알림 설정 */}
       <NotificationSettings />
+      <BrowserNotificationSettings />
       <NewsletterSubscription user={user} />
 
       {/* 결제 관리 */}
