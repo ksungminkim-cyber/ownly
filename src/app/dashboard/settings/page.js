@@ -147,10 +147,15 @@ export default function SettingsPage() {
   const { user, tenants, payments, contracts, resetAllData, userPlan } = useApp();
   const currentNickname = user?.user_metadata?.nickname || "";
   const currentPhone = user?.user_metadata?.phone || "";
+  const currentLandlordName = user?.user_metadata?.landlord_name || "";
+  const currentLandlordAddr = user?.user_metadata?.landlord_addr || "";
+  const currentBusinessNo = user?.user_metadata?.business_no || "";
   const [nickname, setNickname] = useState(currentNickname);
   const [savingNick, setSavingNick] = useState(false);
   const [phone, setPhone] = useState(currentPhone);
   const [savingPhone, setSavingPhone] = useState(false);
+  const [landlord, setLandlord] = useState({ name: currentLandlordName, addr: currentLandlordAddr, business_no: currentBusinessNo });
+  const [savingLandlord, setSavingLandlord] = useState(false);
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [savingPw, setSavingPw] = useState(false);
   const [showPw, setShowPw] = useState(false);
@@ -177,6 +182,18 @@ export default function SettingsPage() {
     setSavingPhone(false);
     if (error) { toast("저장 실패: " + error.message, "error"); return; }
     toast("전화번호가 저장되었습니다 ✓");
+  };
+  const saveLandlord = async () => {
+    if (!landlord.name.trim()) { toast("임대인 성명을 입력해주세요", "error"); return; }
+    setSavingLandlord(true);
+    const { error } = await supabase.auth.updateUser({ data: {
+      landlord_name: landlord.name.trim(),
+      landlord_addr: landlord.addr.trim() || null,
+      business_no: (landlord.business_no || "").trim() || null,
+    } });
+    setSavingLandlord(false);
+    if (error) { toast("저장 실패: " + error.message, "error"); return; }
+    toast("임대인 정보가 저장되었습니다 ✓");
   };
   const savePassword = async () => { if (!pwForm.next || pwForm.next.length < 6) { toast("새 비밀번호는 6자 이상이어야 합니다", "error"); return; } if (pwForm.next !== pwForm.confirm) { toast("새 비밀번호가 일치하지 않습니다", "error"); return; } setSavingPw(true); const { error } = await supabase.auth.updateUser({ password: pwForm.next }); setSavingPw(false); if (error) { toast("변경 실패: " + error.message, "error"); return; } setPwForm({ current: "", next: "", confirm: "" }); toast("비밀번호가 변경되었습니다 ✓"); };
   const handleReset = async () => { setResetting(true); try { await resetAllData(); toast("모든 데이터가 초기화되었습니다", "warning"); setConfirmReset(false); } catch { toast("초기화 중 오류가 발생했습니다", "error"); } finally { setResetting(false); } };
@@ -226,6 +243,33 @@ export default function SettingsPage() {
             </button>
           </div>
           <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 5 }}>세입자 수리 요청 접수 시 카카오 알림톡을 받는 번호입니다.</p>
+        </div>
+      </div>
+
+      {/* 임대인 정보 (계약서·내용증명 자동 채움) */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 4 }}>🏠 임대인 정보</p>
+        <p style={{ fontSize: 11, color: "#a0a0b0", marginBottom: 14, lineHeight: 1.6 }}>계약서 PDF·내용증명에 자동 채워지는 임대인(본인) 정보입니다. 닉네임과 별개로 법적 실명·주소를 입력하세요.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 6 }}>성명 (실명)</p>
+            <input value={landlord.name} onChange={e => setLandlord(l => ({ ...l, name: e.target.value }))} placeholder="예: 홍길동"
+              style={{ width: "100%", padding: "10px 13px", fontSize: 13, color: "var(--text)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, outline: "none" }} />
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 6 }}>주소</p>
+            <input value={landlord.addr} onChange={e => setLandlord(l => ({ ...l, addr: e.target.value }))} placeholder="예: 서울 강남구 테헤란로 100"
+              style={{ width: "100%", padding: "10px 13px", fontSize: 13, color: "var(--text)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, outline: "none" }} />
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 6 }}>사업자등록번호 <span style={{ color: "#a0a0b0", fontWeight: 400 }}>(선택 — 상가 임대 시)</span></p>
+            <input value={landlord.business_no} onChange={e => setLandlord(l => ({ ...l, business_no: e.target.value }))} placeholder="123-45-67890"
+              style={{ width: "100%", padding: "10px 13px", fontSize: 13, color: "var(--text)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, outline: "none" }} />
+          </div>
+          <button onClick={saveLandlord} disabled={savingLandlord}
+            style={{ alignSelf: "flex-end", padding: "10px 22px", borderRadius: 10, background: savingLandlord ? "#94a3b8" : "#1a2744", border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: savingLandlord ? "not-allowed" : "pointer" }}>
+            {savingLandlord ? "저장 중..." : "저장"}
+          </button>
         </div>
       </div>
 
