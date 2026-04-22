@@ -254,6 +254,23 @@ export default function SettingsPage() {
       <NotificationSettings />
       <NewsletterSubscription user={user} />
 
+      {/* 온보딩 재실행 */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 12 }}>🎓 온리 둘러보기</p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>초기 가이드 다시 보기</p>
+            <p style={{ fontSize: 11, color: "#8a8a9a", margin: "3px 0 0", lineHeight: 1.6 }}>
+              온리의 핵심 기능(물건 등록·건물 관리·공실 액션플랜·AI 분석·커뮤니티)을 4단계로 다시 안내받을 수 있어요.
+            </p>
+          </div>
+          <button onClick={() => { try { localStorage.removeItem("ownly_onboarding_done"); window.location.reload(); } catch {} }}
+            style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${C.indigo}`, background: "var(--surface)", color: C.indigo, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+            🔄 둘러보기 시작
+          </button>
+        </div>
+      </div>
+
       {/* 데이터 현황 */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 14 }}>데이터 현황</p>

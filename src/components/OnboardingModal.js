@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 
 const STEPS = [
   { id: "welcome", cta: "시작하기", skip: false },
-  { id: "register", cta: "물건 등록하기", skip: true },
+  { id: "register", cta: "다음 →", skip: true },
+  { id: "advanced", cta: "마무리 →", skip: false },
   { id: "done", cta: "대시보드로 이동", skip: false },
 ];
 
@@ -31,14 +32,13 @@ export default function OnboardingModal() {
 
   if (!visible) return null;
 
-  const next = () => setStep(s => Math.min(s + 1, 2));
-  const last = () => setStep(2);
+  const next = () => setStep(s => Math.min(s + 1, STEPS.length - 1));
+  const last = () => setStep(STEPS.length - 1);
   const ctaClick = () => {
-    if (step === 0) { next(); return; }
-    if (step === 1) { close("/dashboard/properties"); return; }
+    if (step < STEPS.length - 1) { next(); return; }
     close(null);
   };
-  const bar = `${((step + 1) / 3) * 100}%`;
+  const bar = `${((step + 1) / STEPS.length) * 100}%`;
 
   return (
     <div
@@ -105,6 +105,31 @@ export default function OnboardingModal() {
           )}
 
           {step === 2 && (
+            <div>
+              <div style={{ fontSize:44, marginBottom:12, textAlign:"center" }}>⚡</div>
+              <h2 style={{ fontSize:20, fontWeight:900, color:"#1a2744", marginBottom:5, textAlign:"center" }}>임대 관리를 한 단계 업그레이드</h2>
+              <p style={{ fontSize:13, color:"#8a8a9a", marginBottom:20, textAlign:"center" }}>온리만의 스마트 도구들</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {[
+                  { icon:"🏢", t:"건물 단위 관리 + 엑셀 일괄 등록", d:"여러 호실 한 번에 등록·건물별 수익 집계" },
+                  { icon:"🚪", t:"공실 단계별 액션플랜", d:"D+일수에 따라 5단계 해소 전략 자동 제안" },
+                  { icon:"🗺️", t:"주변 매물 실거래 비교", d:"국토부 최근 3개월 · 내 월세 vs 지역 평균" },
+                  { icon:"💬", t:"임대인 커뮤니티", d:"질문·답변 · 인기 글 · 실시간 활동 알림" },
+                  { icon:"🤖", t:"AI 입지·시세 분석", d:"PRO 무제한 · 플러스 월 10회" },
+                ].map(f => (
+                  <div key={f.t} style={{ display:"flex", gap:12, padding:"10px 12px", background:"#f8f7f4", borderRadius:11 }}>
+                    <span style={{ fontSize:22, flexShrink:0 }}>{f.icon}</span>
+                    <div>
+                      <p style={{ fontSize:13, fontWeight:700, color:"#1a2744", margin:0 }}>{f.t}</p>
+                      <p style={{ fontSize:11, color:"#8a8a9a", lineHeight:1.5, marginTop:2 }}>{f.d}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
             <div style={{ textAlign:"center" }}>
               <div style={{ fontSize:52, marginBottom:16 }}>🎉</div>
               <h2 style={{ fontSize:22, fontWeight:900, color:"#1a2744", marginBottom:6 }}>준비 완료!</h2>
@@ -143,7 +168,7 @@ export default function OnboardingModal() {
           )}
 
           <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:14 }}>
-            {[0,1,2].map(i => (
+            {STEPS.map((_, i) => (
               <div key={i} style={{ width:i===step?20:6, height:6, borderRadius:3, background:i===step?"#1a2744":"#e0ddd8", transition:"all .3s" }} />
             ))}
           </div>
