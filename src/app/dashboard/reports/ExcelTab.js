@@ -1,6 +1,7 @@
 ﻿"use client";
 import { useState } from "react";
 import { useApp } from "../../../context/AppContext";
+import { toast } from "../../../components/shared";
 
 const C = {
   navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a",
@@ -159,7 +160,7 @@ export default function ExcelTab(){
   async function handleExport(){
     setLoading(true);
     try{await buildXlsx({year,tenants,payments,repairs,ledger});}
-    catch(e){alert("엑셀 생성 오류: "+e.message);}
+    catch(e){toast("엑셀 생성 오류: "+e.message, "error");}
     finally{setLoading(false);}
   }
   const kvs=[

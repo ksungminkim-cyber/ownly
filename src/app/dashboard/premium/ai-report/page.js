@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
+import { toast } from "../../../../components/shared";
 
 const C = {
   navy: "#1a2744", navyLight: "#2d4270", purple: "#5b4fcf",
@@ -236,7 +237,7 @@ export default function AIReportPage() {
       localStorage.setItem(key + "_addr", confirmedAddr);
       window.open("/dashboard/premium/ai-report/print", "_blank");
     } catch (e) {
-      alert("PDF 출력 중 오류가 발생했습니다: " + e.message);
+      toast("PDF 출력 중 오류가 발생했습니다: " + e.message, "error");
     }
   };
 

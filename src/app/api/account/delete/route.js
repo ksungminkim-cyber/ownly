@@ -1,17 +1,26 @@
 // src/app/api/account/delete/route.js
-// 회원 탈퇴 API — Supabase Admin으로 유저 + 데이터 삭제
+// 회원 탈퇴 API — 인증된 유저 본인만 삭제 가능
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req) {
   try {
-    const { userId } = await req.json();
-    if (!userId) return Response.json({ error: "userId 필수" }, { status: 400 });
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) return Response.json({ error: "로그인이 필요합니다" }, { status: 401 });
 
     const supabaseUrl    = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnon   = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const supabaseSecret = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!supabaseSecret) {
-      return Response.json({ error: "서버 설정 오류" }, { status: 500 });
-    }
+    if (!supabaseSecret) return Response.json({ error: "서버 설정 오류" }, { status: 500 });
+
+    // 1) 본인 토큰 검증 — 요청자 ID를 서버가 직접 추출
+    const userClient = createClient(supabaseUrl, supabaseAnon, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) return Response.json({ error: "인증 실패" }, { status: 401 });
+    const userId = userData.user.id;
 
     const headers = {
       Authorization: `Bearer ${supabaseSecret}`,
@@ -19,7 +28,7 @@ export async function POST(req) {
       "Content-Type": "application/json",
     };
 
-    // 1. 유저 데이터 삭제 (Supabase RLS가 user_id 기반이라 직접 삭제)
+    // 2) 본인 데이터 삭제 (RLS가 user_id 기반이라 직접 삭제)
     const tables = [
       "community_comments",
       "community_likes",
@@ -30,6 +39,11 @@ export async function POST(req) {
       "payments",
       "contracts",
       "tenants",
+      "billing_history",
+      "notification_logs",
+      "repairs",
+      "buildings",
+      "ledger",
     ];
 
     await Promise.all(
@@ -41,7 +55,7 @@ export async function POST(req) {
       )
     );
 
-    // 2. Auth 유저 삭제
+    // 3) Auth 유저 삭제
     const deleteRes = await fetch(
       `${supabaseUrl}/auth/v1/admin/users/${userId}`,
       { method: "DELETE", headers }
