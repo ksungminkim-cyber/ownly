@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; 
+"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import TenantNotes from "../../../components/TenantNotes"; import RenewalGuide from "../../../components/RenewalGuide";
 // ✅ ② 갱신 제안서 컴포넌트
 function RenewalProposal({ tenant, onClose }) {
   const endDate = tenant.end_date || tenant.end || "";
@@ -109,7 +109,7 @@ function RenewalProposal({ tenant, onClose }) {
   );
 }
 
-export default function TenantsPage() { const router = useRouter(); const { tenants, repairs, updateTenantContacts, updateTenantIntent, loading } = useApp(); if (loading) return <SkeletonTable rows={6} cols={3} />; const [selected, setSelected] = useState(null); const [filter, setFilter] = useState("전체"); const [search, setSearch] = useState(""); const [showContact, setShowContact] = useState(false); const [contactNote, setContactNote] = useState({ type: "납부확인", note: "" }); const [saving, setSaving] = useState(false);
+export default function TenantsPage() { const router = useRouter(); const { tenants, repairs, updateTenantContacts, updateTenantIntent, loading, user } = useApp(); if (loading) return <SkeletonTable rows={6} cols={3} />; const [selected, setSelected] = useState(null); const [filter, setFilter] = useState("전체"); const [search, setSearch] = useState(""); const [showContact, setShowContact] = useState(false); const [contactNote, setContactNote] = useState({ type: "납부확인", note: "" }); const [saving, setSaving] = useState(false);
   // ✅ ⑧ 수리이력 탭
   const [detailTab, setDetailTab] = useState("contract");
   const [showRenewal, setShowRenewal] = useState(false); // ✅ ② 갱신 제안서 모달
@@ -194,6 +194,7 @@ export default function TenantsPage() { const router = useRouter(); const { tena
         </div>
 
         {sel.status === "미납" && ( <div style={{ background: "rgba(232,68,90,0.06)", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}> <div> <p style={{ fontSize: 12, fontWeight: 800, color: "#e8445a", marginBottom: 2 }}>⚠️ 미납 세입자</p> <p style={{ fontSize: 11, color: "#8a8a9a" }}>수금 현황 확인 후 내용증명 발송을 권장합니다</p> </div> <div style={{ display: "flex", gap: 6 }}> <button onClick={() => router.push("/dashboard/payments")} style={{ padding: "6px 11px", borderRadius: 8, background: "transparent", border: "1px solid #e8445a50", color: "#e8445a", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>수금확인</button> <button onClick={() => router.push("/dashboard/certified")} style={{ padding: "6px 11px", borderRadius: 8, background: "#e8445a", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>내용증명 →</button> </div> </div> )}
+        {daysLeft(getEnd(sel)) > 0 && daysLeft(getEnd(sel)) <= 120 && <RenewalGuide tenant={sel} daysLeft={daysLeft(getEnd(sel))} />}
         {sel.status !== "미납" && daysLeft(getEnd(sel)) <= 90 && ( <div style={{ background: "rgba(232,150,10,0.06)", border: "1px solid rgba(232,150,10,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}> <div> <p style={{ fontSize: 12, fontWeight: 800, color: "#e8960a", marginBottom: 2 }}>📅 계약 만료 {daysLeft(getEnd(sel))}일 전</p> <p style={{ fontSize: 11, color: "#8a8a9a" }}>갱신 또는 퇴거 여부를 조속히 확인하세요</p> </div> <button onClick={() => router.push("/dashboard/contracts")} style={{ padding: "6px 11px", borderRadius: 8, background: "#e8960a", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>계약서 확인 →</button> </div> )}
 
         {/* ✅ ⑧ 상세 탭 — 계약정보 / 수리이력 / 연락기록 */}
@@ -238,8 +239,7 @@ export default function TenantsPage() { const router = useRouter(); const { tena
 
         {detailTab === "contacts" && (
           <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 13, padding: "18px" }}>
-            <SectionLabel>RECENT CONTACTS</SectionLabel>
-            {!sel.contacts || sel.contacts.length === 0 ? ( <EmptyState icon="📝" title="연락 기록 없음" desc="연락 기록을 추가해보세요" /> ) : sel.contacts.slice(0, 10).map((ct, i) => ( <div key={i} style={{ padding: "9px 0", borderBottom: i < Math.min(sel.contacts.length, 10) - 1 ? "1px solid #ebe9e3" : "none" }}> <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}> <span style={{ fontSize: 10, fontWeight: 700, color: "#1a2744", background: C.indigo + "18", padding: "2px 7px", borderRadius: 5 }}>{ct.type}</span> <span style={{ fontSize: 10, color: "#8a8a9a" }}>{ct.date}</span> </div> <p style={{ fontSize: 12, color: "#1a2744", lineHeight: 1.6 }}>{ct.note}</p> </div> ))}
+            <TenantNotes tenantId={sel.id} userId={user?.id} />
           </div>
         )}
       </div>
