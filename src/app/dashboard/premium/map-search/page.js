@@ -27,11 +27,21 @@ const LAWD_MAP = {
 };
 
 const TYPE_OPTIONS = [
-  { key: "apt_rent",   label: "🏢 아파트 월세·전세", molit: "apt_rent" },
-  { key: "villa_rent", label: "🏠 연립·다세대",      molit: "villa_rent" },
-  { key: "offi_rent",  label: "🏬 오피스텔",         molit: "offi_rent" },
-  { key: "house_rent", label: "🏡 단독·다가구",       molit: "house_rent" },
+  // 임대 (전월세)
+  { key: "apt_rent",    label: "🏢 아파트 · 전월세",      mode: "rent", group: "임대" },
+  { key: "villa_rent",  label: "🏠 연립·다세대 · 전월세",  mode: "rent", group: "임대" },
+  { key: "offi_rent",   label: "🏬 오피스텔 · 전월세",    mode: "rent", group: "임대" },
+  { key: "house_rent",  label: "🏡 단독·다가구 · 전월세",  mode: "rent", group: "임대" },
+  // 매매
+  { key: "apt_trade",   label: "🏢 아파트 · 매매",         mode: "trade", group: "매매" },
+  { key: "villa_trade", label: "🏠 연립·다세대 · 매매",    mode: "trade", group: "매매" },
+  { key: "offi_trade",  label: "🏬 오피스텔 · 매매",       mode: "trade", group: "매매" },
+  { key: "house_trade", label: "🏡 단독·다가구 · 매매",    mode: "trade", group: "매매" },
+  { key: "nrg_trade",   label: "🏪 상업·업무용 · 매매",    mode: "trade", group: "매매" },
+  { key: "land_trade",  label: "🌳 토지 · 매매",           mode: "trade", group: "매매" },
 ];
+
+const TYPE_BY_KEY = Object.fromEntries(TYPE_OPTIONS.map(o => [o.key, o]));
 
 // 거래 유형 판정 (전세 vs 월세)
 function isJeonse(row) {
@@ -115,9 +125,11 @@ function guessRegionFromProperty(t) {
 
 function propertyTypeGuess(t) {
   if (!t) return "apt_rent";
+  if (t.pType === "토지") return "land_trade";
+  if (t.pType === "상가") return "nrg_trade"; // 상업용 매매 기본 (임대 데이터 미지원)
   if (t.sub === "오피스텔") return "offi_rent";
   if (t.sub === "빌라" || t.sub === "다세대") return "villa_rent";
-  if (t.sub === "단독주택" || t.pType === "주거" && t.sub?.includes("단독")) return "house_rent";
+  if (t.sub === "단독주택" || (t.pType === "주거" && t.sub?.includes("단독"))) return "house_rent";
   return "apt_rent";
 }
 
@@ -160,6 +172,9 @@ function MapSearchContent() {
     setError("");
     setData(null);
     const lawdCd = LAWD_MAP[region];
+    const typeInfo = TYPE_BY_KEY[type] || { mode: "rent" };
+    const mode = typeInfo.mode;
+
     try {
       const results = await Promise.all(
         months.map(ym =>
@@ -167,75 +182,102 @@ function MapSearchContent() {
             .then(r => r.json())
         )
       );
-      const allItems = [];
-      results.forEach((res, idx) => {
-        const ym = months[idx];
-        (res.items || []).forEach(it => {
-          allItems.push({
-            ...it,
-            _ym: ym,
-            _deposit: parseInt(String(it.deposit || "0").replace(/,/g, ""), 10) || 0,
-            _monthly: parseInt(String(it.monthlyRent || "0").replace(/,/g, ""), 10) || 0,
-            _area: parseFloat(it.excluUseAr || it.exclusiveUseArea || "0") || 0,
-            _floor: parseInt(it.floor || "0", 10),
-            _name: it.aptNm || it.offiNm || it.mhouseNm || it.houseType || "—",
-            _dong: it.umdNm || "",
-            _day: it.dealDay ? String(it.dealDay).padStart(2, "0") : "",
-          });
-        });
-      });
 
-      if (allItems.length === 0) {
-        setError("해당 지역 실거래 데이터가 없습니다. 다른 유형을 선택해보세요.");
+      // 에러 메시지 surface
+      const err = results.find(r => r.error);
+      if (err) {
+        setError(err.error);
         setLoading(false);
         return;
       }
 
-      const monthlyItems = allItems.filter(i => i._monthly > 0);
-      const jeonseItems = allItems.filter(i => i._monthly === 0);
-      const avgMonthly = monthlyItems.length > 0
-        ? Math.round(monthlyItems.reduce((s, i) => s + i._monthly, 0) / monthlyItems.length)
-        : 0;
-      const avgMonthlyDeposit = monthlyItems.length > 0
-        ? Math.round(monthlyItems.reduce((s, i) => s + i._deposit, 0) / monthlyItems.length)
-        : 0;
-      const avgJeonseDeposit = jeonseItems.length > 0
-        ? Math.round(jeonseItems.reduce((s, i) => s + i._deposit, 0) / jeonseItems.length)
-        : 0;
-      const avgArea = allItems.length > 0
-        ? Math.round(allItems.reduce((s, i) => s + i._area, 0) / allItems.length * 10) / 10
-        : 0;
-      const jeonseRatio = allItems.length > 0 ? Math.round((jeonseItems.length / allItems.length) * 100) : 0;
-
-      // 월별 집계 — 거래량/평균 월세
-      const byMonth = months.map(ym => {
-        const items = allItems.filter(i => i._ym === ym);
-        const m = items.filter(i => i._monthly > 0);
-        const j = items.filter(i => i._monthly === 0);
-        return {
-          label: `${ym.slice(2, 4)}.${ym.slice(4, 6)}`,
-          total: items.length,
-          jeonse: j.length,
-          wolse: m.length,
-          avgMonthly: m.length > 0 ? Math.round(m.reduce((s, i) => s + i._monthly, 0) / m.length) : 0,
-        };
+      const allItems = [];
+      results.forEach((res, idx) => {
+        const ym = months[idx];
+        (res.items || []).forEach(it => {
+          const common = {
+            ...it,
+            _ym: ym,
+            _day: it.dealDay ? String(it.dealDay).padStart(2, "0") : "",
+            _dong: it.umdNm || "",
+            _floor: parseInt(it.floor || "0", 10) || null,
+            _buildYear: parseInt(it.buildYear || "0", 10) || null,
+            _name: it.aptNm || it.offiNm || it.mhouseNm || it.houseType || it.buildingNm || it.bldgNm || "—",
+          };
+          if (mode === "rent") {
+            common._deposit = parseInt(String(it.deposit || "0").replace(/,/g, ""), 10) || 0;
+            common._monthly = parseInt(String(it.monthlyRent || "0").replace(/,/g, ""), 10) || 0;
+            common._area = parseFloat(it.excluUseAr || it.exclusiveUseArea || "0") || 0;
+          } else {
+            // 매매
+            common._dealAmount = parseInt(String(it.dealAmount || "0").replace(/,/g, "").replace(/\s/g, ""), 10) || 0;
+            // 토지는 landAr, 상업용은 bldgArea / plottageAr, 그 외 excluUseAr
+            if (type === "land_trade") {
+              common._area = parseFloat(it.landAr || "0") || 0;
+              common._jimok = it.jimok || "";
+              common._name = it.jimok || "토지";
+            } else if (type === "nrg_trade") {
+              common._area = parseFloat(it.bldgArea || it.buildingAr || it.plottageAr || "0") || 0;
+              common._name = it.bldgNm || it.buildingNm || (it.buildingType ? `${it.buildingType}` : "상업·업무용");
+            } else {
+              common._area = parseFloat(it.excluUseAr || "0") || 0;
+            }
+          }
+          allItems.push(common);
+        });
       });
 
-      // 최근 정렬 (일자 내림차순)
+      if (allItems.length === 0) {
+        setError("해당 지역·유형 실거래 데이터가 없습니다. 다른 유형·지역을 선택해보세요.");
+        setLoading(false);
+        return;
+      }
+
       allItems.sort((a, b) => (b._ym + b._day).localeCompare(a._ym + a._day));
 
-      setData({
-        items: allItems,
-        monthly: monthlyItems,
-        jeonse: jeonseItems,
-        avgMonthly,
-        avgMonthlyDeposit,
-        avgJeonseDeposit,
-        avgArea,
-        jeonseRatio,
-        byMonth,
-        total: allItems.length,
-      });
+      if (mode === "rent") {
+        const monthlyItems = allItems.filter(i => i._monthly > 0);
+        const jeonseItems = allItems.filter(i => i._monthly === 0);
+        const avgMonthly = monthlyItems.length > 0 ? Math.round(monthlyItems.reduce((s, i) => s + i._monthly, 0) / monthlyItems.length) : 0;
+        const avgMonthlyDeposit = monthlyItems.length > 0 ? Math.round(monthlyItems.reduce((s, i) => s + i._deposit, 0) / monthlyItems.length) : 0;
+        const avgJeonseDeposit = jeonseItems.length > 0 ? Math.round(jeonseItems.reduce((s, i) => s + i._deposit, 0) / jeonseItems.length) : 0;
+        const avgArea = allItems.length > 0 ? Math.round(allItems.reduce((s, i) => s + i._area, 0) / allItems.length * 10) / 10 : 0;
+        const jeonseRatio = Math.round((jeonseItems.length / allItems.length) * 100);
+        const byMonth = months.map(ym => {
+          const items = allItems.filter(i => i._ym === ym);
+          const m = items.filter(i => i._monthly > 0);
+          const j = items.filter(i => i._monthly === 0);
+          return { label: `${ym.slice(2, 4)}.${ym.slice(4, 6)}`, total: items.length, jeonse: j.length, wolse: m.length, avgMonthly: m.length > 0 ? Math.round(m.reduce((s, i) => s + i._monthly, 0) / m.length) : 0 };
+        });
+        setData({ mode, items: allItems, monthly: monthlyItems, jeonse: jeonseItems, avgMonthly, avgMonthlyDeposit, avgJeonseDeposit, avgArea, jeonseRatio, byMonth, total: allItems.length });
+      } else {
+        // 매매 집계
+        const amounts = allItems.map(i => i._dealAmount).filter(a => a > 0);
+        const avgDeal = amounts.length > 0 ? Math.round(amounts.reduce((s, a) => s + a, 0) / amounts.length) : 0;
+        const minDeal = amounts.length > 0 ? Math.min(...amounts) : 0;
+        const maxDeal = amounts.length > 0 ? Math.max(...amounts) : 0;
+        const medianDeal = (() => {
+          if (amounts.length === 0) return 0;
+          const sorted = [...amounts].sort((a, b) => a - b);
+          return sorted[Math.floor(sorted.length / 2)];
+        })();
+        const avgArea = allItems.length > 0 ? Math.round(allItems.reduce((s, i) => s + i._area, 0) / allItems.length * 10) / 10 : 0;
+        // 평당 거래가 (토지·상업 외) — 3.3058㎡ 기준
+        const withArea = allItems.filter(i => i._area > 0 && i._dealAmount > 0);
+        const avgPerPyeong = withArea.length > 0
+          ? Math.round(withArea.reduce((s, i) => s + (i._dealAmount / (i._area / 3.3058)), 0) / withArea.length)
+          : 0;
+        const byMonth = months.map(ym => {
+          const items = allItems.filter(i => i._ym === ym);
+          const amts = items.map(i => i._dealAmount).filter(a => a > 0);
+          return {
+            label: `${ym.slice(2, 4)}.${ym.slice(4, 6)}`,
+            total: items.length,
+            avgDeal: amts.length > 0 ? Math.round(amts.reduce((s, a) => s + a, 0) / amts.length) : 0,
+          };
+        });
+        setData({ mode, items: allItems, avgDeal, minDeal, maxDeal, medianDeal, avgArea, avgPerPyeong, byMonth, total: allItems.length });
+      }
     } catch (e) {
       setError("분석 중 오류: " + (e.message || ""));
     } finally {
@@ -243,9 +285,9 @@ function MapSearchContent() {
     }
   }, [region, type, months]);
 
-  // 내 물건과 비교 (월세 기준)
+  // 내 물건과 비교 (임대 모드: 월세 기준)
   const comparison = useMemo(() => {
-    if (!selectedTenant || !data || !selectedTenant.rent) return null;
+    if (!selectedTenant || !data || data.mode !== "rent" || !selectedTenant.rent) return null;
     const my = Number(selectedTenant.rent);
     const avg = data.avgMonthly;
     if (!avg) return null;
@@ -292,8 +334,13 @@ function MapSearchContent() {
           {Object.keys(LAWD_MAP).map(k => <option key={k}>{k}</option>)}
         </select>
         <select value={type} onChange={e => { setType(e.target.value); setData(null); }}
-          style={{ padding: "9px 14px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600 }}>
-          {TYPE_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+          style={{ padding: "9px 14px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600, minWidth: 220 }}>
+          <optgroup label="임대 (전월세)">
+            {TYPE_OPTIONS.filter(o => o.mode === "rent").map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </optgroup>
+          <optgroup label="매매">
+            {TYPE_OPTIONS.filter(o => o.mode === "trade").map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </optgroup>
         </select>
         <button onClick={search} disabled={loading}
           style={{ padding: "9px 22px", borderRadius: 10, background: loading ? "#94a3b8" : C.navy, color: "#fff", fontWeight: 700, fontSize: 13, border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
@@ -333,14 +380,22 @@ function MapSearchContent() {
 
           {/* KPI 그리드 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10, marginBottom: 20 }}>
-            {[
+            {(data.mode === "rent" ? [
               { l: "실거래 총 건수", v: data.total.toLocaleString() + "건", c: C.navy, sub: "최근 3개월" },
               { l: "평균 월세", v: formatMan(data.avgMonthly) + "원", c: C.emerald, sub: `${data.monthly.length}건 기준` },
               { l: "평균 월세 보증금", v: formatMan(data.avgMonthlyDeposit) + "원", c: C.indigo, sub: "월세 평균" },
               { l: "평균 전세 보증금", v: formatMan(data.avgJeonseDeposit) + "원", c: C.purple, sub: `${data.jeonse.length}건` },
               { l: "평균 전용면적", v: data.avgArea ? data.avgArea + "㎡" : "-", c: C.navy, sub: "㎡ 기준" },
               { l: "전세 비중", v: data.jeonseRatio + "%", c: data.jeonseRatio > 50 ? C.purple : C.emerald, sub: "전세/월세 중" },
-            ].map(k => (
+            ] : [
+              { l: "실거래 총 건수", v: data.total.toLocaleString() + "건", c: C.navy, sub: "최근 3개월" },
+              { l: "평균 거래가", v: formatMan(data.avgDeal) + "원", c: C.emerald, sub: "산술 평균" },
+              { l: "중앙값 거래가", v: formatMan(data.medianDeal) + "원", c: C.indigo, sub: "극단값 배제" },
+              { l: "최저 거래가", v: formatMan(data.minDeal) + "원", c: C.navy, sub: "3개월 최저" },
+              { l: "최고 거래가", v: formatMan(data.maxDeal) + "원", c: C.rose, sub: "3개월 최고" },
+              { l: type === "land_trade" ? "평균 토지면적" : "평균 전용면적", v: data.avgArea ? data.avgArea + "㎡" : "-", c: C.navy, sub: "㎡ 기준" },
+              ...(data.avgPerPyeong > 0 ? [{ l: "평당 평균 거래가", v: formatMan(data.avgPerPyeong) + "원", c: C.purple, sub: "3.3058㎡ 기준" }] : []),
+            ]).map(k => (
               <div key={k.l} style={{ background: "var(--surface)", border: `1px solid var(--border)`, borderRadius: 12, padding: "12px 14px" }}>
                 <p style={{ fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 5 }}>{k.l}</p>
                 <p style={{ fontSize: 17, fontWeight: 800, color: k.c }}>{k.v}</p>
@@ -360,26 +415,32 @@ function MapSearchContent() {
                   <YAxis tick={{ fontSize: 11, fill: C.muted }} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="jeonse" stackId="a" fill={C.purple} name="전세" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="wolse" stackId="a" fill={C.emerald} name="월세" radius={[4, 4, 0, 0]} />
+                  {data.mode === "rent" ? (
+                    <>
+                      <Bar dataKey="jeonse" stackId="a" fill={C.purple} name="전세" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="wolse" stackId="a" fill={C.emerald} name="월세" radius={[4, 4, 0, 0]} />
+                    </>
+                  ) : (
+                    <Bar dataKey="total" fill={C.navy} name="매매" radius={[4, 4, 0, 0]} />
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             </div>
             <div style={{ background: "var(--surface)", border: `1px solid var(--border)`, borderRadius: 14, padding: "16px 16px 10px" }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 10 }}>월별 평균 월세 (만원)</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 10 }}>{data.mode === "rent" ? "월별 평균 월세 (만원)" : "월별 평균 거래가 (만원)"}</p>
               <ResponsiveContainer width="100%" height={180}>
                 <AreaChart data={data.byMonth}>
                   <defs>
                     <linearGradient id="rentGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={C.emerald} stopOpacity={0.25} />
-                      <stop offset="95%" stopColor={C.emerald} stopOpacity={0} />
+                      <stop offset="5%" stopColor={data.mode === "rent" ? C.emerald : C.indigo} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={data.mode === "rent" ? C.emerald : C.indigo} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="label" tick={{ fontSize: 11, fill: C.muted }} />
                   <YAxis tick={{ fontSize: 11, fill: C.muted }} unit="만" />
-                  <Tooltip formatter={v => [v + "만원", "평균 월세"]} />
-                  <Area type="monotone" dataKey="avgMonthly" stroke={C.emerald} strokeWidth={2} fill="url(#rentGrad)" />
+                  <Tooltip formatter={v => [v.toLocaleString() + "만원", data.mode === "rent" ? "평균 월세" : "평균 거래가"]} />
+                  <Area type="monotone" dataKey={data.mode === "rent" ? "avgMonthly" : "avgDeal"} stroke={data.mode === "rent" ? C.emerald : C.indigo} strokeWidth={2} fill="url(#rentGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -394,14 +455,48 @@ function MapSearchContent() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead style={{ position: "sticky", top: 0, background: "var(--surface2)" }}>
                   <tr>
-                    {["거래일", "건물명", "동", "전용면적", "층", "보증금", "월세", "유형"].map(h => (
+                    {(data.mode === "rent"
+                      ? ["거래일", "건물명", "동", "전용면적", "층", "보증금", "월세", "유형"]
+                      : type === "land_trade"
+                        ? ["거래일", "지목", "동", "토지면적", "거래금액", "평당"]
+                        : ["거래일", "건물명", "동", "면적", "층", "거래금액", "평당", "건축년도"]
+                    ).map(h => (
                       <th key={h} style={{ padding: "9px 12px", textAlign: "left", fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", borderBottom: "1px solid var(--border)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {data.items.slice(0, 200).map((it, i) => {
-                    const jeonse = isJeonse(it);
+                    if (data.mode === "rent") {
+                      const jeonse = isJeonse(it);
+                      return (
+                        <tr key={i} style={{ borderBottom: "1px solid var(--border-faint, #f0efe9)" }}>
+                          <td style={{ padding: "8px 12px", color: C.muted, fontSize: 11 }}>{it._ym.slice(4, 6)}/{it._day}</td>
+                          <td style={{ padding: "8px 12px", color: "var(--text)", fontWeight: 600 }}>{it._name}</td>
+                          <td style={{ padding: "8px 12px", color: C.muted, fontSize: 11 }}>{it._dong}</td>
+                          <td style={{ padding: "8px 12px", color: C.muted }}>{it._area ? it._area + "㎡" : "-"}</td>
+                          <td style={{ padding: "8px 12px", color: C.muted }}>{it._floor || "-"}</td>
+                          <td style={{ padding: "8px 12px", color: "var(--text)", fontWeight: 600 }}>{formatMan(it._deposit)}</td>
+                          <td style={{ padding: "8px 12px", color: it._monthly > 0 ? C.emerald : C.muted, fontWeight: 600 }}>{it._monthly > 0 ? formatMan(it._monthly) : "—"}</td>
+                          <td style={{ padding: "8px 12px" }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: jeonse ? C.purple : C.emerald, background: (jeonse ? C.purple : C.emerald) + "15", padding: "2px 8px", borderRadius: 10 }}>{jeonse ? "전세" : "월세"}</span>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    const perPyeong = it._area > 0 && it._dealAmount > 0 ? Math.round(it._dealAmount / (it._area / 3.3058)) : 0;
+                    if (type === "land_trade") {
+                      return (
+                        <tr key={i} style={{ borderBottom: "1px solid var(--border-faint, #f0efe9)" }}>
+                          <td style={{ padding: "8px 12px", color: C.muted, fontSize: 11 }}>{it._ym.slice(4, 6)}/{it._day}</td>
+                          <td style={{ padding: "8px 12px", color: "var(--text)", fontWeight: 600 }}>{it._jimok || "—"}</td>
+                          <td style={{ padding: "8px 12px", color: C.muted, fontSize: 11 }}>{it._dong}</td>
+                          <td style={{ padding: "8px 12px", color: C.muted }}>{it._area ? it._area + "㎡" : "-"}</td>
+                          <td style={{ padding: "8px 12px", color: C.indigo, fontWeight: 700 }}>{formatMan(it._dealAmount)}</td>
+                          <td style={{ padding: "8px 12px", color: C.purple, fontSize: 11 }}>{perPyeong ? formatMan(perPyeong) : "—"}</td>
+                        </tr>
+                      );
+                    }
                     return (
                       <tr key={i} style={{ borderBottom: "1px solid var(--border-faint, #f0efe9)" }}>
                         <td style={{ padding: "8px 12px", color: C.muted, fontSize: 11 }}>{it._ym.slice(4, 6)}/{it._day}</td>
@@ -409,11 +504,9 @@ function MapSearchContent() {
                         <td style={{ padding: "8px 12px", color: C.muted, fontSize: 11 }}>{it._dong}</td>
                         <td style={{ padding: "8px 12px", color: C.muted }}>{it._area ? it._area + "㎡" : "-"}</td>
                         <td style={{ padding: "8px 12px", color: C.muted }}>{it._floor || "-"}</td>
-                        <td style={{ padding: "8px 12px", color: "var(--text)", fontWeight: 600 }}>{formatMan(it._deposit)}</td>
-                        <td style={{ padding: "8px 12px", color: it._monthly > 0 ? C.emerald : C.muted, fontWeight: 600 }}>{it._monthly > 0 ? formatMan(it._monthly) : "—"}</td>
-                        <td style={{ padding: "8px 12px" }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: jeonse ? C.purple : C.emerald, background: (jeonse ? C.purple : C.emerald) + "15", padding: "2px 8px", borderRadius: 10 }}>{jeonse ? "전세" : "월세"}</span>
-                        </td>
+                        <td style={{ padding: "8px 12px", color: C.indigo, fontWeight: 700 }}>{formatMan(it._dealAmount)}</td>
+                        <td style={{ padding: "8px 12px", color: C.purple, fontSize: 11 }}>{perPyeong ? formatMan(perPyeong) : "—"}</td>
+                        <td style={{ padding: "8px 12px", color: C.muted, fontSize: 11 }}>{it._buildYear || "—"}</td>
                       </tr>
                     );
                   })}
