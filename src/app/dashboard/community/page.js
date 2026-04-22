@@ -75,7 +75,7 @@ export default function CommunityPage() {
   const [editForm, setEditForm] = useState({ title:"", content:"", category:"자유" });
 
   const myNickname = user?.user_metadata?.nickname || generateNickname();
-  const [form, setForm] = useState({ title:"", content:"", category:"자유", author_name: myNickname });
+  const [form, setForm] = useState({ title:"", content:"", category:"자유", author_name: myNickname, tags: "", anonymous: false });
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -300,13 +300,26 @@ export default function CommunityPage() {
     if (containsBadWord(form.title) || containsBadWord(form.content)) { toast("부적절한 내용이 포함되어 있습니다.", "error"); return; }
     setUploading(true);
     const imageUrls = await uploadImages();
-    const row = { user_id: user.id, author_name: form.author_name.trim() || myNickname, badge_label: myBadge?.label||null, badge_color: myBadge?.color||null, badge_bg: myBadge?.bg||null, category: form.category, title: form.title.trim(), content: form.content.trim(), images: imageUrls };
+    const tagArr = (form.tags || "").split(/[,#\s]+/).map(t => t.trim().replace(/^#/, "")).filter(Boolean).slice(0, 5);
+    const row = {
+      user_id: user.id,
+      author_name: form.anonymous ? "익명 임대인" : (form.author_name.trim() || myNickname),
+      badge_label: form.anonymous ? null : (myBadge?.label || null),
+      badge_color: form.anonymous ? null : (myBadge?.color || null),
+      badge_bg: form.anonymous ? null : (myBadge?.bg || null),
+      category: form.category,
+      title: form.title.trim(),
+      content: form.content.trim(),
+      images: imageUrls,
+      tags: tagArr,
+      anonymous: !!form.anonymous,
+    };
     const { data, error } = await supabase.from("community_posts").insert(row).select().single();
     setUploading(false);
     if (error) { toast("작성 오류: " + error.message, "error"); return; }
     setPosts(prev => [data, ...prev]);
     setShowWrite(false);
-    setForm({ title:"", content:"", category:"자유", author_name: myNickname });
+    setForm({ title:"", content:"", category:"자유", author_name: myNickname, tags: "", anonymous: false });
     setImages([]); setPreviews([]);
     toast("게시글이 등록되었습니다 🎉");
   };
@@ -426,8 +439,26 @@ export default function CommunityPage() {
   const timeAgo = (dt) => { const d = (Date.now() - new Date(dt)) / 1000; if (d < 60) return "방금"; if (d < 3600) return Math.floor(d/60) + "분 전"; if (d < 86400) return Math.floor(d/3600) + "시간 전"; return Math.floor(d/86400) + "일 전"; };
 
   // 루트 댓글 / 답글 분리
-  const rootComments = comments.filter(c => !c.parent_id);
+  const rootCommentsRaw = comments.filter(c => !c.parent_id);
+  // 채택된 댓글은 맨 위에
+  const rootComments = (() => {
+    if (!activePost?.accepted_comment_id) return rootCommentsRaw;
+    const accepted = rootCommentsRaw.find(c => c.id === activePost.accepted_comment_id);
+    if (!accepted) return rootCommentsRaw;
+    return [accepted, ...rootCommentsRaw.filter(c => c.id !== accepted.id)];
+  })();
   const getReplies = (parentId) => comments.filter(c => c.parent_id === parentId);
+
+  const acceptAnswer = async (commentId) => {
+    if (!activePost || activePost.user_id !== user?.id) return;
+    const newValue = activePost.accepted_comment_id === commentId ? null : commentId;
+    const { error } = await supabase.from("community_posts")
+      .update({ accepted_comment_id: newValue }).eq("id", activePost.id);
+    if (error) { toast("채택 중 오류: " + error.message, "error"); return; }
+    setActivePost(p => ({ ...p, accepted_comment_id: newValue }));
+    setPosts(prev => prev.map(p => p.id === activePost.id ? { ...p, accepted_comment_id: newValue } : p));
+    toast(newValue ? "✓ 답변이 채택되었습니다" : "채택이 취소되었습니다");
+  };
 
   return (
     <div style={{ fontFamily:"'Pretendard','DM Sans',sans-serif", height:"calc(100vh - 60px)", display:"flex", flexDirection:"column", overflow:"hidden" }}>
@@ -493,7 +524,7 @@ export default function CommunityPage() {
                 )}
               </div>
             )}
-            <button onClick={() => { setForm({ title:"", content:"", category: category !== "전체" ? category : "자유", author_name: myNickname }); setImages([]); setPreviews([]); setShowWrite(true); }}
+            <button onClick={() => { setForm({ title:"", content:"", category: category !== "전체" ? category : "자유", author_name: myNickname, tags: "", anonymous: false }); setImages([]); setPreviews([]); setShowWrite(true); }}
               style={{ padding:"9px 18px", borderRadius:10, background:`linear-gradient(135deg,${C.indigo},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
               ✏️ 글쓰기
             </button>
@@ -555,11 +586,12 @@ export default function CommunityPage() {
             let displayPosts = posts;
             if (showBookmarksOnly) displayPosts = displayPosts.filter(p => bookmarks.has(p.id));
             if (searchQuery.trim()) {
-              const q = searchQuery.toLowerCase().trim();
+              const q = searchQuery.toLowerCase().trim().replace(/^#/, "");
               displayPosts = displayPosts.filter(p =>
                 (p.title || "").toLowerCase().includes(q) ||
                 (p.content || "").toLowerCase().includes(q) ||
-                (p.author_name || "").toLowerCase().includes(q)
+                (p.author_name || "").toLowerCase().includes(q) ||
+                (p.tags || []).some(t => t.toLowerCase().includes(q))
               );
             }
             if (sortBy === "popular") {
@@ -620,8 +652,19 @@ export default function CommunityPage() {
                         {bookmarks.has(post.id) ? "🔖" : "🏷️"}
                       </button>}
                     </div>
-                    <p style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{post.title}</p>
+                    <p style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {post.accepted_comment_id && <span style={{ fontSize:10, fontWeight:800, color:"#0fa573", background:"rgba(15,165,115,0.12)", padding:"2px 7px", borderRadius:5, marginRight:6 }}>✓ 해결됨</span>}
+                      {post.title}
+                    </p>
                     {!(panelOpen && !isMobile) && <p style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.5, marginBottom:6 }}>{post.content.slice(0,70)}{post.content.length>70?"...":""}</p>}
+                    {post.tags?.length > 0 && (
+                      <div style={{ display:"flex", gap:4, marginBottom:6, flexWrap:"wrap" }}>
+                        {post.tags.slice(0,4).map(tag => (
+                          <span key={tag} onClick={(e) => { e.stopPropagation(); setSearchQuery(tag); }}
+                            style={{ fontSize:10, fontWeight:600, color:C.indigo, background:"rgba(59,91,219,0.08)", padding:"2px 7px", borderRadius:10, cursor:"pointer" }}>#{tag}</span>
+                        ))}
+                      </div>
+                    )}
                     {!(panelOpen && !isMobile) && post.images?.length > 0 && (
                       <div style={{ display:"flex", gap:5, marginBottom:6 }}>
                         {post.images.slice(0,3).map((url, i) => <img key={i} src={url} alt="" style={{ width:56, height:56, objectFit:"cover", borderRadius:6, border:"1px solid var(--border)" }} />)}
@@ -751,23 +794,34 @@ export default function CommunityPage() {
               {/* ─── 댓글 목록 ─── */}
               <p style={{ fontSize:12, fontWeight:700, color:"var(--text)", marginBottom:12 }}>댓글 {comments.length}개</p>
 
-              {rootComments.map(c => (
+              {rootComments.map(c => {
+                const isAccepted = activePost?.accepted_comment_id === c.id;
+                const canAccept = activePost?.user_id === user?.id && activePost?.category === "질문" && c.user_id !== user?.id;
+                return (
                 <div key={c.id} style={{ marginBottom:10 }}>
                   {/* 루트 댓글 */}
-                  <div style={{ background:"var(--surface2)", borderRadius:10, padding:"10px 14px" }}>
+                  <div style={{ background: isAccepted ? "rgba(15,165,115,0.08)" : "var(--surface2)", borderRadius:10, padding:"10px 14px", border: isAccepted ? `1.5px solid rgba(15,165,115,0.35)` : "none" }}>
+                    {isAccepted && (
+                      <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}>
+                        <span style={{ fontSize:10, fontWeight:800, color:"#0fa573", background:"rgba(15,165,115,0.18)", padding:"2px 9px", borderRadius:20 }}>⭐ 채택된 답변</span>
+                      </div>
+                    )}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                         <span style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{c.author_name}</span>
                         <span style={{ fontSize:11, color:"var(--text-muted)" }}>{timeAgo(c.created_at)}</span>
                       </div>
-                      {/* ✅ 본인 댓글: 수정/삭제 */}
                       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                        {/* 댓글 좋아요 */}
+                        {canAccept && (
+                          <button onClick={() => acceptAnswer(c.id)}
+                            style={{ fontSize:11, background: isAccepted ? "#0fa573" : "transparent", border: `1px solid ${isAccepted ? "#0fa573" : "rgba(15,165,115,0.4)"}`, cursor:"pointer", color: isAccepted ? "#fff" : "#0fa573", fontWeight:700, padding:"3px 9px", borderRadius:7 }}>
+                            {isAccepted ? "✓ 채택됨" : "⭐ 답변 채택"}
+                          </button>
+                        )}
                         <button onClick={() => toggleCommentLike(c.id)}
                           style={{ fontSize:11, background:"none", border:"none", cursor:"pointer", color:myCommentLikes.has(c.id)?C.rose:"var(--text-muted)", display:"flex", alignItems:"center", gap:3 }}>
                           {myCommentLikes.has(c.id)?"❤️":"🤍"} {c.likes||0}
                         </button>
-                        {/* 답글 버튼 */}
                         <button onClick={() => { setReplyTo({ id: c.id, author_name: c.author_name }); }}
                           style={{ fontSize:11, background:"none", border:"none", cursor:"pointer", color:"var(--text-muted)", fontWeight:600 }}>
                           답글
@@ -841,7 +895,8 @@ export default function CommunityPage() {
                     </div>
                   ))}
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* 댓글 입력창 */}
@@ -885,14 +940,22 @@ export default function CommunityPage() {
                 ))}
               </div>
             </div>
-            <div style={{ marginBottom:12 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:".5px", margin:0 }}>닉네임</p>
-                <button onClick={() => setForm(f => ({...f, author_name:generateNickname()}))} style={{ fontSize:11, color:C.indigo, fontWeight:700, background:"none", border:"none", cursor:"pointer" }}>🎲 랜덤</button>
+            {/* 익명 모드 토글 */}
+            <label style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 12px", borderRadius:10, background: form.anonymous ? "rgba(138,138,154,0.1)" : "var(--surface2)", border:`1px solid ${form.anonymous ? "rgba(138,138,154,0.3)" : "var(--border)"}`, cursor:"pointer", marginBottom:12 }}>
+              <input type="checkbox" checked={form.anonymous} onChange={e => setForm(f => ({...f, anonymous: e.target.checked}))} style={{ width:14, height:14, accentColor:C.navy }} />
+              <span style={{ fontSize:12, fontWeight:700, color: form.anonymous ? "var(--text)" : "var(--text-muted)" }}>🕶️ 익명으로 작성</span>
+              <span style={{ fontSize:11, color:"var(--text-muted)", marginLeft:"auto" }}>{form.anonymous ? "닉네임 대신 '익명 임대인'으로 표시됩니다" : "민감한 주제는 익명으로 작성하세요"}</span>
+            </label>
+            {!form.anonymous && (
+              <div style={{ marginBottom:12 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                  <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:".5px", margin:0 }}>닉네임</p>
+                  <button onClick={() => setForm(f => ({...f, author_name:generateNickname()}))} style={{ fontSize:11, color:C.indigo, fontWeight:700, background:"none", border:"none", cursor:"pointer" }}>🎲 랜덤</button>
+                </div>
+                <input value={form.author_name} onChange={e => setForm(f => ({...f, author_name:e.target.value}))} maxLength={20}
+                  style={{ width:"100%", padding:"9px 12px", fontSize:13, color:"var(--text)", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:10, outline:"none", boxSizing:"border-box" }} />
               </div>
-              <input value={form.author_name} onChange={e => setForm(f => ({...f, author_name:e.target.value}))} maxLength={20}
-                style={{ width:"100%", padding:"9px 12px", fontSize:13, color:"var(--text)", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:10, outline:"none", boxSizing:"border-box" }} />
-            </div>
+            )}
             <div style={{ marginBottom:12 }}>
               <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 }}>제목</p>
               <input value={form.title} onChange={e => setForm(f => ({...f, title:e.target.value}))} placeholder="제목을 입력하세요"
@@ -902,6 +965,11 @@ export default function CommunityPage() {
               <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 }}>내용</p>
               <textarea value={form.content} onChange={e => setForm(f => ({...f, content:e.target.value}))} placeholder="내용을 입력하세요..." rows={5}
                 style={{ width:"100%", padding:"10px 12px", fontSize:13, color:"var(--text)", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:10, resize:"vertical", outline:"none", lineHeight:1.7, boxSizing:"border-box" }} />
+            </div>
+            <div style={{ marginBottom:14 }}>
+              <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 }}>🏷️ 태그 <span style={{ color:"var(--text-faint)", fontWeight:500 }}>(최대 5개, 쉼표나 공백으로 구분)</span></p>
+              <input value={form.tags} onChange={e => setForm(f => ({...f, tags: e.target.value}))} placeholder="예: 강남 오피스텔, 공실, 중개수수료"
+                style={{ width:"100%", padding:"9px 12px", fontSize:13, color:"var(--text)", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:10, outline:"none", boxSizing:"border-box" }} />
             </div>
             <div style={{ marginBottom:18 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>

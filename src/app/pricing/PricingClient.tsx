@@ -45,7 +45,7 @@ const PLANS = [
       { text: "💰 수익률 계산기", included: true },
       { text: "📊 공실 손실 계산기", included: true },
       { text: "📋 임대차 3법 체크리스트", included: true },
-      { text: "🤖 AI 분석 월 5회", included: true },
+      { text: "🤖 AI 분석 월 10회", included: true },
       { text: "📱 카카오톡 알림", included: false },
     ],
   },

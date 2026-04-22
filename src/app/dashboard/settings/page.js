@@ -1,6 +1,62 @@
 // src/app/dashboard/settings/page.js
 "use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname";
 
+// 주간 뉴스레터 구독
+function NewsletterSubscription({ user }) {
+  const [enabled, setEnabled] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const { data } = await supabase.from("newsletter_subscribers").select("*").eq("user_id", user.id).maybeSingle();
+        if (data) setEnabled(!!data.weekly_digest);
+      } catch {}
+      setLoaded(true);
+    })();
+  }, [user]);
+
+  const toggle = async () => {
+    if (!user) return;
+    const next = !enabled;
+    setEnabled(next);
+    setSaving(true);
+    try {
+      await supabase.from("newsletter_subscribers").upsert({
+        user_id: user.id,
+        email: user.email,
+        weekly_digest: next,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      toast(next ? "📧 주간 뉴스레터 구독 시작" : "뉴스레터 구독 해제됨");
+    } catch (e) {
+      toast("저장 실패: " + e.message, "error");
+      setEnabled(!next);
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 12 }}>📧 뉴스레터</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>주간 온리 뉴스레터</p>
+          <p style={{ fontSize: 11, color: "#8a8a9a", margin: "3px 0 0", lineHeight: 1.6 }}>
+            매주 월요일 발송 · 커뮤니티 인기 글 · 임대 시장 동향 · 가이드 신규 글 요약<br/>
+            발송 이메일: <b style={{ color: "var(--text)" }}>{user?.email || "—"}</b>
+          </p>
+        </div>
+        <div onClick={loaded && !saving ? toggle : undefined}
+          style={{ width: 44, height: 24, borderRadius: 12, background: enabled ? "#1a2744" : "#d1d5db", cursor: loaded && !saving ? "pointer" : "wait", position: "relative", transition: "background .2s", flexShrink: 0, opacity: saving ? 0.6 : 1 }}>
+          <div style={{ position: "absolute", top: 3, left: enabled ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left .2s" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ✅ ① 알림 설정 컴포넌트
 function NotificationSettings() {
   const NOTI_KEY = "ownly_noti_settings";
@@ -168,6 +224,7 @@ export default function SettingsPage() {
 
       {/* ✅ ① 알림 설정 */}
       <NotificationSettings />
+      <NewsletterSubscription user={user} />
 
       {/* 데이터 현황 */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>

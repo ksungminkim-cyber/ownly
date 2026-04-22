@@ -1,6 +1,6 @@
 export const runtime = "edge";
 
-function buildPricingPrompt(address, propertyType) {
+function buildPricingPrompt(address, propertyType, options = {}) {
   const typeMap = {
     "주거": "residential (apartment/villa/house)",
     "상가": "commercial (retail store/shop)",
@@ -8,20 +8,37 @@ function buildPricingPrompt(address, propertyType) {
     "토지": "land"
   };
   const typeEn = typeMap[propertyType] || "residential";
+  const typeSpecific = {
+    "주거": "아파트·빌라·다가구 기준 전월세 시세. 방 수·평형·층수가 가격에 큰 영향.",
+    "상가": "1층/지상층/지하·전용면적·유동인구·업종 규제에 따라 가격이 크게 달라짐. 권리금 포함 여부는 별도로 고려.",
+    "오피스텔": "원룸/투룸·주거용/업무용에 따라 시세 차이가 큼. 서울 주요 업무지구는 월세 100~200만원대.",
+    "토지": "용도지역·도로 접면·평당 시세 중심. 월 임대는 농지·주차장 수준으로 한정적.",
+  }[propertyType] || "";
+  const myRentHint = options.myRent ? `임대인이 입력한 현재 월세: ${options.myRent}만원 (참고용)` : "";
+  const myAreaHint = options.areaPyeong ? `전용면적: ${options.areaPyeong}평` : "";
 
-  return `You are a Korean real estate rent pricing expert with 15+ years of experience.
-Analyze this address and estimate appropriate rent prices based on current Korean market data.
+  return `당신은 15년 경력의 한국 부동산 임대료 전문 감정평가사입니다.
+아래 주소의 2026년 현재 시점 적정 임대료를 추정하세요.
 
-Address: "${address}"
-Property type: ${propertyType} (${typeEn})
+주소: "${address}"
+물건 유형: ${propertyType} (${typeEn})
+${typeSpecific}
+${myRentHint}
+${myAreaHint}
 
-IMPORTANT UNIT RULES:
-- All rent values must be in "만원/월" unit. Example: 90 means 90만원/월
-- All deposit values must be in "만원" unit. Example: 3000 means 3000만원
-- pricePerSqm must be in "만원/평" unit. Example: 150 means 150만원/평
-- Do NOT use raw won amounts like 900000. Use 90 instead of 900000.
+추정 방법:
+1) 해당 지역(구/동)의 최근 1년 국토부 실거래가 추세를 근거로 삼으세요
+2) 동일 유형·유사 면적의 전월세 거래를 참고하세요
+3) 지역 수요·공급(역세권·업무지구·학군)을 반영하세요
+4) 상가라면 1층 vs 상층, 유동인구, 주차, 간판 노출도를 반영하세요
 
-Output ONLY this JSON structure with real Korean market data for the given address:
+단위 규칙:
+- rent/avgRent/comparables.rent: "만원/월" 단위 정수 (예: 120 = 120만원/월)
+- deposit/avgDeposit/comparables.deposit: "만원" 단위 정수 (예: 5000 = 5,000만원)
+- pricePerSqm: "만원/평" 단위 (예: 150 = 150만원/평)
+- 원(KRW) 단위 금액(900000 등) 금지. 반드시 만원 단위.
+
+JSON 형식으로만 응답 (마크다운·코드블록·주석 금지):
 {
   "rentRange": { "min": 80, "max": 120, "unit": "만원/월" },
   "depositRange": { "min": 3000, "max": 5000, "unit": "만원" },
@@ -31,31 +48,31 @@ Output ONLY this JSON structure with real Korean market data for the given addre
   "avgDeposit": 4000,
   "pricePerSqm": 150,
   "comparables": [
-    { "type": "인근 유사 물건 1", "rent": 90, "deposit": 3000, "note": "반경 300m 내 유사 면적" },
-    { "type": "인근 유사 물건 2", "rent": 100, "deposit": 4000, "note": "동일 건물 유형" },
-    { "type": "인근 유사 물건 3", "rent": 115, "deposit": 5000, "note": "리모델링 완료 물건" }
+    { "type": "인근 유사 매물 A (동·평수 유사)", "rent": 90, "deposit": 3000, "note": "반경 300m 내 유사 면적·리모델링 전" },
+    { "type": "인근 유사 매물 B", "rent": 100, "deposit": 4000, "note": "동일 건물 유형·최근 6개월 거래" },
+    { "type": "인근 프리미엄 매물", "rent": 115, "deposit": 5000, "note": "리모델링 완료·가구 포함" }
   ],
-  "strategy": "임대 전략 2-3문장",
+  "strategy": "임대 전략 3문장. 적정 월세·보증금 구간 제시 + 지역 특성에 맞는 마케팅 포인트 + 공실 최소화 팁",
   "vacancyRisk": "보통",
-  "bestTiming": "임대 최적 시기 1문장",
-  "negotiationTip": "협상 팁 1-2문장",
+  "bestTiming": "임대 최적 시기 1문장 (예: 3~4월 신학기 직전)",
+  "negotiationTip": "협상 팁 1~2문장 (어떤 조건을 유연하게 하면 성사 확률이 오르는지)",
   "priceTrend": "보합",
-  "trendReason": "가격 추세 이유 1문장"
+  "trendReason": "가격 추세 이유 1문장 (수급·금리·개발계획 등 근거)"
 }
 
-Rules:
-- marketPosition: "고평가" | "적정" | "저평가"
-- marketPositionScore: integer -2 to 2
+규칙:
+- marketPosition: "고평가" | "적정" | "저평가" 중 하나
+- marketPositionScore: -2~2 정수 (고평가=+1~2, 적정=0, 저평가=-1~-2)
 - vacancyRisk: "낮음" | "보통" | "높음"
 - priceTrend: "상승" | "보합" | "하락"
-- All rent/deposit numbers in 만원 units (e.g. 90, not 900000)
-- All text in Korean (한글)
-- Return ONLY the JSON object`;
+- 모든 텍스트 순수 한글만. 한자·영어·외국어 섞지 말 것
+- 추정치임을 명시하지 않아도 되나, 지역 특성을 구체적으로 반영할 것
+- JSON 객체만 반환`;
 }
 
 export async function POST(req) {
   try {
-    const { address, propertyType = "주거" } = await req.json();
+    const { address, propertyType = "주거", myRent, areaPyeong } = await req.json();
     if (!address) return Response.json({ error: "주소를 입력해주세요." }, { status: 400 });
 
     const apiKey = process.env.GROQ_API_KEY;
@@ -76,7 +93,7 @@ export async function POST(req) {
           },
           {
             role: "user",
-            content: buildPricingPrompt(address, propertyType)
+            content: buildPricingPrompt(address, propertyType, { myRent, areaPyeong })
           }
         ],
         temperature: 0.3,

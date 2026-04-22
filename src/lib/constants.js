@@ -47,7 +47,7 @@ export const PLANS = {
     limits: {
       properties: 15, tenants: 30, reports: true, tax: true, certified: 10,
       vacancy: true, export: true, roi: true, vacancyLoss: true, leaseCheck: true,
-      mapSearch: false, aiReport: 5, aiPricing: 5, kakaoAlert: false, globalReports: true,
+      mapSearch: false, aiReport: 10, aiPricing: 10, kakaoAlert: false, globalReports: true,
     },
     features: [
       { t: "물건 최대 15개", ok: true },
@@ -57,7 +57,7 @@ export const PLANS = {
       { t: "💰 수익률 계산기", ok: true },
       { t: "📊 공실 손실 계산기", ok: true },
       { t: "📋 임대차 3법 체크리스트", ok: true },
-      { t: "🤖 AI 분석 월 5회", ok: true },
+      { t: "🤖 AI 분석 월 10회", ok: true },
       { t: "🗺️ 매물 조회 / AI 분석 무제한", ok: false },
       { t: "📱 카카오톡 알림", ok: false },
     ],
