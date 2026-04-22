@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const TOSS_SECRET_KEY = Deno.env.get("TOSS_SECRET_KEY")!;
+const TOSS_SECRET_KEY = Deno.env.get("TOSS_SECRET_KEY") || "";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 
 const PLANS_PRICE: Record<string, number> = { starter: 9900, plus: 19900, pro: 32900 };
@@ -86,6 +86,15 @@ serve(async (req) => {
   const token = authHeader.replace("Bearer ", "");
   if (token !== SUPABASE_SERVICE_KEY) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
+  }
+
+  // TOSS_SECRET_KEY 미설정 시 즉시 no-op 종료 (오탐 past_due 방지)
+  if (!TOSS_SECRET_KEY) {
+    console.log("TOSS_SECRET_KEY not set — skipping renewal run");
+    return new Response(
+      JSON.stringify({ skipped: true, reason: "TOSS_SECRET_KEY not configured" }),
+      { headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+    );
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
