@@ -223,8 +223,30 @@ function BulkUploadModal({ open, onClose, building, addTenant }) {
       } else {
         await wb.xlsx.load(buf);
         const ws = wb.worksheets[0];
+        if (!ws) { toast("시트를 찾을 수 없습니다", "error"); return; }
         const raw = [];
-        ws.eachRow((row) => raw.push(row.values.slice(1).map(v => v == null ? "" : String(v))));
+        const rowCount = ws.rowCount || ws.lastRow?.number || 1;
+        for (let r = 1; r <= rowCount; r++) {
+          const row = ws.getRow(r);
+          const cells = [];
+          for (let c = 1; c <= BULK_COLUMNS.length; c++) {
+            const cell = row.getCell(c);
+            let v = cell.value;
+            // ExcelJS는 날짜·공식·링크 등을 객체로 반환할 수 있어서 정규화
+            if (v && typeof v === "object") {
+              if (v instanceof Date) v = v.toISOString().slice(0, 10);
+              else if ("text" in v) v = v.text;
+              else if ("result" in v) v = v.result;
+              else if ("richText" in v) v = v.richText.map(t => t.text).join("");
+              else v = String(v);
+            }
+            cells.push(v == null ? "" : String(v));
+          }
+          // 모든 셀이 빈 행은 스킵
+          if (cells.every(c => !c.trim())) continue;
+          raw.push(cells);
+        }
+        if (raw.length === 0) { toast("읽을 행이 없습니다. 템플릿 형식이 맞는지 확인해주세요", "error"); return; }
         processRows(raw);
       }
     } catch (e) {
@@ -241,25 +263,39 @@ function BulkUploadModal({ open, onClose, building, addTenant }) {
     const errs = [];
     const parsed = dataRows.map((r, i) => {
       const rowNum = hasHeader ? i + 2 : i + 1;
-      const [unit, pType, sub, rent, dep, mgt, start, end, name, phone, vacantFlag] = r;
-      if (!unit && !rent && !name) return null; // 완전 빈 행
-      const isVacant = /y|yes|공실|O|o|Y/.test(String(vacantFlag || ""));
-      const rentN = Number(String(rent || "0").replace(/,/g, ""));
-      const depN = Number(String(dep || "0").replace(/,/g, ""));
-      const mgtN = Number(String(mgt || "0").replace(/,/g, ""));
+      // 배열 인덱스로 명시적 접근 — destructure 시 undefined 전파 방지
+      const unit = String(r[0] || "").trim();
+      const pType = String(r[1] || "상가").trim();
+      const sub = String(r[2] || "").trim();
+      const rent = r[3];
+      const dep = r[4];
+      const mgt = r[5];
+      const start = String(r[6] || "").trim();
+      const end = String(r[7] || "").trim();
+      const name = String(r[8] || "").trim();
+      const phone = String(r[9] || "").trim();
+      const vacantFlag = String(r[10] || "").trim().toLowerCase();
+      // 완전 빈 행 스킵 (호실·월세·이름 모두 비어있으면)
+      if (!unit && !rent && !name) return null;
+      const isVacant = ["y", "yes", "공실", "o", "1", "true"].includes(vacantFlag);
+      const rentN = Number(String(rent || "0").replace(/,/g, "").replace(/\D/g, "").slice(0, 10)) || 0;
+      const depN = Number(String(dep || "0").replace(/,/g, "").replace(/\D/g, "").slice(0, 10)) || 0;
+      const mgtN = Number(String(mgt || "0").replace(/,/g, "").replace(/\D/g, "").slice(0, 10)) || 0;
       if (!rentN && !isVacant) errs.push(`행 ${rowNum}: 월세가 없습니다 (공실이면 공실여부에 Y)`);
+      if (!unit) errs.push(`행 ${rowNum}: 호실 번호가 없습니다`);
       return {
-        unit: String(unit || "").trim(),
-        pType: String(pType || "상가").trim(),
-        sub: String(sub || "").trim(),
+        unit,
+        pType,
+        sub,
         rent: rentN,
         dep: depN,
         mgt: mgtN,
-        start: String(start || "").trim(),
-        end: String(end || "").trim(),
-        name: String(name || "").trim() || (isVacant ? "공실" : ""),
-        phone: String(phone || "").trim(),
+        start,
+        end,
+        name: name || (isVacant ? "공실" : ""),
+        phone,
         isVacant,
+        rowNum,
       };
     }).filter(Boolean);
     setRows(parsed);
@@ -270,7 +306,7 @@ function BulkUploadModal({ open, onClose, building, addTenant }) {
     if (rows.length === 0) return;
     setUploading(true);
     let success = 0;
-    let failed = 0;
+    const failRows = [];
     for (const r of rows) {
       try {
         await addTenant({
@@ -295,15 +331,22 @@ function BulkUploadModal({ open, onClose, building, addTenant }) {
         });
         success++;
       } catch (e) {
-        console.error("bulk row fail:", e);
-        failed++;
+        console.error("bulk row fail:", r, e);
+        failRows.push(`행 ${r.rowNum}(${r.unit}): ${e.message || "오류"}`);
       }
     }
     setUploading(false);
-    toast(`업로드 완료: 성공 ${success}건${failed > 0 ? ` · 실패 ${failed}건` : ""}`);
-    setRows([]);
-    setErrors([]);
-    onClose();
+    if (failRows.length > 0) {
+      toast(`성공 ${success}건 · 실패 ${failRows.length}건`, "error");
+      setErrors(failRows);
+      // 성공한 행만 미리보기에서 제거
+      if (success > 0) setRows([]);
+    } else {
+      toast(`🎉 ${success}건 일괄 등록 완료!`);
+      setRows([]);
+      setErrors([]);
+      onClose();
+    }
   };
 
   const downloadTemplate = async () => {
