@@ -60,8 +60,12 @@ export default function BuildingsPage() {
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744" }}>건물 관리</h1>
           <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>등록 건물 {buildings.length}개 · 연결된 호실 {tenants.filter(t => t.building_id).length}개</p>
         </div>
-        <button onClick={() => { resetForm(); setShowModal(true); }}
-          style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ 건물 등록</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => router.push("/dashboard/buildings/compare")}
+            style={{ padding: "10px 18px", borderRadius: 11, background: "rgba(91,79,207,0.08)", border: "1px solid rgba(91,79,207,0.25)", color: "#5b4fcf", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📊 건물별 비교</button>
+          <button onClick={() => { resetForm(); setShowModal(true); }}
+            style={{ padding: "10px 20px", borderRadius: 11, background: `linear-gradient(135deg,${C.indigo},${C.purple})`, border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ 건물 등록</button>
+        </div>
       </div>
 
       {loading ? (
