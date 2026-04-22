@@ -73,6 +73,7 @@ export default function BillingPage() {
   const fmtAmount = (n) => (n || 0).toLocaleString() + "원";
 
   const isCancelled = subscription?.status === "cancelled";
+  const isPastDue = subscription?.status === "past_due";
   const periodEnd = subscription?.current_period_end;
   const daysLeft = periodEnd ? Math.max(0, Math.ceil((new Date(periodEnd) - new Date()) / 86400000)) : null;
 
@@ -92,7 +93,8 @@ export default function BillingPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <p style={{ fontSize: 22, fontWeight: 900, color: "#1a2744" }}>{PLAN_LABEL[userPlan] || userPlan}</p>
               {isCancelled && <span style={{ fontSize: 10, fontWeight: 800, color: "#e8445a", background: "rgba(232,68,90,0.1)", padding: "3px 10px", borderRadius: 20 }}>취소 예정</span>}
-              {!isCancelled && userPlan !== "free" && <span style={{ fontSize: 10, fontWeight: 800, color: "#0fa573", background: "rgba(15,165,115,0.1)", padding: "3px 10px", borderRadius: 20 }}>● 활성</span>}
+              {isPastDue && <span style={{ fontSize: 10, fontWeight: 800, color: "#e8445a", background: "rgba(232,68,90,0.12)", padding: "3px 10px", borderRadius: 20 }}>⚠ 결제 실패</span>}
+              {!isCancelled && !isPastDue && userPlan !== "free" && <span style={{ fontSize: 10, fontWeight: 800, color: "#0fa573", background: "rgba(15,165,115,0.1)", padding: "3px 10px", borderRadius: 20 }}>● 활성</span>}
             </div>
             {periodEnd && (
               <p style={{ fontSize: 12, color: "#8a8a9a", marginTop: 6 }}>
@@ -133,6 +135,19 @@ export default function BillingPage() {
               {fmtDate(periodEnd)}까지 서비스를 이용할 수 있으며, 이후 자동으로 무료 플랜으로 전환됩니다.
               다시 구독하려면 플랜 업그레이드를 진행해주세요.
             </p>
+          </div>
+        )}
+        {isPastDue && (
+          <div style={{ marginTop: 14, padding: "12px 14px", background: "rgba(232,68,90,0.07)", border: "1px solid rgba(232,68,90,0.25)", borderRadius: 10 }}>
+            <p style={{ fontSize: 12, color: "#e8445a", fontWeight: 700, marginBottom: 5 }}>⚠️ 자동 결제에 실패했습니다</p>
+            <p style={{ fontSize: 11, color: "#6a6a7a", lineHeight: 1.6, marginBottom: 10 }}>
+              카드 유효기간·한도·잔액을 확인해주세요. 프리미엄 기능이 일시 중단된 상태입니다.
+              결제를 재시도하려면 아래 버튼을 눌러 새 카드로 다시 구독해주세요.
+            </p>
+            <button onClick={() => router.push("/dashboard/pricing")}
+              style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: "#e8445a", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              결제 재시도 →
+            </button>
           </div>
         )}
       </div>
