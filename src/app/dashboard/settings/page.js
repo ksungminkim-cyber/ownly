@@ -6,17 +6,35 @@ function NewsletterSubscription({ user }) {
   const [enabled, setEnabled] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [lastSent, setLastSent] = useState(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       try {
         const { data } = await supabase.from("newsletter_subscribers").select("*").eq("user_id", user.id).maybeSingle();
-        if (data) setEnabled(!!data.weekly_digest);
+        if (data) {
+          setEnabled(!!data.weekly_digest);
+          setLastSent(data.last_sent_at || null);
+        }
       } catch {}
       setLoaded(true);
     })();
   }, [user]);
+
+  const sendTest = async () => {
+    if (!user) return;
+    if (!enabled) { toast("먼저 뉴스레터를 구독하세요", "error"); return; }
+    setTesting(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-weekly-newsletter", { body: {} });
+      if (error) throw error;
+      toast("📧 테스트 뉴스레터가 발송되었습니다. 받은편지함을 확인하세요 (스팸함 포함)");
+    } catch (e) {
+      toast("발송 실패: " + (e.message || "알 수 없는 오류"), "error");
+    } finally { setTesting(false); }
+  };
 
   const toggle = async () => {
     if (!user) return;
@@ -44,8 +62,9 @@ function NewsletterSubscription({ user }) {
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>주간 온리 뉴스레터</p>
           <p style={{ fontSize: 11, color: "#8a8a9a", margin: "3px 0 0", lineHeight: 1.6 }}>
-            매주 월요일 발송 · 커뮤니티 인기 글 · 임대 시장 동향 · 가이드 신규 글 요약<br/>
+            매주 월요일 오전 9시 발송 · 커뮤니티 인기 글 · 임대인 가이드 신규 · 시장 동향 요약<br/>
             발송 이메일: <b style={{ color: "var(--text)" }}>{user?.email || "—"}</b>
+            {lastSent && <><br/><span style={{ fontSize: 10, color: "var(--text-muted)" }}>마지막 발송: {new Date(lastSent).toLocaleDateString("ko-KR")}</span></>}
           </p>
         </div>
         <div onClick={loaded && !saving ? toggle : undefined}
@@ -53,6 +72,15 @@ function NewsletterSubscription({ user }) {
           <div style={{ position: "absolute", top: 3, left: enabled ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left .2s" }} />
         </div>
       </div>
+      {enabled && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0, flex: 1 }}>💡 지금 내 이메일로 미리보기 발송해서 확인할 수 있습니다</p>
+          <button onClick={sendTest} disabled={testing}
+            style={{ padding: "6px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: testing ? "wait" : "pointer", border: "none", background: C.indigo, color: "#fff", opacity: testing ? 0.6 : 1 }}>
+            {testing ? "발송 중..." : "📧 테스트 발송"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
