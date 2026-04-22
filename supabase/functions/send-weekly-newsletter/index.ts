@@ -6,6 +6,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SITE_URL = Deno.env.get("SITE_URL") || "https://www.ownly.kr";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 // 최근 2주 블로그 가이드 — 정적 데이터 (src/app/blog과 동기화)
 const RECENT_BLOG_POSTS = [
   {
@@ -43,16 +49,13 @@ function excerpt(s: string, n: number) {
 }
 
 serve(async (req) => {
-  // 보안: Supabase scheduled invocation or matching secret
-  const authHeader = req.headers.get("authorization") || "";
-  const expectedSecret = Deno.env.get("NEWSLETTER_CRON_SECRET");
-  if (expectedSecret && !authHeader.includes(expectedSecret)) {
-    // Supabase scheduled 호출은 supabase anon/service key를 씀 → 둘 다 허용
-    const hasSbKey = authHeader.includes(SUPABASE_SERVICE_KEY) || authHeader.includes(Deno.env.get("SUPABASE_ANON_KEY") || "__never__");
-    if (!hasSbKey) return new Response("Unauthorized", { status: 401 });
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: CORS_HEADERS });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
@@ -63,7 +66,7 @@ serve(async (req) => {
     .eq("weekly_digest", true);
 
   if (subErr) {
-    return new Response(JSON.stringify({ error: subErr.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: subErr.message }), { status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
   }
 
   // 2) 지난 7일 인기 글 상위 5개 (좋아요×3 + 댓글×2 + 조회 점수)
@@ -176,7 +179,13 @@ serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, total: (subs || []).length, sent: results.filter(r => r.sent).length, results }, null, 2), {
-    headers: { "Content-Type": "application/json" },
-  });
+    return new Response(JSON.stringify({ ok: true, total: (subs || []).length, sent: results.filter(r => r.sent).length, results }, null, 2), {
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e?.message || e) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
 });
