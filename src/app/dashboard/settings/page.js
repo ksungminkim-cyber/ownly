@@ -144,7 +144,7 @@ function NotificationSettings() {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, tenants, payments, contracts, resetAllData } = useApp();
+  const { user, tenants, payments, contracts, resetAllData, userPlan } = useApp();
   const currentNickname = user?.user_metadata?.nickname || "";
   const currentPhone = user?.user_metadata?.phone || "";
   const [nickname, setNickname] = useState(currentNickname);
@@ -253,6 +253,25 @@ export default function SettingsPage() {
       {/* ✅ ① 알림 설정 */}
       <NotificationSettings />
       <NewsletterSubscription user={user} />
+
+      {/* 결제 관리 */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 12 }}>💳 결제 관리</p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+              현재 플랜: {userPlan === "pro" ? "프로" : userPlan === "plus" ? "플러스" : userPlan === "starter" ? "스타터" : "무료"}
+            </p>
+            <p style={{ fontSize: 11, color: "#8a8a9a", margin: "3px 0 0", lineHeight: 1.6 }}>
+              구독 상태 확인, 결제 이력 조회, 구독 취소
+            </p>
+          </div>
+          <button onClick={() => router.push("/dashboard/billing")}
+            style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${C.indigo}`, background: "var(--surface)", color: C.indigo, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+            결제 관리 →
+          </button>
+        </div>
+      </div>
 
       {/* 온보딩 재실행 */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>

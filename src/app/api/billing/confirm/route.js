@@ -57,8 +57,27 @@ export async function POST(req) {
       status: "active",
       current_period_end: periodEnd.toISOString(),
       toss_order_id: charge.orderId,
+      cancelled_at: null,
+      cancel_reason: null,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
+
+    // 4. 결제 이력 기록
+    try {
+      await supabase.from("billing_history").insert({
+        user_id: customerKey,
+        plan: planId,
+        amount: PLANS_PRICE[planId],
+        status: "paid",
+        method: charge.method || "card",
+        toss_payment_key: charge.paymentKey || null,
+        toss_order_id: charge.orderId,
+        receipt_url: charge.receipt?.url || null,
+        paid_at: charge.approvedAt || new Date().toISOString(),
+      });
+    } catch (logErr) {
+      console.error("billing_history insert failed:", logErr);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e) {
