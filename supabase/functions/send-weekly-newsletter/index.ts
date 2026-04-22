@@ -49,6 +49,44 @@ function excerpt(s: string, n: number) {
   return t.length > n ? t.slice(0, n) + "…" : t;
 }
 
+// Google News RSS에서 한국 부동산·임대 뉴스 상위 N개 가져오기
+async function fetchRealEstateNews(limit = 6): Promise<Array<{ title: string; link: string; source: string; pubDate: string }>> {
+  try {
+    const query = encodeURIComponent("부동산 임대 전월세");
+    const url = `https://news.google.com/rss/search?q=${query}&hl=ko&gl=KR&ceid=KR:ko`;
+    const res = await fetch(url, { headers: { "User-Agent": "Ownly Newsletter/1.0" } });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const items: Array<{ title: string; link: string; source: string; pubDate: string }> = [];
+    const itemMatches = xml.matchAll(/<item>([\s\S]*?)<\/item>/g);
+    for (const m of itemMatches) {
+      const block = m[1];
+      const title = (block.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim();
+      const link = (block.match(/<link>([\s\S]*?)<\/link>/)?.[1] || "").trim();
+      const source = (block.match(/<source[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/source>/)?.[1] || "").trim();
+      const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] || "").trim();
+      if (title && link) {
+        items.push({ title, link, source: source || "언론사", pubDate });
+      }
+      if (items.length >= limit) break;
+    }
+    return items;
+  } catch {
+    return [];
+  }
+}
+
+function relTimeKo(pubDate: string): string {
+  if (!pubDate) return "";
+  const d = new Date(pubDate);
+  if (isNaN(d.getTime())) return "";
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 3600) return Math.floor(diff / 60) + "분 전";
+  if (diff < 86400) return Math.floor(diff / 3600) + "시간 전";
+  if (diff < 604800) return Math.floor(diff / 86400) + "일 전";
+  return d.toLocaleDateString("ko-KR");
+}
+
 serve(async (req) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -105,6 +143,19 @@ serve(async (req) => {
     .sort((a, b) => b._score - a._score)
     .slice(0, 5);
 
+  // 부동산 관련 뉴스 한 번만 가져오기 (모든 수신자 공유)
+  const newsItems = await fetchRealEstateNews(6);
+  const newsHtml = newsItems.length > 0
+    ? newsItems.map(n => `
+      <div style="border-bottom:1px solid #ebe9e3;padding:10px 0">
+        <a href="${escapeHtml(n.link)}" style="text-decoration:none;color:inherit" target="_blank" rel="noopener">
+          <p style="font-size:13px;font-weight:700;color:#1a2744;margin:0 0 4px;line-height:1.45">${escapeHtml(excerpt(n.title, 80))}</p>
+          <p style="font-size:11px;color:#8a8a9a;margin:0">${escapeHtml(n.source)}${n.pubDate ? " · " + escapeHtml(relTimeKo(n.pubDate)) : ""}</p>
+        </a>
+      </div>
+    `).join("")
+    : "";
+
   const results: { email: string; sent: boolean; error?: string }[] = [];
 
   for (const sub of (subs || [])) {
@@ -154,6 +205,14 @@ serve(async (req) => {
                 <a href="${SITE_URL}/dashboard/community" style="font-size:12px;color:#5b4fcf;font-weight:700;text-decoration:none">커뮤니티 전체 보기 →</a>
               </div>
             </div>
+
+            ${newsHtml ? `
+            <div style="background:#fff;border:1px solid #ebe9e3;border-radius:12px;padding:18px 22px;margin-bottom:16px">
+              <p style="font-size:11px;font-weight:800;color:#1e7fcb;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px">📰 이번 주 부동산 뉴스</p>
+              ${newsHtml}
+              <p style="font-size:10px;color:#a0a0b0;margin:14px 0 0;text-align:center">출처: Google News 집계 · 각 언론사 원문 링크</p>
+            </div>
+            ` : ""}
 
             <div style="background:#fff;border:1px solid #ebe9e3;border-radius:12px;padding:18px 22px;margin-bottom:16px">
               <p style="font-size:11px;font-weight:800;color:#0d9488;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px">📖 임대인 가이드</p>
