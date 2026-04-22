@@ -47,6 +47,12 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState("전체");
+  const [sortBy, setSortBy] = useState("latest"); // latest | popular | most_commented
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
+  const [bookmarks, setBookmarks] = useState(new Set());
+  const [activity, setActivity] = useState([]);
+  const [activityOpen, setActivityOpen] = useState(false);
   const [activePost, setActivePost] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [comments, setComments] = useState([]);
@@ -91,7 +97,7 @@ export default function CommunityPage() {
   };
   const myBadge = getBadge();
 
-  useEffect(() => { loadPosts(); if (user) loadMyLikes(); }, [category, user]);
+  useEffect(() => { loadPosts(); if (user) { loadMyLikes(); loadActivity(); } }, [category, user]);
 
   // 실시간 구독: 다른 유저의 게시글/댓글/좋아요를 즉시 반영
   useEffect(() => {
@@ -129,6 +135,9 @@ export default function CommunityPage() {
         setComments(cs => cs.filter(c => c.id !== commentId));
         setActivePost(prev => prev && prev.id === postId ? { ...prev, comment_count: Math.max(0, (prev.comment_count || 1) - 1) } : prev);
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: Math.max(0, (p.comment_count || 1) - 1) } : p));
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_activity", filter: `recipient_id=eq.${user.id}` }, (payload) => {
+        setActivity(prev => [payload.new, ...prev].slice(0, 30));
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -174,6 +183,52 @@ export default function CommunityPage() {
     // 댓글 좋아요도 로드
     const { data: cl } = await supabase.from("community_comment_likes").select("comment_id").eq("user_id", user.id);
     setMyCommentLikes(new Set((cl||[]).map(l => l.comment_id)));
+    // 북마크 로드
+    try {
+      const { data: bm } = await supabase.from("community_bookmarks").select("post_id").eq("user_id", user.id);
+      setBookmarks(new Set((bm || []).map(b => b.post_id)));
+    } catch {}
+  };
+
+  // 내 활동 알림 로드
+  const loadActivity = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase.from("community_activity")
+        .select("*").eq("recipient_id", user.id)
+        .order("created_at", { ascending: false }).limit(30);
+      setActivity(data || []);
+    } catch {}
+  };
+
+  // 알림 읽음 처리
+  const markActivityRead = async (id) => {
+    if (!user) return;
+    await supabase.from("community_activity").update({ is_read: true }).eq("id", id);
+    setActivity(prev => prev.map(a => a.id === id ? { ...a, is_read: true } : a));
+  };
+
+  const markAllActivityRead = async () => {
+    if (!user) return;
+    const unreadIds = activity.filter(a => !a.is_read).map(a => a.id);
+    if (unreadIds.length === 0) return;
+    await supabase.from("community_activity").update({ is_read: true }).in("id", unreadIds);
+    setActivity(prev => prev.map(a => ({ ...a, is_read: true })));
+  };
+
+  // 북마크 토글
+  const toggleBookmark = async (postId) => {
+    if (!user) return;
+    const isBookmarked = bookmarks.has(postId);
+    if (isBookmarked) {
+      await supabase.from("community_bookmarks").delete().eq("user_id", user.id).eq("post_id", postId);
+      setBookmarks(prev => { const s = new Set(prev); s.delete(postId); return s; });
+      toast("북마크 해제됨");
+    } else {
+      await supabase.from("community_bookmarks").insert({ user_id: user.id, post_id: postId });
+      setBookmarks(prev => new Set([...prev, postId]));
+      toast("🔖 북마크에 추가됨");
+    }
   };
 
   const openPost = async (post) => {
@@ -388,18 +443,97 @@ export default function CommunityPage() {
               </div>
             )}
           </div>
-          <button onClick={() => { setForm({ title:"", content:"", category: category !== "전체" ? category : "자유", author_name: myNickname }); setImages([]); setPreviews([]); setShowWrite(true); }}
-            style={{ padding:"9px 18px", borderRadius:10, background:`linear-gradient(135deg,${C.indigo},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
-            ✏️ 글쓰기
-          </button>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            {user && (
+              <div style={{ position:"relative" }}>
+                <button onClick={() => setActivityOpen(v => !v)}
+                  style={{ position:"relative", width:36, height:36, borderRadius:10, border:`1px solid var(--border)`, background:"var(--surface)", cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  🔔
+                  {activity.filter(a => !a.is_read).length > 0 && (
+                    <span style={{ position:"absolute", top:-4, right:-4, minWidth:18, height:18, borderRadius:10, background:C.rose, color:"#fff", fontSize:10, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 5px" }}>{activity.filter(a => !a.is_read).length}</span>
+                  )}
+                </button>
+                {activityOpen && (
+                  <div onMouseLeave={() => setActivityOpen(false)}
+                    style={{ position:"absolute", top:42, right:0, width:340, maxHeight:420, overflowY:"auto", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:100 }}>
+                    <div style={{ padding:"12px 16px", borderBottom:"1px solid var(--border)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <p style={{ fontSize:13, fontWeight:800, color:"var(--text)" }}>내 활동 알림</p>
+                      {activity.some(a => !a.is_read) && <button onClick={markAllActivityRead} style={{ fontSize:11, color:C.indigo, background:"none", border:"none", cursor:"pointer", fontWeight:600 }}>모두 읽음</button>}
+                    </div>
+                    {activity.length === 0 ? (
+                      <div style={{ padding:"30px 16px", textAlign:"center", color:"var(--text-muted)" }}>
+                        <p style={{ fontSize:24, marginBottom:8 }}>📭</p>
+                        <p style={{ fontSize:12 }}>아직 활동이 없어요</p>
+                      </div>
+                    ) : (
+                      activity.map(a => {
+                        const kindLabel = { comment: "댓글을 달았습니다", reply: "답글을 달았습니다", like: "좋아요를 눌렀습니다", post_like: "좋아요를 눌렀습니다", comment_like: "댓글에 좋아요를 눌렀습니다" }[a.kind] || "활동";
+                        return (
+                          <div key={a.id}
+                            onClick={async () => {
+                              if (!a.is_read) await markActivityRead(a.id);
+                              const target = posts.find(p => p.id === a.post_id);
+                              if (target) { openPost(target); setActivityOpen(false); }
+                            }}
+                            style={{ padding:"10px 16px", borderBottom:"1px solid var(--border)", cursor:"pointer", background: a.is_read ? "transparent" : "rgba(232,68,90,0.04)", display:"flex", gap:10, alignItems:"flex-start" }}>
+                            <div style={{ width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${C.indigo},${C.purple})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:12, fontWeight:800, flexShrink:0 }}>{a.actor_name?.[0]?.toUpperCase() || "?"}</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <p style={{ fontSize:12, color:"var(--text)" }}>
+                                <b>{a.actor_name}</b>님이 {a.kind === "reply" ? "답글" : "댓글"}을 달았습니다
+                              </p>
+                              {a.snippet && <p style={{ fontSize:11, color:"var(--text-muted)", marginTop:2, lineHeight:1.5, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>&ldquo;{a.snippet}&rdquo;</p>}
+                              <p style={{ fontSize:10, color:"var(--text-faint)", marginTop:3 }}>{timeAgo(a.created_at)}</p>
+                            </div>
+                            {!a.is_read && <span style={{ width:8, height:8, borderRadius:"50%", background:C.rose, marginTop:6, flexShrink:0 }} />}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            <button onClick={() => { setForm({ title:"", content:"", category: category !== "전체" ? category : "자유", author_name: myNickname }); setImages([]); setPreviews([]); setShowWrite(true); }}
+              style={{ padding:"9px 18px", borderRadius:10, background:`linear-gradient(135deg,${C.indigo},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+              ✏️ 글쓰기
+            </button>
+          </div>
         </div>
-        <div style={{ display:"flex", gap:5, flexWrap:"wrap", paddingBottom:14, borderBottom:"1px solid var(--border)" }}>
+        <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom: 10 }}>
           {CATEGORIES.map(c => (
             <button key={c} onClick={() => setCategory(c)}
               style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", transition:"all .15s", border:`1px solid ${category===c?(c===CAT_HIGHLIGHT?"#0fa573":C.indigo):c===CAT_HIGHLIGHT?"rgba(15,165,115,0.4)":"var(--border)"}`, background:category===c?(c===CAT_HIGHLIGHT?"#0fa573":C.indigo):c===CAT_HIGHLIGHT?"rgba(15,165,115,0.07)":"transparent", color:category===c?"#fff":c===CAT_HIGHLIGHT?"#0fa573":"var(--text-muted)" }}>
               {c===CAT_HIGHLIGHT ? "🏠 "+c : c}
             </button>
           ))}
+        </div>
+
+        {/* 🔍 검색 + 정렬 + 북마크 필터 */}
+        <div style={{ display:"flex", gap:8, paddingBottom:14, borderBottom:"1px solid var(--border)", flexWrap:"wrap", alignItems:"center" }}>
+          <div style={{ position:"relative", flex:"1 1 200px", minWidth:180 }}>
+            <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"var(--text-muted)" }}>🔍</span>
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="제목·내용·작성자로 검색..."
+              style={{ width:"100%", padding:"7px 12px 7px 34px", borderRadius:9, border:"1px solid var(--border)", background:"var(--surface2)", fontSize:12, color:"var(--text)", outline:"none", boxSizing:"border-box" }} />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", width:20, height:20, border:"none", background:"var(--surface3)", color:"var(--text-muted)", borderRadius:5, cursor:"pointer", fontSize:11 }}>✕</button>
+            )}
+          </div>
+          <div style={{ display:"flex", gap:3, background:"var(--surface2)", borderRadius:9, padding:3 }}>
+            {[
+              { key:"latest", label:"🕒 최신" },
+              { key:"popular", label:"🔥 인기" },
+              { key:"most_commented", label:"💬 댓글" },
+            ].map(s => (
+              <button key={s.key} onClick={() => setSortBy(s.key)}
+                style={{ padding:"5px 10px", borderRadius:6, fontSize:11, fontWeight:700, cursor:"pointer", border:"none", background: sortBy === s.key ? "var(--surface)" : "transparent", color: sortBy === s.key ? C.navy : "var(--text-muted)", boxShadow: sortBy === s.key ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{s.label}</button>
+            ))}
+          </div>
+          {user && (
+            <button onClick={() => setShowBookmarksOnly(v => !v)}
+              style={{ padding:"6px 12px", borderRadius:9, fontSize:11, fontWeight:700, cursor:"pointer", border:`1px solid ${showBookmarksOnly ? C.amber : "var(--border)"}`, background: showBookmarksOnly ? C.amber + "15" : "transparent", color: showBookmarksOnly ? C.amber : "var(--text-muted)" }}>
+              🔖 북마크{bookmarks.size > 0 && ` (${bookmarks.size})`}
+            </button>
+          )}
         </div>
         {category===CAT_HIGHLIGHT && (
           <div style={{ background:"rgba(15,165,115,0.07)", border:"1px solid rgba(15,165,115,0.2)", borderRadius:10, padding:"10px 16px", marginTop:12, display:"flex", alignItems:"center", gap:8 }}>
@@ -416,14 +550,58 @@ export default function CommunityPage() {
         <div style={{ flex: panelOpen && !isMobile ? "0 0 380px" : "1", overflowY:"auto", borderRight: panelOpen && !isMobile ? "1px solid var(--border)" : "none", transition:"flex .3s ease" }}>
           {loading ? (
             <div style={{ textAlign:"center", padding:60, color:"var(--text-muted)" }}>불러오는 중...</div>
-          ) : posts.length === 0 ? (
-            <div style={{ textAlign:"center", padding:60 }}>
-              <div style={{ fontSize:40, marginBottom:12 }}>{category===CAT_HIGHLIGHT?"🏠":"📭"}</div>
-              <p style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>{category===CAT_HIGHLIGHT?"아직 공실·매물 게시글이 없어요":"첫 번째 글을 작성해보세요!"}</p>
-            </div>
-          ) : (
-            <div>
-              {posts.map(post => {
+          ) : (() => {
+            // 검색 + 북마크 필터 + 정렬 적용
+            let displayPosts = posts;
+            if (showBookmarksOnly) displayPosts = displayPosts.filter(p => bookmarks.has(p.id));
+            if (searchQuery.trim()) {
+              const q = searchQuery.toLowerCase().trim();
+              displayPosts = displayPosts.filter(p =>
+                (p.title || "").toLowerCase().includes(q) ||
+                (p.content || "").toLowerCase().includes(q) ||
+                (p.author_name || "").toLowerCase().includes(q)
+              );
+            }
+            if (sortBy === "popular") {
+              displayPosts = [...displayPosts].sort((a, b) =>
+                ((b.likes || 0) * 3 + (b.comment_count || 0) * 2 + (b.views || 0)) -
+                ((a.likes || 0) * 3 + (a.comment_count || 0) * 2 + (a.views || 0))
+              );
+            } else if (sortBy === "most_commented") {
+              displayPosts = [...displayPosts].sort((a, b) => (b.comment_count || 0) - (a.comment_count || 0));
+            }
+
+            // 🔥 최근 7일 인기 글 — 최신순 최상단에만 노출용
+            const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+            const hotSet = new Set();
+            if (sortBy === "latest" && !searchQuery && !showBookmarksOnly) {
+              const hot = [...posts]
+                .filter(p => new Date(p.created_at) >= sevenDaysAgo)
+                .sort((a, b) => ((b.likes||0)*3 + (b.comment_count||0)*2 + (b.views||0)) - ((a.likes||0)*3 + (a.comment_count||0)*2 + (a.views||0)))
+                .slice(0, 3)
+                .filter(p => ((p.likes||0) + (p.comment_count||0) + (p.views||0) / 10) >= 5);
+              hot.forEach(p => hotSet.add(p.id));
+            }
+
+            if (displayPosts.length === 0) {
+              return (
+                <div style={{ textAlign:"center", padding:60 }}>
+                  <div style={{ fontSize:40, marginBottom:12 }}>{showBookmarksOnly ? "🔖" : searchQuery ? "🔍" : category===CAT_HIGHLIGHT?"🏠":"📭"}</div>
+                  <p style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>
+                    {showBookmarksOnly ? "북마크한 글이 없어요" : searchQuery ? `"${searchQuery}" 검색 결과 없음` : category===CAT_HIGHLIGHT?"아직 공실·매물 게시글이 없어요":"첫 번째 글을 작성해보세요!"}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div>
+                {hotSet.size > 0 && (
+                  <div style={{ padding:"10px 20px", background:"linear-gradient(90deg,rgba(232,68,90,0.06),rgba(232,150,10,0.06))", borderBottom:"1px solid var(--border)" }}>
+                    <p style={{ fontSize:11, fontWeight:800, color:C.rose, letterSpacing:"0.5px", textTransform:"uppercase" }}>🔥 이번 주 인기</p>
+                  </div>
+                )}
+                {displayPosts.map(post => {
                 const isActive = activePost?.id === post.id;
                 return (
                   <div key={post.id} onClick={() => openPost(post)}
@@ -432,9 +610,15 @@ export default function CommunityPage() {
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.background="transparent"; }}>
                     <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:6 }}>
                       <span style={{ fontSize:10, fontWeight:700, color:CAT_COLORS[post.category]||"#8a8a9a", background:(CAT_COLORS[post.category]||"#8a8a9a")+"18", padding:"2px 7px", borderRadius:4 }}>{post.category}</span>
+                      {hotSet.has(post.id) && <span style={{ fontSize:9, fontWeight:800, color:"#fff", background:C.rose, padding:"1px 6px", borderRadius:20 }}>🔥 HOT</span>}
                       <span style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{post.author_name}</span>
                       {post.badge_label && <span style={{ fontSize:9, fontWeight:700, color:post.badge_color||"#8a8a9a", background:post.badge_bg||"#f0efe9", padding:"1px 6px", borderRadius:20 }}>{post.badge_label}</span>}
                       <span style={{ fontSize:11, color:"var(--text-muted)", marginLeft:"auto" }}>{timeAgo(post.created_at)}</span>
+                      {user && <button onClick={(e) => { e.stopPropagation(); toggleBookmark(post.id); }}
+                        style={{ background:"none", border:"none", fontSize:13, cursor:"pointer", padding:"0 2px" }}
+                        title={bookmarks.has(post.id) ? "북마크 해제" : "북마크 추가"}>
+                        {bookmarks.has(post.id) ? "🔖" : "🏷️"}
+                      </button>}
                     </div>
                     <p style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{post.title}</p>
                     {!(panelOpen && !isMobile) && <p style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.5, marginBottom:6 }}>{post.content.slice(0,70)}{post.content.length>70?"...":""}</p>}
@@ -454,7 +638,8 @@ export default function CommunityPage() {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* 상세 패널 */}
