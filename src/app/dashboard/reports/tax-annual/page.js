@@ -51,6 +51,7 @@ export default function AnnualTaxReportPage() {
     addr: user?.user_metadata?.landlord_addr || "",
     businessNo: user?.user_metadata?.business_no || "",
     phone: user?.user_metadata?.phone || "",
+    signature: user?.user_metadata?.signature_url || "",
   };
 
   // 연도별 집계
@@ -299,8 +300,13 @@ export default function AnnualTaxReportPage() {
         <section style={{ marginTop: 40, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, pageBreakInside: "avoid" }}>
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: 11, color: "#8a8a9a", marginBottom: 24 }}>작성자 (임대인)</p>
-            <div style={{ borderBottom: "1px solid #6a6a7a", paddingBottom: 4, minHeight: 30 }}>
-              <span style={{ fontSize: 14, fontWeight: 700 }}>{landlord.name || ""} <span style={{ marginLeft: 20, color: "#8a8a9a", fontWeight: 400 }}>(인)</span></span>
+            <div style={{ borderBottom: "1px solid #6a6a7a", paddingBottom: 4, minHeight: 50, display: "flex", alignItems: "center", justifyContent: "center", gap: 14 }}>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{landlord.name || ""}</span>
+              {landlord.signature ? (
+                <img src={landlord.signature} alt="직인" style={{ width: 46, height: 46, objectFit: "contain" }} />
+              ) : (
+                <span style={{ marginLeft: 20, color: "#8a8a9a", fontWeight: 400 }}>(인)</span>
+              )}
             </div>
           </div>
           <div style={{ textAlign: "center" }}>

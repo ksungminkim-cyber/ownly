@@ -267,12 +267,51 @@ export default function SettingsPage() {
   const currentLandlordName = user?.user_metadata?.landlord_name || "";
   const currentLandlordAddr = user?.user_metadata?.landlord_addr || "";
   const currentBusinessNo = user?.user_metadata?.business_no || "";
+  const currentSignature = user?.user_metadata?.signature_url || "";
   const [nickname, setNickname] = useState(currentNickname);
   const [savingNick, setSavingNick] = useState(false);
   const [phone, setPhone] = useState(currentPhone);
   const [savingPhone, setSavingPhone] = useState(false);
   const [landlord, setLandlord] = useState({ name: currentLandlordName, addr: currentLandlordAddr, business_no: currentBusinessNo });
   const [savingLandlord, setSavingLandlord] = useState(false);
+  const [signatureUrl, setSignatureUrl] = useState(currentSignature);
+  const [uploadingSig, setUploadingSig] = useState(false);
+
+  const handleSignatureUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast("이미지 파일만 업로드 가능합니다", "error"); return; }
+    if (file.size > 2 * 1024 * 1024) { toast("2MB 이하 이미지만 업로드 가능합니다", "error"); return; }
+    setUploadingSig(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `signatures/${user.id}_${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("community-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("community-images").getPublicUrl(path);
+      const url = pub?.publicUrl;
+      if (!url) throw new Error("URL 생성 실패");
+      const { error: metaErr } = await supabase.auth.updateUser({ data: { signature_url: url } });
+      if (metaErr) throw metaErr;
+      setSignatureUrl(url);
+      toast("✍️ 직인 이미지가 저장됐습니다");
+    } catch (err) {
+      toast("업로드 실패: " + (err.message || ""), "error");
+    } finally {
+      setUploadingSig(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeSignature = async () => {
+    try {
+      await supabase.auth.updateUser({ data: { signature_url: null } });
+      setSignatureUrl("");
+      toast("직인 이미지가 삭제됐습니다", "warning");
+    } catch (err) {
+      toast("삭제 실패: " + err.message, "error");
+    }
+  };
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [savingPw, setSavingPw] = useState(false);
   const [showPw, setShowPw] = useState(false);
@@ -382,6 +421,28 @@ export default function SettingsPage() {
             <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 6 }}>사업자등록번호 <span style={{ color: "#a0a0b0", fontWeight: 400 }}>(선택 — 상가 임대 시)</span></p>
             <input value={landlord.business_no} onChange={e => setLandlord(l => ({ ...l, business_no: e.target.value }))} placeholder="123-45-67890"
               style={{ width: "100%", padding: "10px 13px", fontSize: 13, color: "var(--text)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, outline: "none" }} />
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 6 }}>✍️ 직인/서명 이미지 <span style={{ color: "#a0a0b0", fontWeight: 400 }}>(선택 — PDF에 자동 삽입)</span></p>
+            {signatureUrl ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 13px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                <img src={signatureUrl} alt="직인" style={{ width: 64, height: 64, objectFit: "contain", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 6, padding: 4 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", margin: 0 }}>직인 등록 완료</p>
+                  <p style={{ fontSize: 10, color: "#8a8a9a", marginTop: 2 }}>계약서·세무사용 PDF 서명란에 자동 삽입됩니다</p>
+                </div>
+                <button onClick={removeSignature} style={{ padding: "6px 10px", borderRadius: 7, border: "1px solid rgba(232,68,90,0.3)", background: "rgba(232,68,90,0.06)", color: "#e8445a", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>삭제</button>
+              </div>
+            ) : (
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "16px", background: "var(--surface2)", border: "1.5px dashed var(--border)", borderRadius: 10, cursor: "pointer" }}>
+                <span style={{ fontSize: 20 }}>📤</span>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", margin: 0 }}>{uploadingSig ? "업로드 중..." : "이미지 업로드 (PNG 추천)"}</p>
+                  <p style={{ fontSize: 10, color: "#a0a0b0", marginTop: 2 }}>2MB 이하 · 투명 배경 PNG 권장</p>
+                </div>
+                <input type="file" accept="image/*" onChange={handleSignatureUpload} disabled={uploadingSig} style={{ display: "none" }} />
+              </label>
+            )}
           </div>
           <button onClick={saveLandlord} disabled={savingLandlord}
             style={{ alignSelf: "flex-end", padding: "10px 22px", borderRadius: 10, background: savingLandlord ? "#94a3b8" : "#1a2744", border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: savingLandlord ? "not-allowed" : "pointer" }}>

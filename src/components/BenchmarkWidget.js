@@ -34,7 +34,7 @@ function isMonthlyRow(row) {
   return m > 0;
 }
 
-async function fetchBenchmark(lawdCd, region) {
+async function fetchBenchmark(lawdCd, region, molitType = "apt_rent") {
   const now = new Date();
   const months = [];
   for (let i = 0; i < 3; i++) {
@@ -46,7 +46,7 @@ async function fetchBenchmark(lawdCd, region) {
   const allRows = [];
   for (const ym of months) {
     try {
-      const res = await fetch(`/api/market/molit?type=apt_rent&lawdCd=${lawdCd}&dealYm=${ym}&numOfRows=100`);
+      const res = await fetch(`/api/market/molit?type=${molitType}&lawdCd=${lawdCd}&dealYm=${ym}&numOfRows=100`);
       if (!res.ok) continue;
       const data = await res.json();
       const items = Array.isArray(data?.items) ? data.items : [];
@@ -63,7 +63,7 @@ async function fetchBenchmark(lawdCd, region) {
   const p25 = rents[Math.floor(rents.length * 0.25)];
   const p75 = rents[Math.floor(rents.length * 0.75)];
 
-  return { count: rents.length, avg, median, p25, p75, region, months: months.length };
+  return { count: rents.length, avg, median, p25, p75, region, months: months.length, molitType };
 }
 
 export default function BenchmarkWidget({ tenants = [] }) {
@@ -71,38 +71,53 @@ export default function BenchmarkWidget({ tenants = [] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 유저의 주 지역 + 평균 월세 계산
-  const housing = tenants.filter(t =>
-    (t.pType === "주거" || t.p_type === "주거") &&
-    t.status !== "공실" &&
-    Number(t.rent) > 0
-  );
+  // 유저 물건 유형 판단: 주거 vs 상가·오피스텔 중 우세한 쪽
+  const activeTenants = tenants.filter(t => t.status !== "공실" && Number(t.rent) > 0);
+  const housingCount = activeTenants.filter(t => (t.pType || t.p_type) === "주거").length;
+  const commercialCount = activeTenants.filter(t => {
+    const pt = t.pType || t.p_type;
+    return pt === "상가" || pt === "오피스텔" || (pt === "주거" && (t.sub === "오피스텔" || t.sub_type === "오피스텔"));
+  }).length;
+
+  const primaryType = housingCount >= commercialCount ? "residential" : "commercial";
+  const molitType = primaryType === "residential" ? "apt_rent" : "offi_rent";
+  const molitLabel = primaryType === "residential" ? "아파트 월세" : "오피스텔 월세 (상가 참고용)";
+
+  // 대상 세입자: 선택된 유형 기준
+  const targetTenants = primaryType === "residential"
+    ? activeTenants.filter(t => (t.pType || t.p_type) === "주거")
+    : activeTenants.filter(t => {
+        const pt = t.pType || t.p_type;
+        return pt === "상가" || pt === "오피스텔" || (pt === "주거" && (t.sub === "오피스텔" || t.sub_type === "오피스텔"));
+      });
 
   const regionCounts = {};
-  housing.forEach(t => {
+  targetTenants.forEach(t => {
     const r = findRegionFromAddr(t.addr);
     if (r) regionCounts[r] = (regionCounts[r] || 0) + 1;
   });
   const primaryRegion = Object.keys(regionCounts).sort((a, b) => regionCounts[b] - regionCounts[a])[0];
-  const myAvg = housing.length > 0 ? Math.round(housing.reduce((s, t) => s + Number(t.rent), 0) / housing.length) : 0;
+  const myAvg = targetTenants.length > 0 ? Math.round(targetTenants.reduce((s, t) => s + Number(t.rent), 0) / targetTenants.length) : 0;
+
+  const cacheKey = primaryRegion ? `${primaryRegion}__${molitType}` : null;
 
   useEffect(() => {
     if (!primaryRegion || !LAWD_MAP[primaryRegion]) return;
-    const cached = getCached(primaryRegion);
+    const cached = getCached(cacheKey);
     if (cached) { setData(cached); return; }
 
     setLoading(true);
     setError(null);
-    fetchBenchmark(LAWD_MAP[primaryRegion], primaryRegion)
+    fetchBenchmark(LAWD_MAP[primaryRegion], primaryRegion, molitType)
       .then(d => {
-        if (d) { setCached(primaryRegion, d); setData(d); }
+        if (d) { setCached(cacheKey, d); setData(d); }
         else setError("데이터 없음");
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [primaryRegion]);
+  }, [primaryRegion, molitType, cacheKey]);
 
-  if (housing.length === 0 || !primaryRegion) return null;
+  if (targetTenants.length === 0 || !primaryRegion) return null;
 
   if (loading) {
     return (
@@ -125,7 +140,7 @@ export default function BenchmarkWidget({ tenants = [] }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
         <div>
           <p style={{ fontSize: 10, fontWeight: 800, color: "#8a8a9a", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 3 }}>📊 지역 임대료 벤치마크</p>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744" }}>{primaryRegion} · 아파트 월세 기준</p>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744" }}>{primaryRegion} · {molitLabel} 기준</p>
         </div>
         <span style={{ fontSize: 11, fontWeight: 800, color: verdictColor, background: verdictColor + "15", padding: "4px 12px", borderRadius: 20 }}>
           {verdict} {gapPct !== 0 && `(${gapPct > 0 ? "+" : ""}${gapPct}%)`}
@@ -137,7 +152,7 @@ export default function BenchmarkWidget({ tenants = [] }) {
         <div style={{ padding: "11px 13px", background: "rgba(26,39,68,0.06)", borderRadius: 10 }}>
           <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>내 평균 월세</p>
           <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744" }}>{myAvg.toLocaleString()}만원</p>
-          <p style={{ fontSize: 10, color: "#a0a0b0", marginTop: 2 }}>주거 {housing.length}건 기준</p>
+          <p style={{ fontSize: 10, color: "#a0a0b0", marginTop: 2 }}>{primaryType === "residential" ? "주거" : "상가·오피스텔"} {targetTenants.length}건 기준</p>
         </div>
         <div style={{ padding: "11px 13px", background: verdictColor + "10", borderRadius: 10, border: `1px solid ${verdictColor}25` }}>
           <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>지역 중위값</p>
@@ -162,6 +177,7 @@ export default function BenchmarkWidget({ tenants = [] }) {
         {gap > 0 && gapPct >= 5 && `💡 지역 평균보다 ${gapPct}% 높게 받고 계십니다. 갱신 협상 시 참고하세요.`}
         {gap < 0 && Math.abs(gapPct) >= 5 && `💡 지역 평균보다 ${Math.abs(gapPct)}% 낮습니다. 다음 갱신 시 ${Math.abs(gap)}만원 인상 여력 있음 (5% 상한 확인).`}
         {Math.abs(gapPct) < 5 && `💡 시세와 일치합니다.`}
+        {primaryType === "commercial" && " · 상가 실거래가는 공공데이터에 미포함돼 오피스텔 기준으로 참고 표시합니다."}
       </p>
     </div>
   );

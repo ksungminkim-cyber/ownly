@@ -144,9 +144,13 @@ async function buildReportForUser(supabase: any, user: any) {
 
     <div style="background:rgba(91,79,207,0.06);border:1px solid rgba(91,79,207,0.2);border-radius:10px;padding:13px 16px;">
       <p style="font-size:12px;color:#5b4fcf;font-weight:700;margin:0 0 4px;">🧾 연말 세금 준비</p>
-      <p style="font-size:11px;color:#6a6a7a;line-height:1.7;margin:0;">
-        지난 달 누적 경비 <b>${fmt(repairCost)}만원</b>이 필요경비로 집계됐습니다. 연간 종합소득세 신고 시 자동 반영됩니다.
+      <p style="font-size:11px;color:#6a6a7a;line-height:1.7;margin:0 0 10px;">
+        지난 달 누적 경비 <b>${fmt(repairCost)}만원</b>이 필요경비로 집계됐습니다.
+        아래 버튼으로 <b>세무사 제출용 연간 리포트</b>를 바로 출력하실 수 있어요.
       </p>
+      <a href="${SITE_URL}/dashboard/reports/tax-annual" style="display:inline-block;padding:9px 18px;background:#5b4fcf;color:#fff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:700;">
+        📋 세무사용 PDF 열기 →
+      </a>
     </div>
   `;
 

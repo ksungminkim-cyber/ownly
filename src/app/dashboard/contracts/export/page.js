@@ -100,7 +100,7 @@ export default function ContractExportPage() {
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 14, fontWeight: 800, color: "#1a2744", marginBottom: 10, borderLeft: "4px solid #1a2744", paddingLeft: 10 }}>제4조 당사자</h2>
         {[
-          { label: "임 대 인", name: landlord.name, addr: landlord.addr, phone: landlord.phone, reg: landlord.reg },
+          { label: "임 대 인", name: landlord.name, addr: landlord.addr, phone: landlord.phone, reg: landlord.reg, signature: landlord.signature },
           { label: "임 차 인", name: t.name || c.tenant_name, addr: t.addr, phone: t.phone, reg: "" },
         ].map((p, i) => (
           <table key={i} style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, marginBottom: 10 }}>
@@ -108,7 +108,14 @@ export default function ContractExportPage() {
               <tr style={{ borderTop: "1px solid #b0b0c0" }}>
                 <td rowSpan={3} style={{ padding: "16px 12px", background: "#1a2744", color: "#fff", width: 90, fontWeight: 800, textAlign: "center", letterSpacing: 3, fontSize: 12, verticalAlign: "middle" }}>{p.label}</td>
                 <td style={{ padding: "8px 12px", background: "#f8f7f4", width: 80, fontWeight: 700, borderRight: "1px solid #d0d0d8", borderBottom: "1px solid #d0d0d8" }}>성명</td>
-                <td style={{ padding: "8px 14px", borderBottom: "1px solid #d0d0d8" }}>{p.name || blank(14)} <span style={{ marginLeft: 20, color: "#8a8a9a" }}>(인)</span></td>
+                <td style={{ padding: "8px 14px", borderBottom: "1px solid #d0d0d8" }}>
+                  {p.name || blank(14)}
+                  {p.signature ? (
+                    <img src={p.signature} alt="직인" style={{ marginLeft: 16, width: 48, height: 48, objectFit: "contain", verticalAlign: "middle" }} />
+                  ) : (
+                    <span style={{ marginLeft: 20, color: "#8a8a9a" }}>(인)</span>
+                  )}
+                </td>
               </tr>
               <tr>
                 <td style={{ padding: "8px 12px", background: "#f8f7f4", fontWeight: 700, borderRight: "1px solid #d0d0d8", borderBottom: "1px solid #d0d0d8" }}>주소</td>
