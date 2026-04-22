@@ -123,7 +123,7 @@ export default function BuildingsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <AuthInput label="건물 이름 (선택)" placeholder="예: 강남 테헤란로 빌딩" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           <AuthInput label="주소 *" placeholder="예: 서울 강남구 테헤란로 100" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div className="grid-3col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             <AuthInput label="준공년도" placeholder="2015" value={form.built_year} onChange={e => setForm(f => ({ ...f, built_year: e.target.value }))} />
             <AuthInput label="총 층수" placeholder="5" value={form.total_floors} onChange={e => setForm(f => ({ ...f, total_floors: e.target.value }))} />
             <AuthInput label="주차 대수" placeholder="10" value={form.parking_spots} onChange={e => setForm(f => ({ ...f, parking_spots: e.target.value }))} />

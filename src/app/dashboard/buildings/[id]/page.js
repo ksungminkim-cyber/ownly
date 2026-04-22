@@ -174,7 +174,7 @@ export default function BuildingDetailPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <AuthInput label="건물 이름" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
               <AuthInput label="주소 *" value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div className="grid-3col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 <AuthInput label="준공년도" value={editForm.built_year} onChange={e => setEditForm(f => ({ ...f, built_year: e.target.value }))} />
                 <AuthInput label="총 층수" value={editForm.total_floors} onChange={e => setEditForm(f => ({ ...f, total_floors: e.target.value }))} />
                 <AuthInput label="주차 대수" value={editForm.parking_spots} onChange={e => setEditForm(f => ({ ...f, parking_spots: e.target.value }))} />

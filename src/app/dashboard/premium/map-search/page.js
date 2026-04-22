@@ -528,7 +528,7 @@ function MapSearchContent() {
           </div>
 
           {/* 월별 거래량 차트 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+          <div className="grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
             <div style={{ background: "var(--surface)", border: `1px solid var(--border)`, borderRadius: 14, padding: "16px 16px 10px" }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 10 }}>월별 거래량</p>
               <ResponsiveContainer width="100%" height={180}>
