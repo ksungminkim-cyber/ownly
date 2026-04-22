@@ -64,8 +64,8 @@ function AdminContent({ currentUser }) {
 
   const SQL_GUIDES = [
     {
-      title: "⭐ [필수] 이메일 조회 RPC 생성 (최초 1회 실행)",
-      sql: "CREATE OR REPLACE FUNCTION get_user_emails()\nRETURNS TABLE(id uuid, email text)\nLANGUAGE sql\nSECURITY DEFINER\nAS $$\n  SELECT id, email FROM auth.users ORDER BY created_at DESC;\n$$;",
+      title: "⭐ [필수·최초 1회] 관리자 조회 RPC 생성 (가입자 정보 + 집계)",
+      sql: "CREATE OR REPLACE FUNCTION get_admin_users()\nRETURNS TABLE(\n  id uuid,\n  email text,\n  created_at timestamptz,\n  last_sign_in_at timestamptz,\n  full_name text,\n  phone text,\n  nickname text,\n  tenant_count bigint,\n  building_count bigint\n)\nLANGUAGE sql\nSECURITY DEFINER\nAS $$\n  SELECT\n    u.id,\n    u.email,\n    u.created_at,\n    u.last_sign_in_at,\n    u.raw_user_meta_data->>'full_name' AS full_name,\n    u.raw_user_meta_data->>'phone' AS phone,\n    u.raw_user_meta_data->>'nickname' AS nickname,\n    (SELECT count(*) FROM public.tenants t WHERE t.user_id = u.id) AS tenant_count,\n    (SELECT count(*) FROM public.buildings b WHERE b.user_id = u.id) AS building_count\n  FROM auth.users u\n  ORDER BY u.created_at DESC;\n$$;\n\n-- 이전 버전 호환용\nCREATE OR REPLACE FUNCTION get_user_emails()\nRETURNS TABLE(id uuid, email text)\nLANGUAGE sql\nSECURITY DEFINER\nAS $$\n  SELECT id, email FROM auth.users ORDER BY created_at DESC;\n$$;",
     },
     {
       title: "① 현재 구독 상태 전체 조회",
@@ -99,27 +99,73 @@ function AdminContent({ currentUser }) {
       if (subErr) throw subErr;
       setSubs(subData || []);
 
-      let emailMap = {};
+      // 신규 RPC 우선 시도 → 실패 시 구 버전 fallback
+      let authUsers = [];
+      let hasFullDetails = false;
       try {
-        const { data: rpcData, error: rpcErr } = await supabase.rpc("get_user_emails");
-        if (rpcErr) { setRpcReady(false); }
-        else if (rpcData) {
-          rpcData.forEach(r => { emailMap[r.id] = r.email; });
+        const { data: rich, error: rErr } = await supabase.rpc("get_admin_users");
+        if (!rErr && rich) {
+          authUsers = rich;
+          hasFullDetails = true;
           setRpcReady(true);
+        } else {
+          throw rErr || new Error("no_rich_rpc");
         }
-      } catch (_) { setRpcReady(false); }
+      } catch {
+        try {
+          const { data: basic, error: bErr } = await supabase.rpc("get_user_emails");
+          if (!bErr && basic) {
+            authUsers = basic.map(r => ({ id: r.id, email: r.email }));
+            setRpcReady(true);
+          } else {
+            setRpcReady(false);
+          }
+        } catch { setRpcReady(false); }
+      }
 
+      const subMap = {};
+      (subData || []).forEach(s => { subMap[s.user_id] = s; });
+
+      // auth.users 전체 기준으로 목록 구성 (구독 없는 가입자 포함)
       const userMap = {};
-      (subData || []).forEach((s) => {
-        userMap[s.user_id] = {
-          id: s.user_id,
-          email: emailMap[s.user_id] || s.email || s.customer_email || null,
+      authUsers.forEach(u => {
+        const s = subMap[u.id] || {};
+        userMap[u.id] = {
+          id: u.id,
+          email: u.email || s.email || s.customer_email || null,
+          full_name: u.full_name || null,
+          phone: u.phone || null,
+          nickname: u.nickname || null,
+          created_at: u.created_at || null,
+          last_sign_in_at: u.last_sign_in_at || null,
+          tenant_count: hasFullDetails ? (u.tenant_count || 0) : null,
+          building_count: hasFullDetails ? (u.building_count || 0) : null,
           plan: s.plan || "free",
           status: s.status || "inactive",
-          billing_key: s.billing_key,
-          current_period_end: s.current_period_end,
+          billing_key: s.billing_key || null,
+          current_period_end: s.current_period_end || null,
+          has_subscription: !!subMap[u.id],
         };
       });
+
+      // RPC 실패했어도 구독자는 표시
+      (subData || []).forEach(s => {
+        if (!userMap[s.user_id]) {
+          userMap[s.user_id] = {
+            id: s.user_id,
+            email: s.email || s.customer_email || null,
+            plan: s.plan || "free",
+            status: s.status || "inactive",
+            billing_key: s.billing_key,
+            current_period_end: s.current_period_end,
+            created_at: null, last_sign_in_at: null,
+            full_name: null, phone: null, nickname: null,
+            tenant_count: null, building_count: null,
+            has_subscription: true,
+          };
+        }
+      });
+
       setUsers(Object.values(userMap));
     } catch (err) {
       toast("로딩 실패: " + err.message, "error");
@@ -168,8 +214,29 @@ function AdminContent({ currentUser }) {
     !search ||
     u.id.includes(search) ||
     (u.email || "").toLowerCase().includes(search.toLowerCase()) ||
+    (u.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (u.nickname || "").toLowerCase().includes(search.toLowerCase()) ||
+    (u.phone || "").includes(search) ||
     u.plan.includes(search)
   );
+
+  // 이번 주·달 신규 가입 수
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 86400000);
+  const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1);
+  const newThisWeek = users.filter(u => u.created_at && new Date(u.created_at) >= weekAgo).length;
+  const newThisMonth = users.filter(u => u.created_at && new Date(u.created_at) >= monthAgo).length;
+
+  // 상대 시간 표시 헬퍼
+  const relTime = (iso) => {
+    if (!iso) return "—";
+    const diff = (now - new Date(iso)) / 1000;
+    if (diff < 60) return "방금";
+    if (diff < 3600) return Math.floor(diff / 60) + "분 전";
+    if (diff < 86400) return Math.floor(diff / 3600) + "시간 전";
+    if (diff < 604800) return Math.floor(diff / 86400) + "일 전";
+    return new Date(iso).toLocaleDateString("ko-KR");
+  };
 
   return (
     <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif", padding: "28px 32px", maxWidth: 1100 }}>
@@ -191,25 +258,27 @@ function AdminContent({ currentUser }) {
       {!rpcReady && (
         <div style={{ background: "rgba(232,150,10,0.08)", border: "1px solid rgba(232,150,10,0.3)", borderRadius: 12, padding: "12px 18px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <p style={{ fontSize: 12, fontWeight: 800, color: "#c97a00", marginBottom: 2 }}>⚠️ 이메일 조회 RPC 함수가 없습니다</p>
-            <p style={{ fontSize: 11, color: "#8a8a9a" }}>SQL 가이드 탭의 ⭐ 쿼리를 Supabase에서 실행하면 이메일이 표시됩니다</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: "#c97a00", marginBottom: 2 }}>⚠️ 관리자 조회 RPC 함수가 없습니다</p>
+            <p style={{ fontSize: 11, color: "#8a8a9a" }}>SQL 가이드 탭의 ⭐ 쿼리를 실행하면 가입일·이름·전화·물건수가 모두 표시됩니다</p>
           </div>
           <button onClick={() => setTab("sql")} style={{ padding: "7px 14px", borderRadius: 8, background: "#e8960a", color: "#fff", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>SQL 가이드 →</button>
         </div>
       )}
 
       {/* KPI */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 22 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 22 }}>
         {[
           { l: "전체 유저", v: users.length, c: "#1a2744", bg: "#f0f2f8" },
+          { l: "이번 주 신규", v: newThisWeek, c: "#0fa573", bg: "#edfaf5" },
+          { l: "이번 달 신규", v: newThisMonth, c: "#3b5bdb", bg: "#e8ecfb" },
           { l: "활성 구독", v: subs.filter(s => s.status === "active").length, c: "#0fa573", bg: "#edfaf5" },
-          { l: "무료", v: subs.filter(s => s.plan === "free").length, c: "#8a8a9a", bg: "#f8f7f4" },
-          { l: "플러스", v: subs.filter(s => s.plan === "plus").length, c: "#4f46e5", bg: "#eeeefe" },
-          { l: "프로", v: subs.filter(s => s.plan === "pro").length, c: "#c9920a", bg: "#fdf6e3" },
+          { l: "무료", v: users.filter(u => u.plan === "free").length, c: "#8a8a9a", bg: "#f8f7f4" },
+          { l: "플러스", v: users.filter(u => u.plan === "plus").length, c: "#4f46e5", bg: "#eeeefe" },
+          { l: "프로", v: users.filter(u => u.plan === "pro").length, c: "#c9920a", bg: "#fdf6e3" },
         ].map(k => (
-          <div key={k.l} style={{ background: k.bg, border: "1px solid " + k.c + "22", borderRadius: 14, padding: "16px 18px" }}>
+          <div key={k.l} style={{ background: k.bg, border: "1px solid " + k.c + "22", borderRadius: 14, padding: "14px 16px" }}>
             <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>{k.l}</p>
-            <p style={{ fontSize: 26, fontWeight: 900, color: k.c }}>{k.v}</p>
+            <p style={{ fontSize: 22, fontWeight: 900, color: k.c }}>{k.v}</p>
           </div>
         ))}
       </div>
@@ -228,18 +297,18 @@ function AdminContent({ currentUser }) {
       {tab === "users" && (
         <>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="이메일 · UID · 플랜명으로 검색..."
+            placeholder="이메일 · 이름 · 닉네임 · 전화 · UID · 플랜으로 검색..."
             style={{ width: "100%", padding: "10px 14px", fontSize: 13, color: "#1a2744", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, outline: "none", boxSizing: "border-box", marginBottom: 14 }} />
 
           {loading ? (
             <div style={{ textAlign: "center", padding: 40, color: "#8a8a9a" }}>로딩 중...</div>
           ) : (
-            <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, overflow: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
                 <thead>
                   <tr style={{ background: "#f8f7f4", borderBottom: "2px solid #ebe9e3" }}>
-                    {["UID", "이메일", "플랜", "상태", "만료일", "결제키", "액션"].map(h => (
-                      <th key={h} style={{ padding: "11px 16px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".5px" }}>{h}</th>
+                    {["유저", "이메일", "전화", "가입일", "마지막 접속", "보유", "플랜", "상태", "만료일", "액션"].map(h => (
+                      <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".5px", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -248,30 +317,57 @@ function AdminContent({ currentUser }) {
                     const pm = PLAN_META[u.plan] || PLAN_META.free;
                     const sm = STATUS_META[u.status] || STATUS_META.inactive;
                     const isMe = u.id === currentUser?.id;
+                    const displayName = u.full_name || u.nickname || "—";
                     return (
                       <tr key={u.id} style={{ borderBottom: "1px solid #f0efe9", background: isMe ? "rgba(15,165,115,0.03)" : "transparent" }}>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{ fontSize: 10, fontFamily: "monospace", color: "#8a8a9a", background: "#f8f7f4", padding: "3px 7px", borderRadius: 5 }}>{u.id.slice(0, 8)}...</span>
-                          {isMe && <span style={{ fontSize: 9, fontWeight: 800, color: "#0fa573", marginLeft: 5 }}>나</span>}
+                        <td style={{ padding: "10px 14px", fontSize: 12 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                            <span style={{ fontWeight: 700, color: "#1a2744" }}>
+                              {displayName}{isMe && <span style={{ fontSize: 9, fontWeight: 800, color: "#0fa573", marginLeft: 5 }}>나</span>}
+                            </span>
+                            <span style={{ fontSize: 9, fontFamily: "monospace", color: "#a0a0b0" }}>{u.id.slice(0, 8)}...</span>
+                          </div>
                         </td>
-                        <td style={{ padding: "12px 16px", fontSize: 12, color: u.email ? "#1a2744" : "#c0c0cc", fontWeight: u.email ? 600 : 400 }}>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: u.email ? "#1a2744" : "#c0c0cc" }}>
                           {u.email || <span style={{ color: "#e8960a", fontSize: 11 }}>⚠️ RPC 필요</span>}
                         </td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: pm.color, background: pm.bg, padding: "3px 10px", borderRadius: 20 }}>{pm.label}</span>
+                        <td style={{ padding: "10px 14px", fontSize: 11, color: u.phone ? "#1a2744" : "#c0c0cc", fontFamily: "monospace" }}>
+                          {u.phone || "—"}
                         </td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: sm.color, background: sm.bg, padding: "3px 10px", borderRadius: 20 }}>{sm.label}</span>
+                        <td style={{ padding: "10px 14px", fontSize: 11, color: "#8a8a9a", whiteSpace: "nowrap" }}>
+                          {u.created_at ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                              <span style={{ color: "#1a2744", fontWeight: 600 }}>{new Date(u.created_at).toLocaleDateString("ko-KR")}</span>
+                              <span style={{ fontSize: 10 }}>{relTime(u.created_at)}</span>
+                            </div>
+                          ) : "—"}
                         </td>
-                        <td style={{ padding: "12px 16px", fontSize: 11, color: u.current_period_end ? "#e8445a" : "#0fa573" }}>
+                        <td style={{ padding: "10px 14px", fontSize: 11, color: "#8a8a9a", whiteSpace: "nowrap" }}>
+                          {relTime(u.last_sign_in_at)}
+                        </td>
+                        <td style={{ padding: "10px 14px", fontSize: 11, color: "#1a2744", whiteSpace: "nowrap" }}>
+                          {u.tenant_count != null ? (
+                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                              <span>🚪 {u.tenant_count}</span>
+                              {u.building_count > 0 && <span style={{ color: "#5b4fcf" }}>🏢 {u.building_count}</span>}
+                            </div>
+                          ) : <span style={{ color: "#c0c0cc" }}>—</span>}
+                        </td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: pm.color, background: pm.bg, padding: "3px 9px", borderRadius: 20 }}>{pm.label}</span>
+                        </td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: sm.color, background: sm.bg, padding: "3px 9px", borderRadius: 20 }}>{sm.label}</span>
+                          {!u.has_subscription && <span style={{ fontSize: 9, color: "#c0c0cc", marginLeft: 4 }}>(없음)</span>}
+                        </td>
+                        <td style={{ padding: "10px 14px", fontSize: 11, color: u.current_period_end ? "#e8445a" : "#0fa573", whiteSpace: "nowrap" }}>
                           {u.current_period_end ? new Date(u.current_period_end).toLocaleDateString("ko-KR") : "무제한"}
                         </td>
-                        <td style={{ padding: "12px 16px", fontSize: 10, color: "#8a8a9a" }}>{u.billing_key ? "✅" : "—"}</td>
-                        <td style={{ padding: "12px 16px" }}>
+                        <td style={{ padding: "10px 14px" }}>
                           <button onClick={() => setEditModal({ userId: u.id, email: u.email, plan: u.plan, status: u.status })}
                             disabled={saving === u.id}
-                            style={{ padding: "6px 14px", borderRadius: 8, background: "#1a2744", color: "#fff", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                            ✏️ 편집
+                            style={{ padding: "6px 12px", borderRadius: 8, background: "#1a2744", color: "#fff", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                            ✏️
                           </button>
                         </td>
                       </tr>
