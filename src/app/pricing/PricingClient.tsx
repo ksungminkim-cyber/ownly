@@ -35,7 +35,7 @@ const PLANS = [
     yearlyPrice: Math.round(19900 * 0.8),
     description: "다수 물건을 체계적으로 관리하는 임대인",
     cta: "구독 시작하기",
-    ctaHref: "/dashboard/subscription",
+    ctaHref: "/dashboard/pricing",
     ctaStyle: "primary" as const,
     features: [
       { text: "물건 최대 15개", included: true },
@@ -58,7 +58,7 @@ const PLANS = [
     yearlyPrice: Math.round(32900 * 0.8),
     description: "건물 전체·법인 규모의 전문 임대인",
     cta: "구독 시작하기",
-    ctaHref: "/dashboard/subscription",
+    ctaHref: "/dashboard/pricing",
     ctaStyle: "dark" as const,
     features: [
       { text: "물건·세입자 무제한", included: true },
@@ -67,7 +67,7 @@ const PLANS = [
       { text: "🗺️ 주변 매물 조회", included: true },
       { text: "🤖 AI 분석 무제한", included: true },
       { text: "📱 카카오톡 수금 알림", included: true },
-      { text: "멀티 빌딩 관리 (예정)", included: true },
+      { text: "🏢 건물 단위 관리 + 엑셀 일괄 등록", included: true },
       { text: "전담 1:1 이메일 지원", included: true },
       { text: "신기능 최우선 출시", included: true },
     ],

@@ -177,7 +177,6 @@ function BrowserNotificationSettings() {
           {[
             { key: "payment", icon: "💰", label: "월세 입금 확인", sub: "세입자 납부 처리 시" },
             { key: "repair", icon: "🔧", label: "수리 요청 접수", sub: "세입자가 새 수리 요청 등록 시 (긴급 포함)" },
-            { key: "expiry", icon: "📅", label: "계약 만료 임박", sub: "D-30 · D-7 도달 시 (준비 중)" },
           ].map(({ key, icon, label, sub }) => (
             <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
