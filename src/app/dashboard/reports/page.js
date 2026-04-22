@@ -1,4 +1,4 @@
-"use client"; import ExcelTab from "./ExcelTab"; import { useState, useEffect, useRef, Suspense } from "react"; import { useRouter, useSearchParams } from "next/navigation"; import { supabase } from "../../../lib/supabase"; import { useApp } from "../../../context/AppContext"; import { SectionLabel } from "../../../components/shared"; import PlanGate from "../../../components/PlanGate"; const C = { navy:"#1a2744", purple:"#5b4fcf", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", indigo:"#3b5bdb", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" }; const TABS = [ { key:"chart", label:"📊 수익 차트" }, { key:"property", label:"🏢 물건별 비교" }, { key:"pdf", label:"📄 PDF 출력" }, { key:"excel", label:"📥 엑셀 내보내기" } ];
+"use client"; import ExcelTab from "./ExcelTab"; import { useState, useEffect, useRef, Suspense } from "react"; import { useRouter, useSearchParams } from "next/navigation"; import { supabase } from "../../../lib/supabase"; import { useApp } from "../../../context/AppContext"; import { SectionLabel } from "../../../components/shared"; import PlanGate from "../../../components/PlanGate"; const C = { navy:"#1a2744", purple:"#5b4fcf", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", indigo:"#3b5bdb", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" }; const TABS = [ { key:"chart", label:"📊 수익 차트" }, { key:"property", label:"🏢 물건별 비교" }, { key:"pdf", label:"📄 PDF 출력" }, { key:"taxannual", label:"📋 세무사용 연간" }, { key:"excel", label:"📥 엑셀 내보내기" } ];
 
 // ✅ 물건별 수익률 비교 탭
 function PropertyCompareTab() {
@@ -203,4 +203,39 @@ function PDFTab() { const { tenants, payments } = useApp(); const [year, setYear
 
 export default function ReportsPage() { return ( <PlanGate feature="reports"> <Suspense fallback={<div className="page-in page-padding" style={{ color:"#8a8a9a", fontSize:13 }}>불러오는 중...</div>}> <ReportsContent /> </Suspense> </PlanGate> ); }
 
-function ReportsContent() { const router = useRouter(); const params = useSearchParams(); const [tab, setTab] = useState(params?.get("tab") === "pdf" ? "pdf" : params?.get("tab") === "property" ? "property" : "chart"); return ( <div className="page-in page-padding" style={{ maxWidth:960 }}> <div style={{ marginBottom:22 }}> <SectionLabel>REPORTS</SectionLabel> <h1 style={{ fontSize:24, fontWeight:800, color:"#1a2744" }}>리포트</h1> <p style={{ fontSize:13, color:"#8a8a9a", marginTop:3 }}>수익 현황 분석 및 연간 PDF 보고서 출력</p> </div> <div style={{ display:"flex", gap:8, marginBottom:28, flexWrap:"wrap" }}> {TABS.map(t => ( <button key={t.key} onClick={() => setTab(t.key)} style={{ padding:"10px 20px", borderRadius:11, fontSize:13, fontWeight:700, cursor:"pointer", border:`2px solid ${tab===t.key ? "#1a2744" : "#ebe9e3"}`, background: tab===t.key ? "rgba(26,39,68,0.07)" : "transparent", color: tab===t.key ? "#1a2744" : "#8a8a9a" }}> {t.label} </button> ))} </div> {tab === "chart" && <ChartTab />} {tab === "property" && <PropertyCompareTab />} {tab === "pdf" && <PDFTab />} {tab === "excel" && <ExcelTab />} </div> ); }
+function TaxAnnualTab() {
+  const router = useRouter();
+  return (
+    <div style={{ background: "linear-gradient(135deg,rgba(91,79,207,0.04),rgba(26,39,68,0.04))", border: "1.5px solid rgba(91,79,207,0.2)", borderRadius: 18, padding: "36px 32px", textAlign: "center" }}>
+      <div style={{ fontSize: 48, marginBottom: 14 }}>📋</div>
+      <h3 style={{ fontSize: 18, fontWeight: 900, color: "#1a2744", marginBottom: 8 }}>세무사 제출용 연간 결산 보고서</h3>
+      <p style={{ fontSize: 13, color: "#6a6a7a", lineHeight: 1.8, marginBottom: 20, maxWidth: 480, margin: "0 auto 20px" }}>
+        1년치 임대 수입·경비·예상 세액을 <b style={{ color: "#1a2744" }}>공식 손익계산서 양식</b>으로 자동 작성합니다.<br/>
+        세무사에게 바로 제출할 수 있는 A4 PDF로 출력 가능해요.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 360, margin: "0 auto 20px", fontSize: 12, color: "#6a6a7a", textAlign: "left" }}>
+        {[
+          "임대인 기본 정보 + 사업자번호",
+          "총수입 · 필요경비 · 순임대소득 요약",
+          "물건/임차인별 월별 매트릭스 (12개월)",
+          "필요경비 항목별 분류 (수선비·이자·재산세 등)",
+          "종합소득세 참고 추정치 + 법적 고지",
+        ].map((item, i) => (
+          <div key={i} style={{ display: "flex", gap: 8 }}>
+            <span style={{ color: "#0fa573", fontWeight: 800 }}>✓</span>
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+      <button onClick={() => router.push("/dashboard/reports/tax-annual")}
+        style={{ padding: "12px 28px", borderRadius: 11, background: "linear-gradient(135deg,#1a2744,#5b4fcf)", border: "none", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", boxShadow: "0 6px 20px rgba(91,79,207,0.25)" }}>
+        세무사용 리포트 열기 →
+      </button>
+      <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 16 }}>
+        💡 설정 → 임대인 정보에서 성명·주소·사업자번호를 입력하면 리포트에 자동 채워집니다
+      </p>
+    </div>
+  );
+}
+
+function ReportsContent() { const router = useRouter(); const params = useSearchParams(); const [tab, setTab] = useState(params?.get("tab") === "pdf" ? "pdf" : params?.get("tab") === "property" ? "property" : "chart"); return ( <div className="page-in page-padding" style={{ maxWidth:960 }}> <div style={{ marginBottom:22 }}> <SectionLabel>REPORTS</SectionLabel> <h1 style={{ fontSize:24, fontWeight:800, color:"#1a2744" }}>리포트</h1> <p style={{ fontSize:13, color:"#8a8a9a", marginTop:3 }}>수익 현황 분석 및 연간 PDF 보고서 출력</p> </div> <div style={{ display:"flex", gap:8, marginBottom:28, flexWrap:"wrap" }}> {TABS.map(t => ( <button key={t.key} onClick={() => setTab(t.key)} style={{ padding:"10px 20px", borderRadius:11, fontSize:13, fontWeight:700, cursor:"pointer", border:`2px solid ${tab===t.key ? "#1a2744" : "#ebe9e3"}`, background: tab===t.key ? "rgba(26,39,68,0.07)" : "transparent", color: tab===t.key ? "#1a2744" : "#8a8a9a" }}> {t.label} </button> ))} </div> {tab === "chart" && <ChartTab />} {tab === "property" && <PropertyCompareTab />} {tab === "pdf" && <PDFTab />} {tab === "taxannual" && <TaxAnnualTab />} {tab === "excel" && <ExcelTab />} </div> ); }
