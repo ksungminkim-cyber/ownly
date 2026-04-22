@@ -48,16 +48,8 @@ export async function GET(req) {
     return Response.json({ error: `지원하지 않는 타입: ${type}` }, { status: 400 });
   }
   if (!serviceKey) {
-    // 디버깅: 실제 runtime에서 어떤 MOLIT_* env var가 보이는지 리턴
-    const visibleMolitVars = Object.keys(process.env).filter(k => k.startsWith("MOLIT_"));
     return Response.json({
       error: `${type} 용 서비스 키가 설정되지 않았습니다. 환경변수 MOLIT_SERVICE_KEY 또는 MOLIT_${type.toUpperCase()}_KEY 를 설정하세요.`,
-      debug: {
-        requestedType: type,
-        expectedVar: `MOLIT_${type.toUpperCase()}_KEY`,
-        hasFallback: !!fallback,
-        visibleMolitEnvVars: visibleMolitVars,
-      },
     }, { status: 500 });
   }
 

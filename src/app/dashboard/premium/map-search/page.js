@@ -27,21 +27,61 @@ const LAWD_MAP = {
 };
 
 const TYPE_OPTIONS = [
-  // 임대 (전월세)
-  { key: "apt_rent",    label: "🏢 아파트 · 전월세",      mode: "rent", group: "임대" },
-  { key: "villa_rent",  label: "🏠 연립·다세대 · 전월세",  mode: "rent", group: "임대" },
-  { key: "offi_rent",   label: "🏬 오피스텔 · 전월세",    mode: "rent", group: "임대" },
-  { key: "house_rent",  label: "🏡 단독·다가구 · 전월세",  mode: "rent", group: "임대" },
-  // 매매
-  { key: "apt_trade",   label: "🏢 아파트 · 매매",         mode: "trade", group: "매매" },
-  { key: "villa_trade", label: "🏠 연립·다세대 · 매매",    mode: "trade", group: "매매" },
-  { key: "offi_trade",  label: "🏬 오피스텔 · 매매",       mode: "trade", group: "매매" },
-  { key: "house_trade", label: "🏡 단독·다가구 · 매매",    mode: "trade", group: "매매" },
-  { key: "nrg_trade",   label: "🏪 상업·업무용 · 매매",    mode: "trade", group: "매매" },
-  { key: "land_trade",  label: "🌳 토지 · 매매",           mode: "trade", group: "매매" },
+  // 임대 (전월세) — 거래 빈도 높음, 3개월 기본
+  { key: "apt_rent",    label: "🏢 아파트 · 전월세",      mode: "rent",  defaultMonths: 3,  group: "임대" },
+  { key: "villa_rent",  label: "🏠 연립·다세대 · 전월세",  mode: "rent",  defaultMonths: 3,  group: "임대" },
+  { key: "offi_rent",   label: "🏬 오피스텔 · 전월세",    mode: "rent",  defaultMonths: 3,  group: "임대" },
+  { key: "house_rent",  label: "🏡 단독·다가구 · 전월세",  mode: "rent",  defaultMonths: 6,  group: "임대" },
+  // 매매 — 거래 빈도 유형별로 다름
+  { key: "apt_trade",   label: "🏢 아파트 · 매매",         mode: "trade", defaultMonths: 3,  group: "매매" },
+  { key: "villa_trade", label: "🏠 연립·다세대 · 매매",    mode: "trade", defaultMonths: 6,  group: "매매" },
+  { key: "offi_trade",  label: "🏬 오피스텔 · 매매",       mode: "trade", defaultMonths: 6,  group: "매매" },
+  { key: "house_trade", label: "🏡 단독·다가구 · 매매",    mode: "trade", defaultMonths: 6,  group: "매매" },
+  { key: "nrg_trade",   label: "🏪 상업·업무용 · 매매",    mode: "trade", defaultMonths: 12, group: "매매" },
+  { key: "land_trade",  label: "🌳 토지 · 매매",           mode: "trade", defaultMonths: 12, group: "매매" },
 ];
 
 const TYPE_BY_KEY = Object.fromEntries(TYPE_OPTIONS.map(o => [o.key, o]));
+
+// 인접 구 매핑 — 0건일 때 대체 제안용
+const ADJACENT_REGIONS = {
+  "서울 강남구": ["서울 서초구", "서울 송파구", "서울 강동구"],
+  "서울 서초구": ["서울 강남구", "서울 동작구", "서울 관악구"],
+  "서울 송파구": ["서울 강남구", "서울 강동구", "서울 광진구"],
+  "서울 강동구": ["서울 송파구", "서울 광진구"],
+  "서울 마포구": ["서울 서대문구", "서울 용산구", "서울 영등포구"],
+  "서울 용산구": ["서울 마포구", "서울 성동구", "서울 중구"],
+  "서울 성동구": ["서울 용산구", "서울 광진구", "서울 동대문구"],
+  "서울 광진구": ["서울 성동구", "서울 동대문구", "서울 송파구"],
+  "서울 동작구": ["서울 서초구", "서울 관악구", "서울 영등포구"],
+  "서울 영등포구": ["서울 마포구", "서울 동작구", "서울 구로구"],
+  "서울 양천구": ["서울 강서구", "서울 영등포구"],
+  "서울 강서구": ["서울 양천구", "서울 영등포구"],
+  "서울 구로구": ["서울 영등포구", "서울 금천구", "서울 관악구"],
+  "서울 금천구": ["서울 구로구", "서울 관악구"],
+  "서울 관악구": ["서울 동작구", "서울 금천구", "서울 서초구"],
+  "서울 서대문구": ["서울 마포구", "서울 은평구", "서울 종로구"],
+  "서울 은평구": ["서울 서대문구", "서울 종로구"],
+  "서울 종로구": ["서울 중구", "서울 서대문구", "서울 성북구"],
+  "서울 중구": ["서울 종로구", "서울 용산구", "서울 동대문구"],
+  "서울 노원구": ["서울 도봉구", "서울 강북구", "서울 중랑구"],
+  "서울 도봉구": ["서울 노원구", "서울 강북구"],
+  "서울 강북구": ["서울 성북구", "서울 도봉구", "서울 노원구"],
+  "서울 성북구": ["서울 종로구", "서울 강북구", "서울 동대문구"],
+  "서울 동대문구": ["서울 성북구", "서울 중랑구", "서울 성동구"],
+  "서울 중랑구": ["서울 동대문구", "서울 광진구", "서울 노원구"],
+  "경기 성남시": ["서울 강남구", "경기 용인시"],
+  "경기 수원시": ["경기 용인시", "경기 화성시"],
+  "경기 용인시": ["경기 성남시", "경기 수원시"],
+  "경기 고양시": ["서울 은평구", "서울 강서구"],
+  "경기 화성시": ["경기 수원시"],
+  "경기 안양시": ["서울 관악구", "서울 금천구"],
+  "경기 부천시": ["서울 강서구", "서울 구로구"],
+  "부산 해운대구": ["부산 수영구"],
+  "부산 수영구": ["부산 해운대구"],
+  "인천 연수구": ["인천 송도"],
+  "인천 송도": ["인천 연수구"],
+};
 
 // 거래 유형 판정 (전세 vs 월세)
 function isJeonse(row) {
@@ -157,43 +197,81 @@ function MapSearchContent() {
     setData(null);
   };
 
-  const months = useMemo(() => {
+  // 최근 N개월 YYYYMM 배열 생성 (현재 달 포함 시 신고 지연 경고)
+  const makeMonths = (n) => {
     const now = new Date();
     const arr = [];
-    for (let i = 2; i >= 0; i--) {
+    for (let i = n - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       arr.push(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
     return arr;
-  }, []);
+  };
+
+  // 주어진 기간(months)으로 실거래 조회 (에러 전파)
+  const fetchItemsForMonths = async (typeKey, lawdCd, monthArr) => {
+    const results = await Promise.all(
+      monthArr.map(ym =>
+        fetch(`/api/market/molit?type=${typeKey}&lawdCd=${lawdCd}&dealYm=${ym}&numOfRows=200`)
+          .then(r => r.json())
+          .catch(e => ({ error: e.message || "network error" }))
+      )
+    );
+    const err = results.find(r => r.error);
+    if (err) throw new Error(err.error);
+    return { results, monthArr };
+  };
 
   const search = useCallback(async () => {
     setLoading(true);
     setError("");
     setData(null);
     const lawdCd = LAWD_MAP[region];
-    const typeInfo = TYPE_BY_KEY[type] || { mode: "rent" };
+    const typeInfo = TYPE_BY_KEY[type] || { mode: "rent", defaultMonths: 3 };
     const mode = typeInfo.mode;
+    const baseMonths = typeInfo.defaultMonths || 3;
 
     try {
-      const results = await Promise.all(
-        months.map(ym =>
-          fetch(`/api/market/molit?type=${type}&lawdCd=${lawdCd}&dealYm=${ym}&numOfRows=200`)
-            .then(r => r.json())
-        )
-      );
+      // 1차: 기본 기간으로 조회
+      let { results, monthArr } = await fetchItemsForMonths(type, lawdCd, makeMonths(baseMonths));
+      let totalItems = results.reduce((s, r) => s + (r.items || []).length, 0);
+      let expanded = false;
 
-      // 에러 메시지 surface
-      const err = results.find(r => r.error);
-      if (err) {
-        setError(err.error);
+      // 2차 자동 확장: 0건이면 더 넓은 기간
+      if (totalItems === 0) {
+        const wider = Math.min(Math.max(baseMonths * 2, 6), 12);
+        if (wider > baseMonths) {
+          const retry = await fetchItemsForMonths(type, lawdCd, makeMonths(wider));
+          if (retry.results.reduce((s, r) => s + (r.items || []).length, 0) > 0) {
+            results = retry.results;
+            monthArr = retry.monthArr;
+            expanded = wider;
+            totalItems = results.reduce((s, r) => s + (r.items || []).length, 0);
+          }
+        }
+      }
+
+      if (totalItems === 0) {
+        // 정말 0건 — 추천 조합 생성
+        const suggestions = [];
+        // 1) 인접 구 (같은 유형)
+        (ADJACENT_REGIONS[region] || []).slice(0, 3).forEach(r => {
+          if (LAWD_MAP[r]) suggestions.push({ kind: "region", region: r, type, label: `${r} 같은 유형` });
+        });
+        // 2) 같은 지역의 다른 유형 추천 (활성 유형 우선)
+        const activeTypes = ["apt_trade", "apt_rent", "offi_rent", "offi_trade"].filter(t => t !== type);
+        activeTypes.slice(0, 2).forEach(t => {
+          const info = TYPE_BY_KEY[t];
+          suggestions.push({ kind: "type", region, type: t, label: `${region} · ${info.label}` });
+        });
+        setData({ mode, items: [], total: 0, suggestions, triedMonths: baseMonths });
         setLoading(false);
         return;
       }
 
       const allItems = [];
       results.forEach((res, idx) => {
-        const ym = months[idx];
+        const ym = monthArr[idx];
         (res.items || []).forEach(it => {
           const common = {
             ...it,
@@ -227,13 +305,17 @@ function MapSearchContent() {
         });
       });
 
-      if (allItems.length === 0) {
-        setError("해당 지역·유형 실거래 데이터가 없습니다. 다른 유형·지역을 선택해보세요.");
-        setLoading(false);
-        return;
-      }
-
       allItems.sort((a, b) => (b._ym + b._day).localeCompare(a._ym + a._day));
+
+      // 최근 달이 월 거래량 대비 비정상적으로 적으면 "신고 지연" 경고 플래그
+      const byMonthCount = {};
+      allItems.forEach(i => { byMonthCount[i._ym] = (byMonthCount[i._ym] || 0) + 1; });
+      const sortedYms = Object.keys(byMonthCount).sort();
+      const lastYm = sortedYms[sortedYms.length - 1];
+      const avgOthers = sortedYms.length > 1
+        ? sortedYms.slice(0, -1).reduce((s, y) => s + byMonthCount[y], 0) / (sortedYms.length - 1)
+        : 0;
+      const lagWarning = avgOthers > 0 && byMonthCount[lastYm] < avgOthers * 0.3;
 
       if (mode === "rent") {
         const monthlyItems = allItems.filter(i => i._monthly > 0);
@@ -243,15 +325,14 @@ function MapSearchContent() {
         const avgJeonseDeposit = jeonseItems.length > 0 ? Math.round(jeonseItems.reduce((s, i) => s + i._deposit, 0) / jeonseItems.length) : 0;
         const avgArea = allItems.length > 0 ? Math.round(allItems.reduce((s, i) => s + i._area, 0) / allItems.length * 10) / 10 : 0;
         const jeonseRatio = Math.round((jeonseItems.length / allItems.length) * 100);
-        const byMonth = months.map(ym => {
+        const byMonth = monthArr.map(ym => {
           const items = allItems.filter(i => i._ym === ym);
           const m = items.filter(i => i._monthly > 0);
           const j = items.filter(i => i._monthly === 0);
           return { label: `${ym.slice(2, 4)}.${ym.slice(4, 6)}`, total: items.length, jeonse: j.length, wolse: m.length, avgMonthly: m.length > 0 ? Math.round(m.reduce((s, i) => s + i._monthly, 0) / m.length) : 0 };
         });
-        setData({ mode, items: allItems, monthly: monthlyItems, jeonse: jeonseItems, avgMonthly, avgMonthlyDeposit, avgJeonseDeposit, avgArea, jeonseRatio, byMonth, total: allItems.length });
+        setData({ mode, items: allItems, monthly: monthlyItems, jeonse: jeonseItems, avgMonthly, avgMonthlyDeposit, avgJeonseDeposit, avgArea, jeonseRatio, byMonth, total: allItems.length, expandedToMonths: expanded, lagWarning });
       } else {
-        // 매매 집계
         const amounts = allItems.map(i => i._dealAmount).filter(a => a > 0);
         const avgDeal = amounts.length > 0 ? Math.round(amounts.reduce((s, a) => s + a, 0) / amounts.length) : 0;
         const minDeal = amounts.length > 0 ? Math.min(...amounts) : 0;
@@ -262,12 +343,11 @@ function MapSearchContent() {
           return sorted[Math.floor(sorted.length / 2)];
         })();
         const avgArea = allItems.length > 0 ? Math.round(allItems.reduce((s, i) => s + i._area, 0) / allItems.length * 10) / 10 : 0;
-        // 평당 거래가 (토지·상업 외) — 3.3058㎡ 기준
         const withArea = allItems.filter(i => i._area > 0 && i._dealAmount > 0);
         const avgPerPyeong = withArea.length > 0
           ? Math.round(withArea.reduce((s, i) => s + (i._dealAmount / (i._area / 3.3058)), 0) / withArea.length)
           : 0;
-        const byMonth = months.map(ym => {
+        const byMonth = monthArr.map(ym => {
           const items = allItems.filter(i => i._ym === ym);
           const amts = items.map(i => i._dealAmount).filter(a => a > 0);
           return {
@@ -276,14 +356,14 @@ function MapSearchContent() {
             avgDeal: amts.length > 0 ? Math.round(amts.reduce((s, a) => s + a, 0) / amts.length) : 0,
           };
         });
-        setData({ mode, items: allItems, avgDeal, minDeal, maxDeal, medianDeal, avgArea, avgPerPyeong, byMonth, total: allItems.length });
+        setData({ mode, items: allItems, avgDeal, minDeal, maxDeal, medianDeal, avgArea, avgPerPyeong, byMonth, total: allItems.length, expandedToMonths: expanded, lagWarning });
       }
     } catch (e) {
       setError("분석 중 오류: " + (e.message || ""));
     } finally {
       setLoading(false);
     }
-  }, [region, type, months]);
+  }, [region, type]);
 
   // 내 물건과 비교 (임대 모드: 월세 기준)
   const comparison = useMemo(() => {
@@ -308,7 +388,7 @@ function MapSearchContent() {
             <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text)", letterSpacing: "-.4px" }}>주변 매물 조회</h1>
             <span style={{ fontSize: 10, fontWeight: 800, color: "#c9920a", background: "rgba(201,146,10,0.12)", padding: "3px 8px", borderRadius: 6 }}>PRO</span>
           </div>
-          <p style={{ fontSize: 13, color: C.muted }}>국토부 실거래 최근 3개월 · 내 물건 주변 시세 비교</p>
+          <p style={{ fontSize: 13, color: C.muted }}>국토부 실거래 · 유형별 자동 조회 기간 · 내 물건 주변 시세 비교</p>
         </div>
       </div>
 
@@ -346,15 +426,58 @@ function MapSearchContent() {
           style={{ padding: "9px 22px", borderRadius: 10, background: loading ? "#94a3b8" : C.navy, color: "#fff", fontWeight: 700, fontSize: 13, border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
           {loading ? "조회 중..." : "🔍 실거래 조회"}
         </button>
-        <span style={{ fontSize: 11, color: C.muted }}>최근 3개월 · 국토부 실거래</span>
+        <span style={{ fontSize: 11, color: C.muted }}>
+          최근 {TYPE_BY_KEY[type]?.defaultMonths || 3}개월 · 국토부 실거래 · 데이터 없으면 자동 확장
+        </span>
       </div>
 
       {error && (
         <div style={{ background: "rgba(232,68,90,0.06)", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: C.rose }}>{error}</div>
       )}
 
-      {data && (
+      {data && data.total === 0 && (
+        <div style={{ background: "var(--surface)", border: `1px solid var(--border)`, borderRadius: 14, padding: "28px 24px", marginBottom: 16 }}>
+          <p style={{ fontSize: 32, marginBottom: 8, textAlign:"center" }}>🔍</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", textAlign: "center", marginBottom: 6 }}>
+            {region} · {TYPE_BY_KEY[type]?.label} 최근 실거래 0건
+          </p>
+          <p style={{ fontSize: 12, color: C.muted, textAlign: "center", marginBottom: 20, lineHeight:1.6 }}>
+            최근 {data.triedMonths}개월간 신고된 거래가 없거나, 국토부 신고 지연(계약 후 30일)으로 아직 반영 안 됐을 수 있습니다.<br/>
+            아래 추천 조합을 눌러 다시 조회해보세요.
+          </p>
+          {data.suggestions && data.suggestions.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+              {data.suggestions.map((s, i) => (
+                <button key={i}
+                  onClick={() => { setRegion(s.region); setType(s.type); setData(null); setTimeout(() => search(), 10); }}
+                  style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.indigo}30`, background: C.indigo + "08", textAlign: "left", cursor: "pointer" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = C.indigo + "12"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = C.indigo + "08"; }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: C.indigo, textTransform: "uppercase", letterSpacing:".5px", marginBottom: 4 }}>
+                    {s.kind === "region" ? "🗺️ 인접 지역" : "🔄 다른 유형"}
+                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{s.label}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {data && data.total > 0 && (
         <>
+          {/* 자동 확장 알림 */}
+          {data.expandedToMonths && (
+            <div style={{ background: "rgba(232,150,10,0.07)", border: "1px solid rgba(232,150,10,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#b87708" }}>
+              ℹ️ 기본 {TYPE_BY_KEY[type]?.defaultMonths}개월 조회 시 데이터가 부족해 <b>최근 {data.expandedToMonths}개월로 확장</b>해 표시합니다.
+            </div>
+          )}
+          {data.lagWarning && (
+            <div style={{ background: "rgba(59,91,219,0.05)", border: "1px solid rgba(59,91,219,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: C.indigo }}>
+              📌 최근 달 거래량이 이례적으로 적습니다. 국토부 신고 지연(계약 후 30일 내)으로 아직 반영 안 된 거래가 많을 수 있어요.
+            </div>
+          )}
+
           {/* 비교 카드 */}
           {comparison && (
             <div style={{ marginBottom: 16, padding: "16px 20px", borderRadius: 14, background: comparison.diff > 0 ? "rgba(15,165,115,0.08)" : comparison.diff < 0 ? "rgba(232,68,90,0.08)" : "rgba(138,138,154,0.08)", border: `1.5px solid ${comparison.diff > 0 ? C.emerald : comparison.diff < 0 ? C.rose : "#8a8a9a"}33` }}>
@@ -521,7 +644,7 @@ function MapSearchContent() {
           </div>
 
           <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 12 }}>
-            출처: 국토교통부 실거래가 공개시스템 · 지역: {region} · 최근 3개월
+            출처: 국토교통부 실거래가 공개시스템 · 지역: {region} · 최근 {data.expandedToMonths || TYPE_BY_KEY[type]?.defaultMonths || 3}개월
           </p>
         </>
       )}
