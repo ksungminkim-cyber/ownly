@@ -93,6 +93,48 @@ export default function CommunityPage() {
 
   useEffect(() => { loadPosts(); if (user) loadMyLikes(); }, [category, user]);
 
+  // 실시간 구독: 다른 유저의 게시글/댓글/좋아요를 즉시 반영
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel("community-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "community_posts" }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          setPosts(prev => {
+            if (prev.some(p => p.id === payload.new.id)) return prev;
+            return [payload.new, ...prev];
+          });
+        } else if (payload.eventType === "UPDATE") {
+          setPosts(prev => prev.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p));
+          setActivePost(prev => prev && prev.id === payload.new.id ? { ...prev, ...payload.new } : prev);
+        } else if (payload.eventType === "DELETE") {
+          setPosts(prev => prev.filter(p => p.id !== payload.old.id));
+        }
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_comments" }, (payload) => {
+        const postId = payload.new.post_id;
+        // 활성 글의 댓글이면 즉시 추가
+        setActivePost(prev => {
+          if (prev && prev.id === postId) {
+            setComments(cs => cs.some(c => c.id === payload.new.id) ? cs : [...cs, payload.new]);
+            return { ...prev, comment_count: (prev.comment_count || 0) + 1 };
+          }
+          return prev;
+        });
+        // 피드 리스트 카운트 증가
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_comments" }, (payload) => {
+        const commentId = payload.old.id;
+        const postId = payload.old.post_id;
+        setComments(cs => cs.filter(c => c.id !== commentId));
+        setActivePost(prev => prev && prev.id === postId ? { ...prev, comment_count: Math.max(0, (prev.comment_count || 1) - 1) } : prev);
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: Math.max(0, (p.comment_count || 1) - 1) } : p));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   // URL ?post=ID 로 딥링크 진입 시 해당 글 자동 오픈
   useEffect(() => {
     if (typeof window === "undefined" || posts.length === 0) return;
@@ -110,7 +152,19 @@ export default function CommunityPage() {
     let q = supabase.from("community_posts").select("*").order("created_at", { ascending: false });
     if (category !== "전체") q = q.eq("category", category);
     const { data } = await q;
-    setPosts(data || []);
+    const postList = data || [];
+    // 댓글 실제 카운트 재계산 (denormalized 컬럼 drift 보정)
+    if (postList.length > 0) {
+      try {
+        const ids = postList.map(p => p.id);
+        const { data: cmts } = await supabase.from("community_comments")
+          .select("post_id").in("post_id", ids);
+        const counts = {};
+        (cmts || []).forEach(c => { counts[c.post_id] = (counts[c.post_id] || 0) + 1; });
+        postList.forEach(p => { p.comment_count = counts[p.id] || 0; });
+      } catch {}
+    }
+    setPosts(postList);
     setLoading(false);
   };
 
