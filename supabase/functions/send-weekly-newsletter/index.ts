@@ -55,20 +55,31 @@ serve(async (req) => {
     return new Response(null, { headers: CORS_HEADERS });
   }
 
-  // 수동 인증: Supabase anon/service 키 또는 apikey 헤더로 검증
-  const authHeader = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  const apikeyHeader = req.headers.get("apikey") || "";
-  const okKeys = [SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY].filter(Boolean);
-  const authed = okKeys.some(k => k && (authHeader === k || apikeyHeader === k));
-  if (!authed) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-    });
-  }
-
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // 인증: 헤더에 어떤 식으로든 인증 정보가 있는지만 확인 (ES256 JWT 직접 검증)
+    const authHeader = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+    const apikeyHeader = req.headers.get("apikey") || "";
+
+    // service_role 키로 호출 (cron 등)은 바로 통과
+    const isServiceCall = authHeader === SUPABASE_SERVICE_KEY || apikeyHeader === SUPABASE_SERVICE_KEY;
+
+    // 유저 JWT라면 Supabase Auth API로 검증 (ES256 지원)
+    let isUserCall = false;
+    if (!isServiceCall && authHeader) {
+      try {
+        const { data: { user }, error: userErr } = await supabase.auth.getUser(authHeader);
+        if (user && !userErr) isUserCall = true;
+      } catch {}
+    }
+
+    if (!isServiceCall && !isUserCall) {
+      return new Response(JSON.stringify({ error: "Unauthorized — missing or invalid auth token" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
