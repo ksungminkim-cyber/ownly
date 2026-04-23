@@ -109,7 +109,6 @@ export default async function PublicPostPage({ params }) {
 
           {/* 통계 */}
           <div style={{ display: "flex", gap: 20, padding: "14px 0", borderTop: "1px solid #f0efe9", borderBottom: "1px solid #f0efe9", fontSize: 13, color: "#6a6a7a", fontWeight: 600 }}>
-            <span>👁 조회 {post.views || 0}</span>
             <span>❤️ 좋아요 {post.like_count || 0}</span>
             <span>💬 댓글 {comments.length}</span>
           </div>

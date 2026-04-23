@@ -98,21 +98,30 @@ export default async function PublicCommunityPage() {
           </div>
         ) : (
           <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, overflow: "hidden" }}>
-            {posts.map((p, i) => (
-              <Link key={p.id} href={`/community/${p.id}`}
-                style={{ display: "block", padding: "18px 22px", borderBottom: i < posts.length - 1 ? "1px solid #f0efe9" : "none", textDecoration: "none", color: "inherit" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: "#5b4fcf", background: "rgba(91,79,207,0.08)", padding: "3px 9px", borderRadius: 20 }}>{p.category || "일상"}</span>
-                  <span style={{ fontSize: 12, color: "#8a8a9a" }}>{p.nickname || "익명"} · {timeAgo(p.created_at)}</span>
-                </div>
-                <h2 style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", lineHeight: 1.45, marginBottom: 6 }}>{p.title}</h2>
-                <p style={{ fontSize: 13, color: "#6a6a7a", lineHeight: 1.6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.content}</p>
-                <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 12, color: "#8a8a9a" }}>
-                  <span>👁 {p.views || 0}</span>
-                  <span>❤️ {p.like_count || 0}</span>
-                </div>
-              </Link>
-            ))}
+            {posts.map((p, i) => {
+              const nick = p.nickname || "익명";
+              const initial = nick.charAt(0).toUpperCase();
+              return (
+                <Link key={p.id} href={`/community/${p.id}`}
+                  style={{ display: "flex", gap: 12, padding: "18px 22px", borderBottom: i < posts.length - 1 ? "1px solid #f0efe9" : "none", textDecoration: "none", color: "inherit", alignItems: "flex-start" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#5b4fcf,#1a2744)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
+                    {initial}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{nick}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#5b4fcf" }}>· {p.category || "일상"}</span>
+                      <span style={{ fontSize: 12, color: "#8a8a9a", marginLeft: "auto" }}>{timeAgo(p.created_at)}</span>
+                    </div>
+                    <h2 style={{ fontSize: 15.5, fontWeight: 700, color: "#1a2744", lineHeight: 1.45, marginBottom: 5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.title}</h2>
+                    <p style={{ fontSize: 13, color: "#6a6a7a", lineHeight: 1.6, marginBottom: 8, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.content}</p>
+                    <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#8a8a9a", fontWeight: 600 }}>
+                      <span>🤍 {p.like_count || 0}</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
 

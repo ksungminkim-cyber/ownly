@@ -39,7 +39,7 @@ function buildEmailHtml(posts: any[]) {
             <a href="${SITE_URL}/community/${p.id}" style="text-decoration:none;color:#1a2744;">
               <div style="font-size:15px;font-weight:700;line-height:1.5;margin-bottom:4px;">${p.title}</div>
               <div style="font-size:12px;color:#6a6a7a;line-height:1.6;">${truncate(p.content, 100)}</div>
-              <div style="font-size:11px;color:#a0a0b0;margin-top:6px;">👁 ${p.views || 0} · ❤️ ${p.like_count || 0}</div>
+              <div style="font-size:11px;color:#a0a0b0;margin-top:6px;">❤️ ${p.like_count || 0}</div>
             </a>
           </div>
         </div>

@@ -668,47 +668,62 @@ export default function CommunityPage() {
                 )}
                 {displayPosts.map(post => {
                 const isActive = activePost?.id === post.id;
+                const catColor = CAT_COLORS[post.category] || "#8a8a9a";
+                const compact = panelOpen && !isMobile;
                 return (
                   <div key={post.id} onClick={() => openPost(post)}
-                    style={{ padding:"14px 20px", cursor:"pointer", borderBottom:"1px solid var(--border)", background:isActive?"rgba(79,70,229,0.05)":"transparent", borderLeft:`3px solid ${isActive?C.indigo:"transparent"}`, transition:"all .15s" }}
+                    style={{ padding:"16px 20px", cursor:"pointer", borderBottom:"1px solid var(--border)", background:isActive?"rgba(91,79,207,0.04)":"transparent", transition:"background .15s" }}
                     onMouseEnter={e => { if (!isActive) e.currentTarget.style.background="var(--surface2)"; }}
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.background="transparent"; }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:6 }}>
-                      <span style={{ fontSize:10, fontWeight:700, color:CAT_COLORS[post.category]||"#8a8a9a", background:(CAT_COLORS[post.category]||"#8a8a9a")+"18", padding:"2px 7px", borderRadius:4 }}>{post.category}</span>
-                      {hotSet.has(post.id) && <span style={{ fontSize:9, fontWeight:800, color:"#fff", background:C.rose, padding:"1px 6px", borderRadius:20 }}>🔥 HOT</span>}
-                      <span style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{post.author_name}</span>
-                      {post.badge_label && <span style={{ fontSize:9, fontWeight:700, color:post.badge_color||"#8a8a9a", background:post.badge_bg||"#f0efe9", padding:"1px 6px", borderRadius:20 }}>{post.badge_label}</span>}
-                      <span style={{ fontSize:11, color:"var(--text-muted)", marginLeft:"auto" }}>{timeAgo(post.created_at)}</span>
-                      {user && <button onClick={(e) => { e.stopPropagation(); toggleBookmark(post.id); }}
-                        style={{ background:"none", border:"none", fontSize:13, cursor:"pointer", padding:"0 2px" }}
-                        title={bookmarks.has(post.id) ? "북마크 해제" : "북마크 추가"}>
-                        {bookmarks.has(post.id) ? "🔖" : "🏷️"}
-                      </button>}
-                    </div>
-                    <p style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                      {post.accepted_comment_id && <span style={{ fontSize:10, fontWeight:800, color:"#0fa573", background:"rgba(15,165,115,0.12)", padding:"2px 7px", borderRadius:5, marginRight:6 }}>✓ 해결됨</span>}
-                      {post.title}
-                    </p>
-                    {!(panelOpen && !isMobile) && <p style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.5, marginBottom:6 }}>{post.content.slice(0,70)}{post.content.length>70?"...":""}</p>}
-                    {post.tags?.length > 0 && (
-                      <div style={{ display:"flex", gap:4, marginBottom:6, flexWrap:"wrap" }}>
-                        {post.tags.slice(0,4).map(tag => (
-                          <span key={tag} onClick={(e) => { e.stopPropagation(); setSearchQuery(tag); }}
-                            style={{ fontSize:10, fontWeight:600, color:C.indigo, background:"rgba(59,91,219,0.08)", padding:"2px 7px", borderRadius:10, cursor:"pointer" }}>#{tag}</span>
-                        ))}
+                    <div style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                      {/* 아바타 */}
+                      <div style={{ width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${catColor}dd,${catColor}88)`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:800, flexShrink:0 }}>
+                        {post.author_name?.[0]?.toUpperCase() || "?"}
                       </div>
-                    )}
-                    {!(panelOpen && !isMobile) && post.images?.length > 0 && (
-                      <div style={{ display:"flex", gap:5, marginBottom:6 }}>
-                        {post.images.slice(0,3).map((url, i) => <img key={i} src={url} alt="" style={{ width:56, height:56, objectFit:"cover", borderRadius:6, border:"1px solid var(--border)" }} />)}
+
+                      <div style={{ flex:1, minWidth:0 }}>
+                        {/* 상단: 닉네임 · 카테고리 · 시간 · 북마크 */}
+                        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                          <span style={{ fontSize:12, fontWeight:700, color:"var(--text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:140 }}>{post.author_name}</span>
+                          <span style={{ fontSize:10, fontWeight:600, color:catColor }}>· {post.category}</span>
+                          {hotSet.has(post.id) && <span style={{ fontSize:9, fontWeight:800, color:C.rose }}>🔥</span>}
+                          <span style={{ fontSize:11, color:"var(--text-muted)", marginLeft:"auto", flexShrink:0 }}>{timeAgo(post.created_at)}</span>
+                          {user && <button onClick={(e) => { e.stopPropagation(); toggleBookmark(post.id); }}
+                            style={{ background:"none", border:"none", fontSize:13, cursor:"pointer", padding:"0 2px", opacity:bookmarks.has(post.id)?1:0.35, flexShrink:0 }}
+                            title={bookmarks.has(post.id) ? "북마크 해제" : "북마크 추가"}>
+                            {bookmarks.has(post.id) ? "🔖" : "🔖"}
+                          </button>}
+                        </div>
+
+                        {/* 제목 */}
+                        <p style={{ fontSize:14.5, fontWeight:700, color:"var(--text)", marginBottom:compact?0:4, lineHeight:1.45, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
+                          {post.accepted_comment_id && <span style={{ fontSize:10, fontWeight:800, color:"#0fa573", background:"rgba(15,165,115,0.12)", padding:"2px 7px", borderRadius:5, marginRight:6, verticalAlign:"middle" }}>✓ 해결됨</span>}
+                          {post.title}
+                        </p>
+
+                        {/* 본문 미리보기 */}
+                        {!compact && post.content && (
+                          <p style={{ fontSize:12.5, color:"var(--text-muted)", lineHeight:1.55, marginBottom:6, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
+                            {post.content.slice(0, 120)}{post.content.length > 120 ? "…" : ""}
+                          </p>
+                        )}
+
+                        {/* 이미지 */}
+                        {!compact && post.images?.length > 0 && (
+                          <div style={{ display:"flex", gap:5, marginBottom:6 }}>
+                            {post.images.slice(0,3).map((url, i) => <img key={i} src={url} alt="" style={{ width:52, height:52, objectFit:"cover", borderRadius:8, border:"1px solid var(--border)" }} />)}
+                          </div>
+                        )}
+
+                        {/* 하단: 좋아요 / 댓글 */}
+                        <div style={{ display:"flex", gap:14, alignItems:"center" }}>
+                          <span style={{ fontSize:12, color:myLikes.has(post.id)?C.rose:"var(--text-muted)", fontWeight:600 }}>
+                            {myLikes.has(post.id)?"❤️":"🤍"} {post.likes || 0}
+                          </span>
+                          <span style={{ fontSize:12, color:"var(--text-muted)", fontWeight:600 }}>💬 {post.comment_count || 0}</span>
+                          {post.images?.length > 0 && <span style={{ fontSize:12, color:"var(--text-muted)" }}>📷</span>}
+                        </div>
                       </div>
-                    )}
-                    {/* ✅ 댓글 수 포함 */}
-                    <div style={{ display:"flex", gap:12 }}>
-                      <span style={{ fontSize:11, color:"var(--text-muted)" }}>👁 {post.views}</span>
-                      <span style={{ fontSize:11, color:myLikes.has(post.id)?C.rose:"var(--text-muted)" }}>❤️ {post.likes}</span>
-                      <span style={{ fontSize:11, color:"var(--text-muted)" }}>💬 {post.comment_count || 0}</span>
-                      {post.images?.length > 0 && <span style={{ fontSize:11, color:"var(--text-muted)" }}>📷 {post.images.length}</span>}
                     </div>
                   </div>
                 );
@@ -812,10 +827,9 @@ export default function CommunityPage() {
                 </>
               )}
 
-              {/* 좋아요 / 조회 */}
+              {/* 좋아요 */}
               <div style={{ display:"flex", gap:14, paddingBottom:16, borderBottom:"1px solid var(--border)", marginBottom:16 }}>
-                <span style={{ fontSize:12, color:"var(--text-muted)" }}>👁 {activePost.views}</span>
-                <button onClick={() => toggleLike(activePost.id)} style={{ fontSize:12, background:"none", border:"none", cursor:"pointer", fontWeight:700, color:myLikes.has(activePost.id)?C.rose:"var(--text-muted)" }}>
+                <button onClick={() => toggleLike(activePost.id)} style={{ fontSize:13, background:"none", border:"none", cursor:"pointer", fontWeight:700, color:myLikes.has(activePost.id)?C.rose:"var(--text-muted)" }}>
                   {myLikes.has(activePost.id)?"❤️":"🤍"} {activePost.likes} 좋아요
                 </button>
               </div>

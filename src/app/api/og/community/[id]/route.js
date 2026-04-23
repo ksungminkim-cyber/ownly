@@ -142,7 +142,6 @@ export async function GET(req, { params }) {
             <span style={{ fontSize: 20, fontWeight: 700 }}>{nickname}</span>
           </div>
           <div style={{ display: "flex", gap: 20, fontSize: 18, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>
-            <span>👁 {post?.views || 0}</span>
             <span>❤️ {post?.like_count || 0}</span>
           </div>
         </div>
