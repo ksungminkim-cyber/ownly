@@ -277,27 +277,69 @@ function AdminContent({ currentUser }) {
         </div>
       )}
 
-      {/* KPI */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 22 }}>
+      {/* 헤로 KPI (4개 핵심 지표) */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 12, marginBottom: 14 }}>
         {[
-          { l: "전체 유저", v: users.length, c: "#1a2744", bg: "#f0f2f8" },
-          { l: "이번 주 신규", v: newThisWeek, c: "#0fa573", bg: "#edfaf5" },
-          { l: "이번 달 신규", v: newThisMonth, c: "#3b5bdb", bg: "#e8ecfb" },
-          { l: "활성 구독", v: subs.filter(s => s.status === "active").length, c: "#0fa573", bg: "#edfaf5" },
-          { l: "무료", v: users.filter(u => u.plan === "free").length, c: "#8a8a9a", bg: "#f8f7f4" },
-          { l: "플러스", v: users.filter(u => u.plan === "plus").length, c: "#4f46e5", bg: "#eeeefe" },
-          { l: "프로", v: users.filter(u => u.plan === "pro").length, c: "#c9920a", bg: "#fdf6e3" },
-          { l: "📧 이메일", v: users.filter(u => (u.provider || "email") === "email").length, c: "#8a8a9a", bg: "#f0efe9" },
-          { l: "🟢 네이버", v: users.filter(u => u.provider === "naver").length, c: "#1ec800", bg: "#e6f9e0" },
-          { l: "🟡 카카오", v: users.filter(u => u.provider === "kakao").length, c: "#b8860b", bg: "#fff6d0" },
-          { l: "🔴 Google", v: users.filter(u => u.provider === "google").length, c: "#ea4335", bg: "#fdeaea" },
+          { l: "전체 유저", v: users.length, sub: newThisWeek > 0 ? `이번 주 +${newThisWeek}명` : "이번 주 신규 없음", c: "#1a2744" },
+          { l: "이번 달 신규", v: newThisMonth, sub: `전체 대비 ${users.length > 0 ? Math.round((newThisMonth/users.length)*100) : 0}%`, c: "#3b5bdb" },
+          { l: "활성 구독", v: subs.filter(s => s.status === "active").length, sub: `유료 전환율 ${users.length > 0 ? Math.round((subs.filter(s => s.status === "active").length/users.length)*100) : 0}%`, c: "#0fa573" },
+          { l: "유료 유저", v: users.filter(u => u.plan !== "free").length, sub: "플러스 + 프로", c: "#c9920a" },
         ].map(k => (
-          <div key={k.l} style={{ background: k.bg, border: "1px solid " + k.c + "22", borderRadius: 14, padding: "14px 16px" }}>
-            <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>{k.l}</p>
-            <p style={{ fontSize: 22, fontWeight: 900, color: k.c }}>{k.v}</p>
+          <div key={k.l} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 18px" }}>
+            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>{k.l}</p>
+            <p style={{ fontSize: 28, fontWeight: 900, color: k.c, lineHeight: 1 }}>{k.v}</p>
+            <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 4 }}>{k.sub}</p>
           </div>
         ))}
       </div>
+
+      {/* 분포 요약 (플랜·가입 경로) */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 22 }} className="admin-dist-grid">
+        {[
+          {
+            title: "플랜 분포",
+            segments: [
+              { key: "free", label: "무료", count: users.filter(u => u.plan === "free").length, color: "#8a8a9a" },
+              { key: "plus", label: "플러스", count: users.filter(u => u.plan === "plus").length, color: "#4f46e5" },
+              { key: "pro", label: "프로", count: users.filter(u => u.plan === "pro").length, color: "#c9920a" },
+            ],
+          },
+          {
+            title: "가입 경로",
+            segments: [
+              { key: "email", label: "📧 이메일", count: users.filter(u => (u.provider || "email") === "email").length, color: "#8a8a9a" },
+              { key: "naver", label: "🟢 네이버", count: users.filter(u => u.provider === "naver").length, color: "#1ec800" },
+              { key: "kakao", label: "🟡 카카오", count: users.filter(u => u.provider === "kakao").length, color: "#fac800" },
+              { key: "google", label: "🔴 Google", count: users.filter(u => u.provider === "google").length, color: "#ea4335" },
+            ],
+          },
+        ].map(dist => {
+          const total = dist.segments.reduce((s, seg) => s + seg.count, 0);
+          return (
+            <div key={dist.title} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 18px" }}>
+              <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 10 }}>{dist.title}</p>
+              {/* 누적 막대 그래프 */}
+              <div style={{ display: "flex", height: 10, borderRadius: 5, overflow: "hidden", background: "#f0efe9", marginBottom: 10 }}>
+                {total > 0 && dist.segments.filter(s => s.count > 0).map(seg => (
+                  <div key={seg.key} title={`${seg.label}: ${seg.count}명`} style={{ width: `${(seg.count / total) * 100}%`, background: seg.color, transition: "width .4s" }} />
+                ))}
+              </div>
+              {/* 레이블 */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, rowGap: 4 }}>
+                {dist.segments.map(seg => (
+                  <div key={seg.key} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
+                    <span style={{ color: "#6a6a7a" }}>{seg.label}</span>
+                    <span style={{ fontWeight: 800, color: "#1a2744" }}>{seg.count}</span>
+                    {total > 0 && <span style={{ fontSize: 10, color: "#a0a0b0" }}>({Math.round((seg.count/total)*100)}%)</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <style>{`@media (max-width: 720px) { .admin-dist-grid { grid-template-columns: 1fr !important; } }`}</style>
 
       {/* 탭 */}
       <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
