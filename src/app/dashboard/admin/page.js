@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { supabase } from "../../../lib/supabase";
 import { useApp } from "../../../context/AppContext";
 import { toast } from "../../../components/shared";
@@ -63,6 +64,7 @@ function AdminContent({ currentUser }) {
   const router = useRouter();
   const [users,     setUsers]     = useState([]);
   const [subs,      setSubs]      = useState([]);
+  const [billing,   setBilling]   = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(null);
   const [editModal, setEditModal] = useState(null);
@@ -106,6 +108,16 @@ function AdminContent({ currentUser }) {
         .order("created_at", { ascending: false });
       if (subErr) throw subErr;
       setSubs(subData || []);
+
+      // 최근 12개월 결제 이력 — MRR 그래프용
+      const yearAgo = new Date();
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+      const { data: billData } = await supabase
+        .from("billing_history")
+        .select("plan, amount, status, paid_at")
+        .gte("paid_at", yearAgo.toISOString())
+        .order("paid_at", { ascending: true });
+      setBilling(billData || []);
 
       // 신규 RPC 우선 시도 → 실패 시 구 버전 fallback
       let authUsers = [];
@@ -239,6 +251,35 @@ function AdminContent({ currentUser }) {
   const newThisWeek = users.filter(u => u.created_at && new Date(u.created_at) >= weekAgo).length;
   const newThisMonth = users.filter(u => u.created_at && new Date(u.created_at) >= monthAgo).length;
 
+  // MRR 시계열 (최근 12개월)
+  const mrrData = useMemo(() => {
+    const months = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      const label = `${String(y).slice(2)}/${String(m).padStart(2, "0")}`;
+      const paidRows = billing.filter(b => {
+        if (b.status !== "paid" || !b.paid_at) return false;
+        const pd = new Date(b.paid_at);
+        return pd.getFullYear() === y && pd.getMonth() + 1 === m;
+      });
+      const plus = paidRows.filter(b => b.plan === "plus").reduce((s, b) => s + (Number(b.amount) || 0), 0);
+      const pro  = paidRows.filter(b => b.plan === "pro").reduce((s, b) => s + (Number(b.amount) || 0), 0);
+      const other = paidRows.filter(b => b.plan !== "plus" && b.plan !== "pro").reduce((s, b) => s + (Number(b.amount) || 0), 0);
+      months.push({ label, total: plus + pro + other, plus, pro, other });
+    }
+    return months;
+  }, [billing]);
+
+  const currentMRR = mrrData[mrrData.length - 1]?.total || 0;
+  const prevMRR = mrrData[mrrData.length - 2]?.total || 0;
+  const momChange = prevMRR > 0 ? Math.round(((currentMRR - prevMRR) / prevMRR) * 100) : (currentMRR > 0 ? 100 : 0);
+  const ytdRevenue = mrrData.reduce((s, m) => s + m.total, 0);
+  const activeSubs = subs.filter(s => s.status === "active").length;
+  const arpu = activeSubs > 0 ? Math.round(currentMRR / activeSubs) : 0;
+
   // 상대 시간 표시 헬퍼
   const relTime = (iso) => {
     if (!iso) return "—";
@@ -340,6 +381,72 @@ function AdminContent({ currentUser }) {
         })}
       </div>
       <style>{`@media (max-width: 720px) { .admin-dist-grid { grid-template-columns: 1fr !important; } }`}</style>
+
+      {/* 💰 MRR (월별 매출) */}
+      <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "18px 20px", marginBottom: 22 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 4 }}>💰 MRR (Monthly Recurring Revenue)</p>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <p style={{ fontSize: 26, fontWeight: 900, color: "#1a2744" }}>₩{currentMRR.toLocaleString()}</p>
+              {prevMRR > 0 && (
+                <span style={{ fontSize: 12, fontWeight: 800, color: momChange >= 0 ? "#0fa573" : "#e8445a" }}>
+                  {momChange >= 0 ? "▲" : "▼"} {Math.abs(momChange)}% <span style={{ color: "#a0a0b0", fontWeight: 600 }}>(전월 대비)</span>
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 4 }}>
+              12개월 누적 ₩{ytdRevenue.toLocaleString()} · ARPU ₩{arpu.toLocaleString()}
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 14, fontSize: 11 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: "#4f46e5" }} />
+              <span style={{ color: "#6a6a7a" }}>플러스</span>
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: "#c9920a" }} />
+              <span style={{ color: "#6a6a7a" }}>프로</span>
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: "#8a8a9a" }} />
+              <span style={{ color: "#6a6a7a" }}>기타</span>
+            </span>
+          </div>
+        </div>
+        {ytdRevenue === 0 ? (
+          <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 6, background: "#f8f7f4", borderRadius: 10 }}>
+            <span style={{ fontSize: 30 }}>📊</span>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#8a8a9a" }}>아직 결제 이력이 없습니다</p>
+            <p style={{ fontSize: 11, color: "#a0a0b0" }}>유료 구독자가 생기면 MRR 추이가 표시됩니다</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={mrrData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="mrrPlus" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="mrrPro" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#c9920a" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#c9920a" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f4f3f0" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#a0a0b0", fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#a0a0b0", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 10000 ? `₩${(v/10000).toFixed(0)}만` : `₩${v}`} />
+              <Tooltip
+                contentStyle={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 8, fontSize: 11 }}
+                formatter={(v, name) => [`₩${Number(v).toLocaleString()}`, name]}
+              />
+              <Area type="monotone" dataKey="plus" name="플러스" stackId="1" stroke="#4f46e5" fill="url(#mrrPlus)" strokeWidth={2} />
+              <Area type="monotone" dataKey="pro" name="프로" stackId="1" stroke="#c9920a" fill="url(#mrrPro)" strokeWidth={2} />
+              <Area type="monotone" dataKey="other" name="기타" stackId="1" stroke="#8a8a9a" fill="#8a8a9a33" strokeWidth={1} />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
 
       {/* 탭 */}
       <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>

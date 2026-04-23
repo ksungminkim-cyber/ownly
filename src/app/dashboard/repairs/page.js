@@ -1,7 +1,8 @@
-"use client"; import { useState } from "react"; import { useApp } from "../../../context/AppContext"; import { SectionLabel, toast, EmptyState } from "../../../components/shared"; const C = { navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", purple:"#5b4fcf", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" }; const CATEGORIES = ["도배/장판","배관/수도","전기","에어컨/냉난방","창문/문","주방","욕실","외벽/지붕","기타"]; const CATEGORY_ICONS = {"도배/장판":"🎨","배관/수도":"🔧","전기":"⚡","에어컨/냉난방":"❄️","창문/문":"🚪","주방":"🍳","욕실":"🚿","외벽/지붕":"🏠","기타":"🔨"};
+"use client"; import { useState } from "react"; import { useRouter } from "next/navigation"; import { useApp } from "../../../context/AppContext"; import { SectionLabel, toast, EmptyState } from "../../../components/shared"; const C = { navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", purple:"#5b4fcf", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" }; const CATEGORIES = ["도배/장판","배관/수도","전기","에어컨/냉난방","창문/문","주방","욕실","외벽/지붕","기타"]; const CATEGORY_ICONS = {"도배/장판":"🎨","배관/수도":"🔧","전기":"⚡","에어컨/냉난방":"❄️","창문/문":"🚪","주방":"🍳","욕실":"🚿","외벽/지붕":"🏠","기타":"🔨"};
 
 export default function RepairsPage() {
   // ✅ AppContext에서 repairs, addRepair 사용 (장부 자동 연동)
+  const router = useRouter();
   const { tenants, repairs, addRepair, updateRepair, refreshData } = useApp();
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -47,7 +48,7 @@ export default function RepairsPage() {
   return ( <div className="page-in page-padding" style={{ maxWidth: 900 }}> <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:26, flexWrap:"wrap", gap:12 }}> <div> <SectionLabel>MAINTENANCE</SectionLabel> <h1 style={{ fontSize:24, fontWeight:800, color:C.navy, letterSpacing:"-.4px" }}>수리·유지보수 이력</h1>
       {/* ✅ 장부 자동 연동 안내 */}
       <p style={{ fontSize:13, color:C.muted, marginTop:3 }}>수리비 등록 시 <span style={{ color:"#5b4fcf", fontWeight:700 }}>간편 장부에 자동 기록</span>됩니다 · 세금 신고 시 필요경비로 활용하세요</p>
-    </div> <button onClick={() => setShowForm(true)} style={{ padding:"10px 20px", borderRadius:11, background:`linear-gradient(135deg,${C.navy},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>+ 수리 이력 추가</button> </div>
+    </div> <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}><button onClick={() => router.push("/dashboard/repairs/analytics")} style={{ padding:"10px 16px", borderRadius:11, background:"rgba(91,79,207,0.08)", border:"1px solid rgba(91,79,207,0.25)", color:"#5b4fcf", fontWeight:700, fontSize:13, cursor:"pointer" }}>📊 분석 대시보드</button><button onClick={() => setShowForm(true)} style={{ padding:"10px 20px", borderRadius:11, background:`linear-gradient(135deg,${C.navy},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>+ 수리 이력 추가</button></div> </div>
 
     <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:13, marginBottom:20 }}> {[ { label:"전체 건수", value:`${(repairs||[]).length}건`, color:C.navy }, { label:"총 수리비용", value:`${(repairs||[]).reduce((s,r)=>s+(r.cost||0),0).toLocaleString()}만원`, color:C.rose }, { label:"영수증 보관", value:`${(repairs||[]).filter(r=>r.receipt_yn).length}건`, color:C.emerald }, ].map(k => ( <div key={k.label} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 18px" }}> <p style={{ fontSize:10, color:C.muted, fontWeight:700, textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 }}>{k.label}</p> <p style={{ fontSize:20, fontWeight:800, color:k.color }}>{k.value}</p> </div> ))} </div>
 
