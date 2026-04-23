@@ -1,6 +1,23 @@
 import { POSTS_META } from "./blog/posts-meta";
+import { createClient } from "@supabase/supabase-js";
 
-export default function sitemap() {
+// 커뮤니티 인기 글 최근 100개 (재생성 1시간)
+async function fetchCommunityPosts() {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const { data } = await supabase
+      .from("community_posts")
+      .select("id, updated_at, created_at")
+      .order("views", { ascending: false })
+      .limit(100);
+    return data || [];
+  } catch { return []; }
+}
+
+export default async function sitemap() {
   const base = "https://www.ownly.kr";
   const now  = new Date();
 
@@ -11,11 +28,21 @@ export default function sitemap() {
     priority: 0.7,
   }));
 
+  const communityPosts = await fetchCommunityPosts();
+  const communityRoutes = communityPosts.map(p => ({
+    url: `${base}/community/${p.id}`,
+    lastModified: p.updated_at ? new Date(p.updated_at) : (p.created_at ? new Date(p.created_at) : now),
+    changeFrequency: "weekly",
+    priority: 0.6,
+  }));
+
   return [
     { url: base,                          lastModified: now, changeFrequency: "weekly",  priority: 1.0 },
     { url: `${base}/features`,            lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${base}/community`,           lastModified: now, changeFrequency: "daily",   priority: 0.9 },
     { url: `${base}/blog`,                lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     ...blogRoutes,
+    ...communityRoutes,
     { url: `${base}/login`,               lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/legal/faq`,           lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/legal/notice`,        lastModified: now, changeFrequency: "weekly",  priority: 0.5 },
