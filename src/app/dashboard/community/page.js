@@ -272,6 +272,27 @@ export default function CommunityPage() {
     }
   };
 
+  // 소셜 공유 (외부 유입용)
+  const buildShareUrl = (postId) => (typeof window === "undefined" ? "" : `${window.location.origin}/community/${postId}`);
+  const shareToKakao = (post) => {
+    if (typeof window === "undefined") return;
+    const url = buildShareUrl(post.id);
+    if (navigator.share) {
+      navigator.share({ title: post.title, url }).catch(() => {});
+    } else {
+      copyPostLink(post.id);
+    }
+  };
+  const shareToX = (post) => {
+    const url = encodeURIComponent(buildShareUrl(post.id));
+    const text = encodeURIComponent(post.title);
+    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, "_blank", "noopener,noreferrer");
+  };
+  const shareToFacebook = (post) => {
+    const url = encodeURIComponent(buildShareUrl(post.id));
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank", "noopener,noreferrer");
+  };
+
   // ─── 이미지 핸들링 ───
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -743,8 +764,20 @@ export default function CommunityPage() {
                   </div>
                   <span style={{ fontSize:11, color:"var(--text-muted)" }}>{timeAgo(activePost.created_at)}</span>
                 </div>
-                <button onClick={() => copyPostLink(activePost.id)}
-                  style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.indigo}30`, background:`${C.indigo}08`, color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>🔗 링크 복사</button>
+                <div style={{ display:"flex", gap:5, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end" }}>
+                  <button onClick={() => shareToKakao(activePost)}
+                    style={{ padding:"6px 10px", borderRadius:8, border:"none", background:"#fee500", color:"#3c1e1e", fontSize:11, fontWeight:800, cursor:"pointer", whiteSpace:"nowrap" }}
+                    title="카톡·공유">💬 공유</button>
+                  <button onClick={() => shareToX(activePost)}
+                    style={{ padding:"6px 10px", borderRadius:8, border:"none", background:"#000", color:"#fff", fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}
+                    title="X(트위터)에 공유">𝕏</button>
+                  <button onClick={() => shareToFacebook(activePost)}
+                    style={{ padding:"6px 10px", borderRadius:8, border:"none", background:"#1877f2", color:"#fff", fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}
+                    title="페이스북에 공유">f</button>
+                  <button onClick={() => copyPostLink(activePost.id)}
+                    style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${C.indigo}30`, background:`${C.indigo}08`, color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}
+                    title="링크 복사">🔗</button>
+                </div>
               </div>
 
               {/* ✅ 글 수정 모드 */}
