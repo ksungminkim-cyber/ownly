@@ -1,5 +1,8 @@
 -- 관리자 패널용 RPC 업데이트 — 소셜 로그인 provider 정보 포함
 -- Supabase OAuth 는 raw_app_meta_data.provider 에, 네이버는 raw_user_meta_data.provider 에 저장됨
+-- RETURNS TABLE 시그니처 변경 시 DROP 후 CREATE 필요 (Postgres 42P13)
+
+drop function if exists public.get_admin_users();
 
 create or replace function public.get_admin_users()
 returns table (
