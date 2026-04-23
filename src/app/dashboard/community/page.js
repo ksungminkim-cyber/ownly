@@ -322,6 +322,17 @@ export default function CommunityPage() {
     setForm({ title:"", content:"", category:"자유", author_name: myNickname, tags: "", anonymous: false });
     setImages([]); setPreviews([]);
     toast("게시글이 등록되었습니다 🎉");
+
+    // 질문 카테고리는 AI가 즉시 답변 생성 (비동기, 실패해도 게시는 성공)
+    if (row.category === "질문") {
+      fetch("/api/community/ai-answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: data.id, title: row.title, content: row.content, category: row.category }),
+      }).then(r => r.json()).then(r => {
+        if (r.ok) toast("🤖 AI가 답변을 추가했어요");
+      }).catch(() => {});
+    }
   };
 
   // ─── 글 수정 ───
