@@ -64,11 +64,11 @@ function RenewalProposal({ tenant, onClose }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div style={{ background: "#f8f7f4", borderRadius: 10, padding: "12px 14px" }}>
-            <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>현행 월세</p>
+            <p style={{ fontSize: 12, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>현행 월세</p>
             <p style={{ fontSize: 18, fontWeight: 800, color: "#1a2744" }}>{currentRent.toLocaleString()}만원</p>
           </div>
           <div style={{ background: "#f8f7f4", borderRadius: 10, padding: "12px 14px" }}>
-            <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>5% 상한 최대</p>
+            <p style={{ fontSize: 12, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>5% 상한 최대</p>
             <p style={{ fontSize: 18, fontWeight: 800, color: "#0fa573" }}>{maxIncrease.toLocaleString()}만원</p>
           </div>
         </div>
@@ -143,12 +143,12 @@ export default function TenantsPage() { const router = useRouter(); const { tena
         ) : (
           <>
             <div style={{ marginBottom: 24 }}>
-              <p style={{ fontSize: 10, fontWeight: 800, color: "#8a8a9a", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 6 }}>TENANT OVERVIEW</p>
+              <p style={{ fontSize: 12, fontWeight: 800, color: "#8a8a9a", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 6 }}>TENANT OVERVIEW</p>
               <h2 style={{ fontSize: 20, fontWeight: 900, color: "#1a2744", marginBottom: 2 }}>전체 세입자 현황</h2>
               <p style={{ fontSize: 12, color: "#8a8a9a" }}>좌측 목록에서 세입자를 선택하면 상세 정보를 볼 수 있습니다</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-              {[ { l: "총 세입자", v: summaryStats.total + "명", c: "#1a2744", icon: "👤" }, { l: "월 총 수입", v: summaryStats.totalRent.toLocaleString() + "만원", c: C.emerald, icon: "💰" }, { l: "평균 월세", v: summaryStats.avgRent.toLocaleString() + "만원", c: C.indigo, icon: "📊" }, { l: "미납", v: summaryStats.unpaid + "건", c: summaryStats.unpaid > 0 ? C.rose : C.emerald, icon: summaryStats.unpaid > 0 ? "⚠️" : "✅" }, ].map(k => ( <div key={k.l} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "14px 16px" }}> <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>{k.icon} {k.l}</p> <p style={{ fontSize: 20, fontWeight: 900, color: k.c }}>{k.v}</p> </div> ))} </div>
+              {[ { l: "총 세입자", v: summaryStats.total + "명", c: "#1a2744", icon: "👤" }, { l: "월 총 수입", v: summaryStats.totalRent.toLocaleString() + "만원", c: C.emerald, icon: "💰" }, { l: "평균 월세", v: summaryStats.avgRent.toLocaleString() + "만원", c: C.indigo, icon: "📊" }, { l: "미납", v: summaryStats.unpaid + "건", c: summaryStats.unpaid > 0 ? C.rose : C.emerald, icon: summaryStats.unpaid > 0 ? "⚠️" : "✅" }, ].map(k => ( <div key={k.l} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "14px 16px" }}> <p style={{ fontSize: 12, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>{k.icon} {k.l}</p> <p style={{ fontSize: 20, fontWeight: 900, color: k.c }}>{k.v}</p> </div> ))} </div>
             {summaryStats.expiring60 > 0 && ( <div onClick={() => setFilter("만료임박")} style={{ background: "rgba(232,150,10,0.06)", border: "1px solid rgba(232,150,10,0.25)", borderRadius: 12, padding: "13px 16px", marginBottom: 16, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}> <div> <p style={{ fontSize: 13, fontWeight: 800, color: "#e8960a" }}>📅 계약 만료 임박 {summaryStats.expiring60}건</p> <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 3 }}>60일 이내 만료 예정 · 갱신 협상이 필요합니다</p> </div> <span style={{ fontSize: 11, fontWeight: 700, color: "#e8960a" }}>필터 보기 →</span> </div> )}
             <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "16px 18px", marginBottom: 16 }}> <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>유형별 분포</p> {Object.entries({ 주거: "🏠", 상가: "🏪", 토지: "🌱" }).map(([type, icon]) => { const count = summaryStats.byType[type] || 0; const pct = summaryStats.total > 0 ? Math.round((count / summaryStats.total) * 100) : 0; return ( <div key={type} style={{ marginBottom: 10 }}> <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}> <span style={{ fontSize: 12, fontWeight: 600, color: "#1a2744" }}>{icon} {type}</span> <span style={{ fontSize: 12, color: "#8a8a9a" }}>{count}명 ({pct}%)</span> </div> <div style={{ height: 5, borderRadius: 5, background: "#f0efe9", overflow: "hidden" }}> <div style={{ height: "100%", width: pct + "%", borderRadius: 5, background: type === "상가" ? C.amber : type === "토지" ? "#0d9488" : C.indigo }} /> </div> </div> ); })} </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

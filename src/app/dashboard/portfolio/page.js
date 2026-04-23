@@ -112,7 +112,7 @@ export default function PortfolioPage() {
       <div style={{ background: "linear-gradient(135deg,#1a2744 0%,#2d4270 55%,#5b4fcf 100%)", borderRadius: 18, padding: "24px 28px 20px", color: "#fff", marginBottom: 16, position: "relative", overflow: "hidden" }}>
         <div aria-hidden style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle,rgba(255,255,255,0.08),transparent 70%)" }} />
         <div style={{ position: "relative" }}>
-          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "2px", opacity: .7, textTransform: "uppercase", marginBottom: 8 }}>TOTAL PORTFOLIO</p>
+          <p style={{ fontSize: 12, fontWeight: 800, letterSpacing: "2px", opacity: .7, textTransform: "uppercase", marginBottom: 8 }}>TOTAL PORTFOLIO</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 18 }}>
             <div>
               <p style={{ fontSize: 11, opacity: .7, marginBottom: 3 }}>월 임대 수입</p>
@@ -228,7 +228,7 @@ export default function PortfolioPage() {
             style={{ background: "#fff", border: `1px solid ${a.color}30`, borderLeft: `4px solid ${a.color}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer" }}>
             <p style={{ fontSize: 20, marginBottom: 6 }}>{a.icon}</p>
             <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 2 }}>{a.label}</p>
-            <p style={{ fontSize: 10, color: "#8a8a9a", lineHeight: 1.5 }}>{a.desc}</p>
+            <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.5 }}>{a.desc}</p>
           </div>
         ))}
       </div>

@@ -167,21 +167,21 @@ export default function PropertyMap({ tenants = [] }) {
 
           const marker = new kakao.maps.Marker({ position: pos, image: markerImage });
 
-          // 커스텀 오버레이 — 풀 HTML/CSS 제어 가능
+          // 커스텀 오버레이 — xAnchor/yAnchor로 위치 정렬 (transform 금지)
           const overlayDiv = document.createElement("div");
-          overlayDiv.style.cssText = `position: relative; transform: translate(-50%, -100%); margin-top: -48px; pointer-events: auto;`;
+          overlayDiv.style.cssText = `position: relative; padding-bottom: 14px; pointer-events: auto;`;
           overlayDiv.innerHTML = `
             <div style="
+              position: relative;
               background: #fff;
               border: 1px solid #e8e6e0;
               border-radius: 14px;
               box-shadow: 0 12px 32px rgba(26,39,68,0.18);
               min-width: 260px; max-width: 320px;
-              overflow: hidden;
               font-family: 'Pretendard', 'DM Sans', -apple-system, sans-serif;
             ">
               <!-- 상단 컬러 바 -->
-              <div style="height: 4px; background: ${color};"></div>
+              <div style="height: 4px; background: ${color}; border-radius: 14px 14px 0 0;"></div>
               <!-- 닫기 버튼 -->
               <button class="ownly-overlay-close" style="
                 position: absolute; top: 12px; right: 12px;
@@ -231,22 +231,23 @@ export default function PropertyMap({ tenants = [] }) {
                   `}
                 </div>
               </div>
+              <!-- 말풍선 꼬리 (카드 하단 중앙에서 아래로) -->
+              <div style="
+                position: absolute; left: 50%; bottom: -10px;
+                transform: translateX(-50%);
+                width: 0; height: 0;
+                border-left: 10px solid transparent;
+                border-right: 10px solid transparent;
+                border-top: 11px solid #fff;
+                filter: drop-shadow(0 3px 3px rgba(26,39,68,0.15));
+              "></div>
             </div>
-            <!-- 말풍선 꼬리 -->
-            <div style="
-              position: absolute; left: 50%; bottom: -8px;
-              transform: translateX(-50%);
-              width: 0; height: 0;
-              border-left: 8px solid transparent;
-              border-right: 8px solid transparent;
-              border-top: 9px solid #fff;
-              filter: drop-shadow(0 2px 3px rgba(26,39,68,0.1));
-            "></div>
           `;
 
           const overlay = new kakao.maps.CustomOverlay({
             position: pos,
             content: overlayDiv,
+            xAnchor: 0.5,
             yAnchor: 1,
             zIndex: 3,
           });
