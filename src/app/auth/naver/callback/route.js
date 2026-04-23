@@ -64,13 +64,25 @@ export async function GET(req) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseSecret = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    // 3. 기존 사용자 조회
-    const listRes = await fetch(
-      `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
-      { headers: { Authorization: `Bearer ${supabaseSecret}`, apikey: supabaseSecret } }
-    );
-    const listData = await listRes.json();
-    const existing = listData?.users?.[0];
+    // 3. 기존 사용자 조회 — admin/users 엔드포인트는 ?email= 필터 미지원.
+    // 전체 리스트에서 클라이언트 사이드로 이메일 일치 찾음.
+    // (보안 중요: 이전 코드는 users[0]를 반환해 첫 유저=관리자로 로그인되는 버그 있었음)
+    let existing = null;
+    let page = 1;
+    while (page <= 10) { // 최대 10페이지 (perPage=1000 → 1만명까지 안전)
+      const listRes = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=1000`,
+        { headers: { Authorization: `Bearer ${supabaseSecret}`, apikey: supabaseSecret } }
+      );
+      const listData = await listRes.json();
+      const users = listData?.users || [];
+      existing = users.find(u =>
+        u.email === email ||
+        u.user_metadata?.naver_id === naverId
+      );
+      if (existing || users.length < 1000) break;
+      page++;
+    }
 
     let userId;
     if (existing) {
