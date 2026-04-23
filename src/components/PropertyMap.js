@@ -13,14 +13,25 @@ function loadKakaoSDK(appkey) {
     if (window.kakao && window.kakao.maps) { resolve(window.kakao); return; }
     const existing = document.getElementById("kakao-maps-sdk");
     if (existing) {
-      existing.addEventListener("load", () => window.kakao.maps.load(() => resolve(window.kakao)));
+      existing.addEventListener("load", () => {
+        if (window.kakao?.maps) window.kakao.maps.load(() => resolve(window.kakao));
+        else reject(new Error("Kakao SDK 초기화 실패 — JavaScript 키 확인 필요"));
+      });
+      existing.addEventListener("error", () => reject(new Error("카카오 SDK 차단됨 — 도메인 미등록 또는 네트워크 문제")));
       return;
     }
     const script = document.createElement("script");
     script.id = "kakao-maps-sdk";
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appkey}&libraries=clusterer&autoload=false`;
-    script.onload = () => window.kakao.maps.load(() => resolve(window.kakao));
-    script.onerror = () => reject(new Error("Kakao SDK 로드 실패"));
+    script.onload = () => {
+      if (window.kakao?.maps) window.kakao.maps.load(() => resolve(window.kakao));
+      else reject(new Error("Kakao SDK 초기화 실패 — JavaScript 키 확인 필요"));
+    };
+    script.onerror = () => reject(new Error("카카오 SDK 차단됨 — 개발자콘솔 도메인 등록 확인"));
+    // 타임아웃 (10초)
+    setTimeout(() => {
+      if (!window.kakao?.maps) reject(new Error("Kakao SDK 로드 타임아웃 — 도메인 등록 또는 키 확인"));
+    }, 10000);
     document.head.appendChild(script);
   });
 }
@@ -178,12 +189,17 @@ export default function PropertyMap({ tenants = [] }) {
 
   if (status === "no_key") {
     return (
-      <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "18px 20px" }}>
-        <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 8 }}>🗺️ 물건 지역 분포</p>
-        <div style={{ padding: "24px", textAlign: "center", background: "#f8f7f4", borderRadius: 10 }}>
-          <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.7 }}>
-            카카오 지도 키가 설정되지 않았습니다.<br/>
-            <code style={{ background: "#eee", padding: "1px 6px", borderRadius: 4 }}>NEXT_PUBLIC_KAKAO_MAP_KEY</code> 를 Vercel 환경변수에 추가해주세요.
+      <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "18px 20px", marginBottom: 14 }}>
+        <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 10 }}>🗺️ 물건 지역 분포</p>
+        <div style={{ padding: "20px", background: "rgba(232,150,10,0.06)", border: "1px solid rgba(232,150,10,0.25)", borderRadius: 10 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "#e8960a", marginBottom: 8 }}>⚙️ 지도 기능 설정이 필요합니다</p>
+          <ol style={{ fontSize: 11, color: "#6a6a7a", lineHeight: 1.9, paddingLeft: 18, marginBottom: 12 }}>
+            <li><a href="https://developers.kakao.com/console/app" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", fontWeight: 700 }}>카카오 개발자 콘솔</a> → 앱 선택 → <b>JavaScript 키</b> 복사</li>
+            <li><b>앱 설정 → 플랫폼 → Web</b> → 사이트 도메인에 <code style={{ background: "#fff", padding: "1px 5px", borderRadius: 3, fontSize: 10 }}>https://www.ownly.kr</code> 등록</li>
+            <li>Vercel 환경변수에 <code style={{ background: "#fff", padding: "1px 5px", borderRadius: 3, fontSize: 10 }}>NEXT_PUBLIC_KAKAO_MAP_KEY</code> 추가 후 재배포</li>
+          </ol>
+          <p style={{ fontSize: 10, color: "#8a8a9a", lineHeight: 1.6 }}>
+            💡 주의: <b>REST API 키</b>가 아닌 <b>JavaScript 키</b>가 필요합니다 (클라이언트 사이드 사용).
           </p>
         </div>
       </div>
@@ -219,8 +235,15 @@ export default function PropertyMap({ tenants = [] }) {
           </div>
         )}
         {status === "error" && (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#e8445a", fontSize: 12 }}>
-            ⚠️ {errorMsg}
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, padding: 20, textAlign: "center" }}>
+            <span style={{ fontSize: 28 }}>⚠️</span>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#e8445a", marginBottom: 4 }}>{errorMsg}</p>
+            <p style={{ fontSize: 11, color: "#8a8a9a", lineHeight: 1.6 }}>
+              카카오 개발자 콘솔 → 앱 설정 → 플랫폼 → Web에<br/>
+              <code style={{ background: "#f0efe9", padding: "1px 5px", borderRadius: 3 }}>https://www.ownly.kr</code>, <code style={{ background: "#f0efe9", padding: "1px 5px", borderRadius: 3 }}>https://ownly.kr</code> 가 모두 등록돼있는지 확인하세요.
+            </p>
+            <a href="https://developers.kakao.com/console/app" target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 11, color: "#5b4fcf", fontWeight: 700, marginTop: 4 }}>카카오 콘솔 열기 →</a>
           </div>
         )}
         {status === "no_coords" && (
