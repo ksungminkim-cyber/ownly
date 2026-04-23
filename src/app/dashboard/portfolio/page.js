@@ -6,6 +6,7 @@ import { useApp } from "../../../context/AppContext";
 import { SectionLabel, EmptyState } from "../../../components/shared";
 import { daysLeft, buildingKey } from "../../../lib/constants";
 import { calcPaymentRisk } from "../../../lib/paymentRisk";
+import PropertyMap from "../../../components/PropertyMap";
 
 const TYPE_COLORS = { "주거": "#1a2744", "상가": "#e8960a", "토지": "#0d9488", "오피스텔": "#5b4fcf", "기타": "#8a8a9a" };
 
@@ -192,6 +193,9 @@ export default function PortfolioPage() {
           </button>
         </div>
       </div>
+
+      {/* 🗺️ 물건 지역 분포 지도 */}
+      <PropertyMap tenants={tenants} />
 
       {/* 건물별 월 수입 TOP5 */}
       {stats.buildingList.length > 0 && (

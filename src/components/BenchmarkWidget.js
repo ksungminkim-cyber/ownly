@@ -2,6 +2,9 @@
 import { useEffect, useState } from "react";
 import { findLawdCodeFromAddr, findRegionFromAddr, LAWD_MAP } from "../lib/regions";
 
+const AI_CACHE_KEY = "ownly_ai_benchmark_cache";
+const AI_TTL = 24 * 60 * 60 * 1000; // 24h
+
 // 임대료 벤치마크 위젯 — 사용자 월세 vs 지역 평균 비교
 // 7일 localStorage 캐시 · 주거 세입자만 대상
 
@@ -70,6 +73,9 @@ export default function BenchmarkWidget({ tenants = [] }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [aiComment, setAiComment] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showDataSource, setShowDataSource] = useState(false);
 
   // 유저 물건 유형 판단: 주거 vs 상가·오피스텔 중 우세한 쪽
   const activeTenants = tenants.filter(t => t.status !== "공실" && Number(t.rent) > 0);
@@ -116,6 +122,53 @@ export default function BenchmarkWidget({ tenants = [] }) {
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [primaryRegion, molitType, cacheKey]);
+
+  // AI 코멘트 (24시간 캐시)
+  useEffect(() => {
+    if (!data || !primaryRegion) return;
+    const aiCacheKey = `${primaryRegion}__${molitType}__${myAvg}`;
+    try {
+      const raw = localStorage.getItem(AI_CACHE_KEY);
+      const all = raw ? JSON.parse(raw) : {};
+      const cached = all[aiCacheKey];
+      if (cached && Date.now() - cached.ts < AI_TTL) {
+        setAiComment(cached.comment);
+        return;
+      }
+    } catch {}
+
+    setAiLoading(true);
+    fetch("/api/ai-comment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "benchmark",
+        context: {
+          region: primaryRegion,
+          type: primaryType === "residential" ? "아파트" : "오피스텔/상가",
+          myRent: myAvg,
+          median: data.median,
+          p25: data.p25,
+          p75: data.p75,
+          count: data.count,
+        },
+      }),
+    })
+      .then(r => r.json())
+      .then(r => {
+        if (r.comment) {
+          setAiComment(r.comment);
+          try {
+            const raw = localStorage.getItem(AI_CACHE_KEY);
+            const all = raw ? JSON.parse(raw) : {};
+            all[aiCacheKey] = { ts: Date.now(), comment: r.comment };
+            localStorage.setItem(AI_CACHE_KEY, JSON.stringify(all));
+          } catch {}
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAiLoading(false));
+  }, [data, primaryRegion, myAvg, molitType, primaryType]);
 
   if (targetTenants.length === 0 || !primaryRegion) return null;
 
@@ -179,6 +232,37 @@ export default function BenchmarkWidget({ tenants = [] }) {
         {Math.abs(gapPct) < 5 && `💡 시세와 일치합니다.`}
         {primaryType === "commercial" && " · 상가 실거래가는 공공데이터에 미포함돼 오피스텔 기준으로 참고 표시합니다."}
       </p>
+
+      {/* AI 자연어 인사이트 */}
+      {(aiLoading || aiComment) && (
+        <div style={{ marginTop: 12, padding: "11px 13px", background: "linear-gradient(135deg,rgba(91,79,207,0.05),rgba(26,39,68,0.03))", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 9 }}>
+          <p style={{ fontSize: 10, fontWeight: 800, color: "#5b4fcf", marginBottom: 5, display: "flex", alignItems: "center", gap: 4 }}>
+            <span>🤖</span> AI 시장 분석
+          </p>
+          {aiLoading ? (
+            <p style={{ fontSize: 11, color: "#a0a0b0", fontStyle: "italic" }}>지역 시세 데이터를 분석 중...</p>
+          ) : (
+            <p style={{ fontSize: 12, color: "#3a3a4e", lineHeight: 1.7 }}>{aiComment}</p>
+          )}
+        </div>
+      )}
+
+      {/* 데이터 출처 (접힘) */}
+      <div style={{ marginTop: 10 }}>
+        <button onClick={() => setShowDataSource(!showDataSource)}
+          style={{ fontSize: 10, color: "#8a8a9a", background: "transparent", border: "none", cursor: "pointer", padding: 0, fontWeight: 600 }}>
+          {showDataSource ? "▾" : "▸"} 데이터 출처
+        </button>
+        {showDataSource && (
+          <div style={{ marginTop: 6, padding: "8px 10px", background: "#f8f7f4", borderRadius: 6, fontSize: 10, color: "#6a6a7a", lineHeight: 1.7 }}>
+            국토교통부 실거래가 공개 시스템 API (정식 공공데이터)<br/>
+            최근 3개월 {primaryType === "residential" ? "아파트 전월세" : "오피스텔 전월세"} {data.count}건의 월세 금액 기반<br/>
+            • 중위값: 50번째 백분위수 (평균보다 이상치 영향 적음)<br/>
+            • 25%/75% 분포: 시장 대부분이 이 구간에 위치<br/>
+            AI 코멘트는 Llama 3.3 기반 실시간 생성 (결과 24시간 캐시)
+          </div>
+        )}
+      </div>
     </div>
   );
 }
