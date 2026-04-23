@@ -190,27 +190,27 @@ export default function BenchmarkWidget({ tenants = [] }) {
 
   return (
     <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 20px", marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <div>
-          <p style={{ fontSize: 10, fontWeight: 800, color: "#8a8a9a", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 3 }}>📊 지역 임대료 벤치마크</p>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744" }}>{primaryRegion} · {molitLabel} 기준</p>
+          <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 4 }}>📊 지역 임대료 벤치마크</p>
+          <p style={{ fontSize: 14, fontWeight: 800, color: "#1a2744" }}>{primaryRegion} · {molitLabel} 기준</p>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 800, color: verdictColor, background: verdictColor + "15", padding: "4px 12px", borderRadius: 20 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: verdictColor, background: verdictColor + "15", padding: "5px 14px", borderRadius: 20 }}>
           {verdict} {gapPct !== 0 && `(${gapPct > 0 ? "+" : ""}${gapPct}%)`}
         </span>
       </div>
 
       {/* 내 월세 vs 지역 중위값 */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <div style={{ padding: "11px 13px", background: "rgba(26,39,68,0.06)", borderRadius: 10 }}>
-          <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>내 평균 월세</p>
-          <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744" }}>{myAvg.toLocaleString()}만원</p>
-          <p style={{ fontSize: 10, color: "#a0a0b0", marginTop: 2 }}>{primaryType === "residential" ? "주거" : "상가·오피스텔"} {targetTenants.length}건 기준</p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        <div style={{ padding: "13px 15px", background: "rgba(26,39,68,0.06)", borderRadius: 11 }}>
+          <p style={{ fontSize: 11, color: "#6a6a7a", fontWeight: 700, marginBottom: 4 }}>내 평균 월세</p>
+          <p style={{ fontSize: 20, fontWeight: 900, color: "#1a2744" }}>{myAvg.toLocaleString()}만원</p>
+          <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 3 }}>{primaryType === "residential" ? "주거" : "상가·오피스텔"} {targetTenants.length}건 기준</p>
         </div>
-        <div style={{ padding: "11px 13px", background: verdictColor + "10", borderRadius: 10, border: `1px solid ${verdictColor}25` }}>
-          <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>지역 중위값</p>
-          <p style={{ fontSize: 18, fontWeight: 900, color: verdictColor }}>{data.median.toLocaleString()}만원</p>
-          <p style={{ fontSize: 10, color: "#a0a0b0", marginTop: 2 }}>최근 3개월 {data.count}건</p>
+        <div style={{ padding: "13px 15px", background: verdictColor + "10", borderRadius: 11, border: `1px solid ${verdictColor}25` }}>
+          <p style={{ fontSize: 11, color: "#6a6a7a", fontWeight: 700, marginBottom: 4 }}>지역 중위값</p>
+          <p style={{ fontSize: 20, fontWeight: 900, color: verdictColor }}>{data.median.toLocaleString()}만원</p>
+          <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 3 }}>최근 3개월 {data.count}건</p>
         </div>
       </div>
 
@@ -220,13 +220,13 @@ export default function BenchmarkWidget({ tenants = [] }) {
         <div style={{ position: "absolute", left: `${Math.min(98, (data.median / (data.p75 * 1.2)) * 100)}%`, top: 0, bottom: 0, width: 2, background: verdictColor }} />
         <div style={{ position: "absolute", left: `${Math.min(98, (myAvg / (data.p75 * 1.2)) * 100)}%`, top: -4, bottom: -4, width: 3, background: "#1a2744", borderRadius: 2 }} />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#a0a0b0" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6a6a7a", fontWeight: 600 }}>
         <span>하위 25% {data.p25.toLocaleString()}만</span>
         <span>중위 {data.median.toLocaleString()}만</span>
         <span>상위 25% {data.p75.toLocaleString()}만</span>
       </div>
 
-      <p style={{ fontSize: 10, color: "#a0a0b0", marginTop: 10, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 12, color: "#6a6a7a", marginTop: 10, lineHeight: 1.7 }}>
         {gap > 0 && gapPct >= 5 && `💡 지역 평균보다 ${gapPct}% 높게 받고 계십니다. 갱신 협상 시 참고하세요.`}
         {gap < 0 && Math.abs(gapPct) >= 5 && `💡 지역 평균보다 ${Math.abs(gapPct)}% 낮습니다. 다음 갱신 시 ${Math.abs(gap)}만원 인상 여력 있음 (5% 상한 확인).`}
         {Math.abs(gapPct) < 5 && `💡 시세와 일치합니다.`}
@@ -235,26 +235,26 @@ export default function BenchmarkWidget({ tenants = [] }) {
 
       {/* AI 자연어 인사이트 */}
       {(aiLoading || aiComment) && (
-        <div style={{ marginTop: 12, padding: "11px 13px", background: "linear-gradient(135deg,rgba(91,79,207,0.05),rgba(26,39,68,0.03))", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 9 }}>
-          <p style={{ fontSize: 10, fontWeight: 800, color: "#5b4fcf", marginBottom: 5, display: "flex", alignItems: "center", gap: 4 }}>
+        <div style={{ marginTop: 14, padding: "14px 16px", background: "linear-gradient(135deg,rgba(91,79,207,0.05),rgba(26,39,68,0.03))", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 10 }}>
+          <p style={{ fontSize: 12, fontWeight: 800, color: "#5b4fcf", marginBottom: 7, display: "flex", alignItems: "center", gap: 5 }}>
             <span>🤖</span> AI 시장 분석
           </p>
           {aiLoading ? (
-            <p style={{ fontSize: 11, color: "#a0a0b0", fontStyle: "italic" }}>지역 시세 데이터를 분석 중...</p>
+            <p style={{ fontSize: 13, color: "#8a8a9a", fontStyle: "italic" }}>지역 시세 데이터를 분석 중...</p>
           ) : (
-            <p style={{ fontSize: 12, color: "#3a3a4e", lineHeight: 1.7 }}>{aiComment}</p>
+            <p style={{ fontSize: 13, color: "#3a3a4e", lineHeight: 1.75 }}>{aiComment}</p>
           )}
         </div>
       )}
 
       {/* 데이터 출처 (접힘) */}
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: 12 }}>
         <button onClick={() => setShowDataSource(!showDataSource)}
-          style={{ fontSize: 10, color: "#8a8a9a", background: "transparent", border: "none", cursor: "pointer", padding: 0, fontWeight: 600 }}>
+          style={{ fontSize: 12, color: "#6a6a7a", background: "transparent", border: "none", cursor: "pointer", padding: 0, fontWeight: 700 }}>
           {showDataSource ? "▾" : "▸"} 데이터 출처
         </button>
         {showDataSource && (
-          <div style={{ marginTop: 6, padding: "8px 10px", background: "#f8f7f4", borderRadius: 6, fontSize: 10, color: "#6a6a7a", lineHeight: 1.7 }}>
+          <div style={{ marginTop: 8, padding: "11px 14px", background: "#f8f7f4", borderRadius: 8, fontSize: 12, color: "#4a5568", lineHeight: 1.8 }}>
             국토교통부 실거래가 공개 시스템 API (정식 공공데이터)<br/>
             최근 3개월 {primaryType === "residential" ? "아파트 전월세" : "오피스텔 전월세"} {data.count}건의 월세 금액 기반<br/>
             • 중위값: 50번째 백분위수 (평균보다 이상치 영향 적음)<br/>

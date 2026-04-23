@@ -145,7 +145,10 @@ export default function PropertyMap({ tenants = [] }) {
           }],
         });
 
-        // 마커 생성 — 물건 유형별 색상
+        // 현재 열린 오버레이 추적 (하나씩만 열리도록)
+        let activeOverlay = null;
+
+        // 마커 + CustomOverlay 생성
         const markers = valid.map(({ tenant, coord }) => {
           const pos = new kakao.maps.LatLng(coord.y, coord.x);
           bounds.extend(pos);
@@ -153,6 +156,7 @@ export default function PropertyMap({ tenants = [] }) {
           const isVacant = tenant.status === "공실";
           const isUnpaid = tenant.status === "미납";
           const color = isVacant ? "#e8445a" : isUnpaid ? "#e8960a" : tenant.pType === "상가" ? "#e8960a" : tenant.pType === "토지" ? "#0d9488" : "#5b4fcf";
+          const typeLabel = tenant.pType === "상가" ? "상가" : tenant.pType === "토지" ? "토지" : (tenant.sub || "주거");
 
           const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='40' viewBox='0 0 32 40'><path d='M16 0C7.163 0 0 7.163 0 16c0 10 16 24 16 24s16-14 16-24c0-8.837-7.163-16-16-16z' fill='${color}'/><circle cx='16' cy='16' r='7' fill='white'/></svg>`;
           const markerImage = new kakao.maps.MarkerImage(
@@ -162,14 +166,103 @@ export default function PropertyMap({ tenants = [] }) {
           );
 
           const marker = new kakao.maps.Marker({ position: pos, image: markerImage });
-          const infoHtml = `
-            <div style="padding:8px 12px;font-size:12px;line-height:1.5;min-width:180px;">
-              <div style="font-weight:800;color:#1a2744;margin-bottom:3px">${tenant.name || "세입자"}</div>
-              <div style="color:#8a8a9a;font-size:11px;">${tenant.addr || ""}</div>
-              <div style="color:${color};font-weight:700;margin-top:5px;">${isVacant ? "🚪 공실" : `월세 ${(tenant.rent || 0).toLocaleString()}만원`}</div>
-            </div>`;
-          const infowindow = new kakao.maps.InfoWindow({ content: infoHtml, removable: true });
-          kakao.maps.event.addListener(marker, "click", () => infowindow.open(map, marker));
+
+          // 커스텀 오버레이 — 풀 HTML/CSS 제어 가능
+          const overlayDiv = document.createElement("div");
+          overlayDiv.style.cssText = `position: relative; transform: translate(-50%, -100%); margin-top: -48px; pointer-events: auto;`;
+          overlayDiv.innerHTML = `
+            <div style="
+              background: #fff;
+              border: 1px solid #e8e6e0;
+              border-radius: 14px;
+              box-shadow: 0 12px 32px rgba(26,39,68,0.18);
+              min-width: 260px; max-width: 320px;
+              overflow: hidden;
+              font-family: 'Pretendard', 'DM Sans', -apple-system, sans-serif;
+            ">
+              <!-- 상단 컬러 바 -->
+              <div style="height: 4px; background: ${color};"></div>
+              <!-- 닫기 버튼 -->
+              <button class="ownly-overlay-close" style="
+                position: absolute; top: 12px; right: 12px;
+                width: 26px; height: 26px; border-radius: 8px;
+                background: #f8f7f4; border: 1px solid #ebe9e3;
+                cursor: pointer; font-size: 13px; color: #8a8a9a;
+                display: flex; align-items: center; justify-content: center;
+                font-weight: 700; line-height: 1;
+              ">✕</button>
+              <!-- 본문 -->
+              <div style="padding: 16px 18px 14px;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                  <span style="
+                    font-size: 10px; font-weight: 800;
+                    color: ${color}; background: ${color}18;
+                    padding: 3px 8px; border-radius: 5px;
+                    letter-spacing: 0.3px;
+                  ">${isVacant ? "🚪 공실" : isUnpaid ? "⚠️ 미납" : typeLabel}</span>
+                </div>
+                <p style="
+                  font-size: 15px; font-weight: 800; color: #1a2744;
+                  margin: 0 0 4px; line-height: 1.3;
+                ">${tenant.name || "미등록 세입자"}</p>
+                <p style="
+                  font-size: 12px; color: #6a6a7a; line-height: 1.5;
+                  margin: 0 0 12px;
+                ">${tenant.addr || ""}</p>
+                <!-- 월세 + 보증금 박스 -->
+                <div style="
+                  background: #f8f7f4; border-radius: 10px;
+                  padding: 10px 12px; display: flex;
+                  justify-content: space-between; align-items: center;
+                ">
+                  ${isVacant ? `
+                    <span style="font-size: 12px; color: #e8445a; font-weight: 700;">공실 상태 — 임차인 모집 중</span>
+                  ` : `
+                    <div>
+                      <p style="font-size: 10px; color: #8a8a9a; font-weight: 700; margin: 0 0 2px;">월세</p>
+                      <p style="font-size: 16px; font-weight: 900; color: #1a2744; margin: 0;">${(tenant.rent || 0).toLocaleString()}<span style="font-size: 11px; font-weight: 600; color: #8a8a9a;">만</span></p>
+                    </div>
+                    ${tenant.dep ? `
+                    <div style="text-align: right;">
+                      <p style="font-size: 10px; color: #8a8a9a; font-weight: 700; margin: 0 0 2px;">보증금</p>
+                      <p style="font-size: 14px; font-weight: 800; color: #1a2744; margin: 0;">${(tenant.dep/10000).toFixed(1)}<span style="font-size: 11px; font-weight: 600; color: #8a8a9a;">억</span></p>
+                    </div>
+                    ` : ""}
+                  `}
+                </div>
+              </div>
+            </div>
+            <!-- 말풍선 꼬리 -->
+            <div style="
+              position: absolute; left: 50%; bottom: -8px;
+              transform: translateX(-50%);
+              width: 0; height: 0;
+              border-left: 8px solid transparent;
+              border-right: 8px solid transparent;
+              border-top: 9px solid #fff;
+              filter: drop-shadow(0 2px 3px rgba(26,39,68,0.1));
+            "></div>
+          `;
+
+          const overlay = new kakao.maps.CustomOverlay({
+            position: pos,
+            content: overlayDiv,
+            yAnchor: 1,
+            zIndex: 3,
+          });
+
+          // 닫기 버튼 바인딩
+          overlayDiv.querySelector(".ownly-overlay-close").addEventListener("click", (e) => {
+            e.stopPropagation();
+            overlay.setMap(null);
+            if (activeOverlay === overlay) activeOverlay = null;
+          });
+
+          kakao.maps.event.addListener(marker, "click", () => {
+            if (activeOverlay) activeOverlay.setMap(null);
+            overlay.setMap(map);
+            activeOverlay = overlay;
+          });
           return marker;
         });
 
@@ -210,18 +303,18 @@ export default function PropertyMap({ tenants = [] }) {
 
   return (
     <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "18px 20px", marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-        <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px" }}>🗺️ 물건 지역 분포</p>
-        <div style={{ display: "flex", gap: 10, fontSize: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+        <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744" }}>🗺️ 물건 지역 분포</p>
+        <div style={{ display: "flex", gap: 14, fontSize: 12, flexWrap: "wrap" }}>
           {[
             { c: "#5b4fcf", l: "주거" },
             { c: "#e8960a", l: "상가·미납" },
             { c: "#0d9488", l: "토지" },
             { c: "#e8445a", l: "공실" },
           ].map(x => (
-            <span key={x.l} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: x.c }} />
-              <span style={{ color: "#6a6a7a" }}>{x.l}</span>
+            <span key={x.l} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 11, height: 11, borderRadius: "50%", background: x.c }} />
+              <span style={{ color: "#4a5568", fontWeight: 600 }}>{x.l}</span>
             </span>
           ))}
         </div>
@@ -255,11 +348,11 @@ export default function PropertyMap({ tenants = [] }) {
 
       {/* 지역별 요약 */}
       {summary && summary.length > 0 && (
-        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8 }}>
+        <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10 }}>
           {summary.slice(0, 6).map(r => (
-            <div key={r.region} style={{ background: "#f8f7f4", borderRadius: 8, padding: "8px 10px" }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#1a2744", marginBottom: 2 }}>📍 {r.region}</p>
-              <p style={{ fontSize: 10, color: "#8a8a9a" }}>{r.count}건 · 월 {r.monthlyRent.toLocaleString()}만</p>
+            <div key={r.region} style={{ background: "#f8f7f4", borderRadius: 10, padding: "11px 14px" }}>
+              <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>📍 {r.region}</p>
+              <p style={{ fontSize: 12, color: "#6a6a7a", fontWeight: 600 }}>{r.count}건 · 월 {r.monthlyRent.toLocaleString()}만</p>
             </div>
           ))}
         </div>
