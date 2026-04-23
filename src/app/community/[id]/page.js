@@ -23,6 +23,7 @@ export async function generateMetadata({ params }) {
   if (!data?.post) return { title: "게시글을 찾을 수 없습니다" };
   const p = data.post;
   const excerpt = (p.content || "").replace(/\s+/g, " ").slice(0, 150);
+  const ogImage = `https://www.ownly.kr/api/og/community/${p.id}`;
   return {
     title: `${p.title} — 임대인 커뮤니티`,
     description: excerpt,
@@ -33,11 +34,13 @@ export async function generateMetadata({ params }) {
       url: `https://www.ownly.kr/community/${p.id}`,
       type: "article",
       publishedTime: p.created_at,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: p.title }],
     },
     twitter: {
       card: "summary_large_image",
       title: p.title,
       description: excerpt,
+      images: [ogImage],
     },
   };
 }

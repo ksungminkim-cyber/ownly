@@ -1,5 +1,5 @@
 // src/app/dashboard/settings/page.js
-"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname"; import { isSupported as isPushSupported, getPermission as getPushPermission, isEnabled as isPushEnabled, requestPermission as requestPushPermission, setEnabled as setPushEnabled, getCategories as getPushCats, setCategories as setPushCats, notify as pushNotify } from "../../../lib/notifications";
+"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname"; import ReferralSection from "../../../components/ReferralSection"; import { isSupported as isPushSupported, getPermission as getPushPermission, isEnabled as isPushEnabled, requestPermission as requestPushPermission, setEnabled as setPushEnabled, getCategories as getPushCats, setCategories as setPushCats, notify as pushNotify } from "../../../lib/notifications";
 
 // 주간 뉴스레터 구독
 function NewsletterSubscription({ user }) {
@@ -472,6 +472,7 @@ export default function SettingsPage() {
       )}
 
       {/* ✅ ① 알림 설정 */}
+      <ReferralSection />
       <NotificationSettings />
       <BrowserNotificationSettings />
       <NewsletterSubscription user={user} />

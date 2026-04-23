@@ -22,11 +22,22 @@ export default function AuthPage() {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get("mode");
     if (mode === "signup" || mode === "login") setTab(mode);
+    // 초대 코드 감지 → localStorage에 저장 (로그인 완료 후 callback에서 적용)
+    const ref = params.get("ref");
+    if (ref && /^[A-Z0-9]{4,12}$/i.test(ref)) {
+      try { localStorage.setItem("ownly_invite_code", ref.toUpperCase()); } catch {}
+      setTab("signup");
+    }
     const err = params.get("error");
     if (err === "naver_denied")        setErrors({ submit: "네이버 로그인이 취소되었습니다." });
     else if (err === "naver_failed")   setErrors({ submit: "네이버 로그인 중 오류가 발생했습니다. 다시 시도해주세요." });
     else if (err === "naver_state_mismatch") setErrors({ submit: "보안 오류가 발생했습니다. 다시 시도해주세요." });
     else if (params.get("msg") === "deleted") setErrors({ submit: "회원 탈퇴가 완료되었습니다." });
+  }, []);
+
+  const [inviteCode, setInviteCode] = useState("");
+  React.useEffect(() => {
+    try { setInviteCode(localStorage.getItem("ownly_invite_code") || ""); } catch {}
   }, []);
 
   const [errors, setErrors] = useState({});

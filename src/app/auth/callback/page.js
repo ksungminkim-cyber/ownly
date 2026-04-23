@@ -31,8 +31,27 @@ export default function AuthCallbackPage() {
             });
           }
 
+          // 초대 코드 있으면 적용 (양쪽 +30일)
+          try {
+            const code = localStorage.getItem("ownly_invite_code");
+            if (code) {
+              const res = await fetch("/api/invite/apply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
+                body: JSON.stringify({ code }),
+              });
+              const d = await res.json();
+              if (d.ok) {
+                setStatus(`🎁 초대 보상 ${d.rewardDays}일 무료 체험 적립!`);
+                localStorage.removeItem("ownly_invite_code");
+              } else {
+                localStorage.removeItem("ownly_invite_code");
+              }
+            }
+          } catch {}
+
           setStatus("✅ 인증 완료! 대시보드로 이동합니다...");
-          setTimeout(() => router.push("/dashboard"), 800);
+          setTimeout(() => router.push("/dashboard"), 1200);
         } else {
           // hash에서 직접 처리 (매직링크 등)
           const hash = window.location.hash;
