@@ -38,12 +38,21 @@ begin
     )::text as full_name,
     (u.raw_user_meta_data->>'nickname')::text as nickname,
     (u.raw_user_meta_data->>'phone')::text as phone,
-    -- provider 우선순위: app_meta_data.provider (OAuth 네이티브) > user_meta_data.provider (네이버 커스텀) > email
-    coalesce(
-      nullif(u.raw_app_meta_data->>'provider', ''),
-      nullif(u.raw_user_meta_data->>'provider', ''),
-      'email'
-    )::text as provider,
+    -- provider 판별 우선순위:
+    --   1. naver_id 메타데이터 존재 → naver (커스텀 플로우 마커)
+    --   2. user_meta_data.provider (네이버 커스텀 등)
+    --   3. raw_app_meta_data.provider (Supabase 네이티브 OAuth: google/kakao)
+    --   4. 'email' (일반 가입)
+    -- 주의: Supabase는 admin API로 유저 생성 시 raw_app_meta_data.provider 를 자동으로 'email'로 설정
+    -- 이 때문에 단순 COALESCE(app_meta → user_meta) 순서는 네이버 유저를 'email'로 오분류함
+    case
+      when u.raw_user_meta_data->>'naver_id' is not null then 'naver'
+      when u.raw_user_meta_data->>'provider' is not null and u.raw_user_meta_data->>'provider' != ''
+        then u.raw_user_meta_data->>'provider'
+      when u.raw_app_meta_data->>'provider' is not null and u.raw_app_meta_data->>'provider' != ''
+        then u.raw_app_meta_data->>'provider'
+      else 'email'
+    end::text as provider,
     case
       when u.raw_app_meta_data->'providers' is not null
         then array(select jsonb_array_elements_text(u.raw_app_meta_data->'providers'))
