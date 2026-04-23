@@ -265,7 +265,8 @@ export default function CommunityPage() {
 
   const copyPostLink = (postId) => {
     if (typeof window === "undefined") return;
-    const url = `${window.location.origin}/dashboard/community/posts/${postId}`;
+    // 외부 공유용 공개 URL (로그인 불필요, SEO 최적화된 페이지)
+    const url = `${window.location.origin}/community/${postId}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(() => toast("🔗 링크가 복사되었습니다")).catch(() => toast(url, "error"));
     }
