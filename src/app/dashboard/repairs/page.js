@@ -35,7 +35,7 @@ export default function RepairsPage() {
       toast("수리 이력이 저장됐습니다 — 간편 장부에도 자동 기록됐어요");
       setShowForm(false);
       setForm({ date: new Date().toISOString().slice(0,10), category:"기타", vendor:"", cost:0, memo:"", receipt_yn:false, tenant_id:"", property_name:"" });
-    } catch { toast("저장 중 오류가 발생했습니다", "error"); }
+    } catch (e) { toast(`저장 실패: ${e?.message || "알 수 없는 오류"}`, "error"); console.error("[repairs]", e); }
     finally { setSaving(false); }
   };
 
