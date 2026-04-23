@@ -21,6 +21,14 @@ const STATUS_META = {
   trial:     { label: "체험",   color: "#5b4fcf", bg: "#eeeaff" },
 };
 
+const PROVIDER_META = {
+  email:  { label: "이메일", icon: "📧", color: "#8a8a9a", bg: "#f0efe9" },
+  google: { label: "Google", icon: "🔴", color: "#ea4335", bg: "#fdeaea" },
+  kakao:  { label: "카카오", icon: "🟡", color: "#b8860b", bg: "#fff6d0" },
+  naver:  { label: "네이버", icon: "🟢", color: "#1ec800", bg: "#e6f9e0" },
+  github: { label: "GitHub", icon: "⚫", color: "#1a1a2e", bg: "#e8e6e0" },
+};
+
 export default function AdminPage() {
   const { user } = useApp();
   const router = useRouter();
@@ -136,6 +144,8 @@ function AdminContent({ currentUser }) {
           full_name: u.full_name || null,
           phone: u.phone || null,
           nickname: u.nickname || null,
+          provider: u.provider || "email",
+          providers: u.providers || [],
           created_at: u.created_at || null,
           last_sign_in_at: u.last_sign_in_at || null,
           tenant_count: hasFullDetails ? (u.tenant_count || 0) : null,
@@ -214,6 +224,8 @@ function AdminContent({ currentUser }) {
     !search ||
     u.id.includes(search) ||
     (u.email || "").toLowerCase().includes(search.toLowerCase()) ||
+    (u.provider || "").toLowerCase().includes(search.toLowerCase()) ||
+    (PROVIDER_META[u.provider]?.label || "").toLowerCase().includes(search.toLowerCase()) ||
     (u.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
     (u.nickname || "").toLowerCase().includes(search.toLowerCase()) ||
     (u.phone || "").includes(search) ||
@@ -275,6 +287,10 @@ function AdminContent({ currentUser }) {
           { l: "무료", v: users.filter(u => u.plan === "free").length, c: "#8a8a9a", bg: "#f8f7f4" },
           { l: "플러스", v: users.filter(u => u.plan === "plus").length, c: "#4f46e5", bg: "#eeeefe" },
           { l: "프로", v: users.filter(u => u.plan === "pro").length, c: "#c9920a", bg: "#fdf6e3" },
+          { l: "📧 이메일", v: users.filter(u => (u.provider || "email") === "email").length, c: "#8a8a9a", bg: "#f0efe9" },
+          { l: "🟢 네이버", v: users.filter(u => u.provider === "naver").length, c: "#1ec800", bg: "#e6f9e0" },
+          { l: "🟡 카카오", v: users.filter(u => u.provider === "kakao").length, c: "#b8860b", bg: "#fff6d0" },
+          { l: "🔴 Google", v: users.filter(u => u.provider === "google").length, c: "#ea4335", bg: "#fdeaea" },
         ].map(k => (
           <div key={k.l} style={{ background: k.bg, border: "1px solid " + k.c + "22", borderRadius: 14, padding: "14px 16px" }}>
             <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>{k.l}</p>
@@ -307,7 +323,7 @@ function AdminContent({ currentUser }) {
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
                 <thead>
                   <tr style={{ background: "#f8f7f4", borderBottom: "2px solid #ebe9e3" }}>
-                    {["유저", "이메일", "전화", "가입일", "마지막 접속", "보유", "플랜", "상태", "만료일", "액션"].map(h => (
+                    {["유저", "가입", "이메일", "전화", "가입일", "마지막 접속", "보유", "플랜", "상태", "만료일", "액션"].map(h => (
                       <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".5px", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -327,6 +343,13 @@ function AdminContent({ currentUser }) {
                             </span>
                             <span style={{ fontSize: 9, fontFamily: "monospace", color: "#a0a0b0" }}>{u.id.slice(0, 8)}...</span>
                           </div>
+                        </td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                          {(() => { const pv = PROVIDER_META[u.provider] || PROVIDER_META.email; return (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: pv.color, background: pv.bg, padding: "3px 9px", borderRadius: 20, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <span>{pv.icon}</span>{pv.label}
+                            </span>
+                          ); })()}
                         </td>
                         <td style={{ padding: "10px 14px", fontSize: 12, color: u.email ? "#1a2744" : "#c0c0cc" }}>
                           {u.email || <span style={{ color: "#e8960a", fontSize: 11 }}>⚠️ RPC 필요</span>}
