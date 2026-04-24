@@ -1,4 +1,4 @@
-"use client"; import { useState, useEffect } from "react"; import { useRouter, usePathname } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast, PageLoader } from "../../components/shared"; import OnboardingModal from "../../components/OnboardingModal"; import { SearchOverlay } from "../../components/GlobalSearch"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; import SiteFooter from "../../components/SiteFooter";
+"use client"; import { useState, useEffect } from "react"; import { useRouter, usePathname } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast } from "../../components/shared"; import OnboardingModal from "../../components/OnboardingModal"; import { SearchOverlay } from "../../components/GlobalSearch"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; import SiteFooter from "../../components/SiteFooter";
 
 function DashboardShell({ children }) {
   const router = useRouter();
@@ -6,28 +6,37 @@ function DashboardShell({ children }) {
   const { loading, user } = useApp();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const handleLogout = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
-  // 🔒 비로그인 유저는 로그인 페이지로 리디렉트
+  // 🔒 비로그인 유저는 로그인 페이지로 리디렉트 (세션 확인 끝난 후에만)
   useEffect(() => {
-    if (!loading && !user) {
-      const next = encodeURIComponent(pathname || "/dashboard");
-      router.replace(`/login?next=${next}`);
+    if (!loading) {
+      if (!user) {
+        const next = encodeURIComponent(pathname || "/dashboard");
+        router.replace(`/login?next=${next}`);
+      } else {
+        setAuthChecked(true);
+      }
     }
   }, [loading, user, pathname, router]);
 
-  // 인증 확인 전이거나 리디렉트 중에는 로더만 노출 (대시보드 셸 숨김)
-  if (loading || !user) {
-    return <PageLoader />;
-  }
-
+  // 비로그인 상태에서 리디렉트 트리거되기 전에 셸을 렌더하지 않으면 깜빡임 UX 발생
+  // → 셸은 항상 렌더하고, main 영역만 로더 처리해서 즉시 레이아웃 노출
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'Pretendard','DM Sans',system-ui,sans-serif" }}>
       <MobileHeader onMoreClick={() => setDrawerOpen(true)} onSearchClick={() => setSearchOpen(true)} />
       <div style={{ display: "flex" }}>
         <Sidebar onLogout={handleLogout} onSearchClick={() => setSearchOpen(true)} />
         <main className="main-content" style={{ flex: 1, minHeight: "100vh", background: "var(--bg)", minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <div style={{ flex: 1 }}>{children}</div>
+          <div style={{ flex: 1 }}>
+            {authChecked ? children : (
+              <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 28, height: 28, border: "2.5px solid rgba(91,79,207,0.2)", borderTopColor: "#5b4fcf", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            )}
+          </div>
           <RealEstateTicker />
           <SiteFooter />
         </main>
