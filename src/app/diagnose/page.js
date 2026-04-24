@@ -193,6 +193,18 @@ export default function DiagnosePage() {
                 무료 30일 체험 시작 →
               </Link>
             </section>
+
+            {/* 관련 도구 */}
+            <section style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Link href="/sise" style={{ padding: "14px 16px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, textDecoration: "none", color: "#1a2744" }}>
+                <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>🗺️ 이 지역 전체 시세</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#5b4fcf" }}>전국 46개 지역 실거래 →</p>
+              </Link>
+              <Link href="/tools/yield" style={{ padding: "14px 16px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, textDecoration: "none", color: "#1a2744" }}>
+                <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>📊 수익률 계산</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#e8960a" }}>10년 시뮬레이션 →</p>
+              </Link>
+            </section>
           </>
         )}
       </div>

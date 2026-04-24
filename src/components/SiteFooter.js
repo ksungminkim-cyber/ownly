@@ -40,12 +40,14 @@ export default function SiteFooter({ hasFixedBar = false }) {
             rowGap: 6,
           }}>
             {[
-              { label: "서비스 이용약관", href: "/legal/terms" },
-              { label: "개인정보처리방침", href: "/legal/privacy" },
-              { label: "공지사항", href: "/legal/notice" },
-              { label: "FAQ", href: "/legal/faq" },
+              { label: "전국 시세", href: "/sise" },
+              { label: "등급 진단", href: "/diagnose" },
+              { label: "수익률 계산기", href: "/tools/yield" },
+              { label: "커뮤니티", href: "/community" },
               { label: "임대인 가이드", href: "/blog" },
-              { label: "커뮤니티", href: "/dashboard/community" },
+              { label: "FAQ", href: "/legal/faq" },
+              { label: "이용약관", href: "/legal/terms" },
+              { label: "개인정보처리방침", href: "/legal/privacy" },
             ].map(l => (
               <Link key={l.label} href={l.href}
                 style={{ fontSize: 12, color: "#8a8a9a", textDecoration: "none", whiteSpace: "nowrap" }}

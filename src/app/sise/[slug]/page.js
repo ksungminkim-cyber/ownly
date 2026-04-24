@@ -241,12 +241,22 @@ export default async function RegionMarketPage({ params }) {
             <section style={{ marginTop: 32, background: "linear-gradient(135deg,#1a2744,#5b4fcf)", color: "#fff", borderRadius: 16, padding: "28px 26px" }}>
               <p style={{ fontSize: 18, fontWeight: 900, marginBottom: 8 }}>내 물건 시세, 이 데이터로 계산해드려요</p>
               <p style={{ fontSize: 13, opacity: 0.85, marginBottom: 18, lineHeight: 1.7 }}>
-                {region.name} 실거래 + 내 물건 주소·평형을 넣으면 AI가 적정 임대료 범위와 시장 포지션을 분석합니다.<br />
-                무료 가입 → 30일 프로 체험
+                {region.name} 실거래 + 내 물건 주소·평형을 넣으면 AI가 적정 임대료 범위와 시장 포지션을 분석합니다.
               </p>
-              <Link href="/login?mode=signup" style={{ display: "inline-block", padding: "11px 26px", background: "#fff", color: "#1a2744", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
-                내 물건 시세 진단 받기 →
-              </Link>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link href={`/diagnose?addr=${encodeURIComponent(region.name + " ")}`} style={{ display: "inline-block", padding: "11px 22px", background: "#fff", color: "#1a2744", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
+                  🎯 내 물건 등급 진단 (무료) →
+                </Link>
+                <Link href="/tools/yield" style={{ display: "inline-block", padding: "11px 22px", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                  📊 수익률 계산
+                </Link>
+              </div>
+            </section>
+
+            {/* 다른 지역 */}
+            <section style={{ marginTop: 14, padding: "14px 20px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, fontSize: 13, color: "#6a6a7a", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+              <span>다른 지역 시세도 궁금하신가요?</span>
+              <Link href="/sise" style={{ color: "#5b4fcf", fontWeight: 700, textDecoration: "none" }}>전국 46개 지역 →</Link>
             </section>
 
             {/* 출처 */}
