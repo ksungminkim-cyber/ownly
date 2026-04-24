@@ -52,41 +52,90 @@ async function fetchMolitRows(type, lawdCd, numMonths = 3) {
   return rows;
 }
 
-// 임대 데이터 통계 — 월세(monthlyRent) > 0인 행만
+// 임대 데이터 통계 — 월세(monthlyRent) > 0인 행만 + 면적 기반 평당 월세 집계
 function analyzeRentRows(rows) {
-  const monthly = rows
-    .map(r => Number(r.monthlyRent || 0))
-    .filter(v => v > 0)
-    .sort((a, b) => a - b);
+  // 면적 읽기 유틸 (MOLIT: excluUseAr = 전용면적㎡, totalFloorAr = 단독주택 연면적)
+  const areaSqm = (r) => Number(String(r.excluUseAr || r.totalFloorAr || r.bldArea || 0).replace(/,/g, "").trim());
+  const toPyeong = (sqm) => sqm > 0 ? Math.round(sqm / 3.3058 * 10) / 10 : 0;
+
+  const monthly = rows.map(r => Number(r.monthlyRent || 0)).filter(v => v > 0).sort((a, b) => a - b);
   if (monthly.length === 0) return null;
   const median = monthly[Math.floor(monthly.length / 2)];
   const avg = Math.round(monthly.reduce((s, v) => s + v, 0) / monthly.length);
   const p25 = monthly[Math.floor(monthly.length * 0.25)];
   const p75 = monthly[Math.floor(monthly.length * 0.75)];
-  // 보증금 통계
+
   const deposits = rows.map(r => Number(r.deposit || 0)).filter(v => v > 0).sort((a, b) => a - b);
   const medDep = deposits.length > 0 ? deposits[Math.floor(deposits.length / 2)] : 0;
-  return { median, avg, p25, p75, medDep, count: monthly.length, rentCount: monthly.length, totalRows: rows.length };
+
+  // 평당 월세 — 월세·면적 모두 유효한 행만 사용
+  const rentPerPyList = rows
+    .map(r => ({ rent: Number(r.monthlyRent || 0), py: toPyeong(areaSqm(r)) }))
+    .filter(x => x.rent > 0 && x.py > 0)
+    .map(x => x.rent / x.py);
+  const avgRentPerPy = rentPerPyList.length > 0
+    ? Math.round(rentPerPyList.reduce((s, v) => s + v, 0) / rentPerPyList.length * 10) / 10
+    : 0;
+
+  const pyList = rows.map(r => toPyeong(areaSqm(r))).filter(v => v > 0);
+  const avgAreaPy = pyList.length > 0
+    ? Math.round(pyList.reduce((s, v) => s + v, 0) / pyList.length * 10) / 10
+    : 0;
+
+  // 샘플 comparables — 실제 MOLIT 3건 골라서 반환 (면적·월세·보증금 포함)
+  const samples = rows
+    .filter(r => Number(r.monthlyRent || 0) > 0 && areaSqm(r) > 0)
+    .slice(0, 3)
+    .map(r => ({
+      type: `${r.aptName || r.houseType || r.offiNm || "인근 실거래"}${r.floor ? ` ${r.floor}층` : ""}`,
+      rent: Number(r.monthlyRent),
+      deposit: Number(r.deposit || 0),
+      areaPyeong: toPyeong(areaSqm(r)),
+      note: `${r.dealYear || ""}.${String(r.dealMonth || "").padStart(2, "0")} 실거래 · ${r.buildYear ? `${r.buildYear}년 준공` : ""}`.trim(),
+    }));
+
+  return { median, avg, p25, p75, medDep, avgRentPerPy, avgAreaPy, count: monthly.length, rentCount: monthly.length, totalRows: rows.length, samples };
 }
 
 // 매매 데이터 통계 — 상가/토지는 전월세 데이터가 없으므로 매매가로 임대료 역산
 function analyzeTradeRows(rows, propertyType) {
-  // 매매 금액 (만원 단위) — MOLIT는 dealAmount가 문자열 "100,000" 형태
-  const prices = rows
-    .map(r => Number(String(r.dealAmount || "0").replace(/,/g, "").trim()))
-    .filter(v => v > 0)
-    .sort((a, b) => a - b);
+  // 면적 읽기: 상가는 bldArea (건축면적), 토지는 dealArea (거래면적)
+  const areaSqm = (r) => Number(String(r.bldArea || r.buildingAr || r.dealArea || r.plottageAr || 0).replace(/,/g, "").trim());
+  const toPyeong = (sqm) => sqm > 0 ? Math.round(sqm / 3.3058 * 10) / 10 : 0;
+
+  const prices = rows.map(r => Number(String(r.dealAmount || "0").replace(/,/g, "").trim())).filter(v => v > 0).sort((a, b) => a - b);
   if (prices.length === 0) return null;
 
   const median = prices[Math.floor(prices.length / 2)];
   const avg = Math.round(prices.reduce((s, v) => s + v, 0) / prices.length);
 
-  // 수익률(Capitalization Rate) 가정: 상가 5%, 토지 2%, 기타 4%
+  // Cap Rate: 상가 5%, 토지 2%, 기타 4%
   const capRate = propertyType === "상가" ? 0.05 : propertyType === "토지" ? 0.02 : 0.04;
-  // 예상 월세 = 매매가 × 연수익률 ÷ 12 (만원)
   const estimatedMonthlyRent = Math.round((median * capRate) / 12);
-  // 예상 보증금 (월세의 10배 가정 관례)
   const estimatedDeposit = estimatedMonthlyRent * 10;
+
+  // 면적 통계 (평당 역산)
+  const pyList = rows.map(r => toPyeong(areaSqm(r))).filter(v => v > 0);
+  const avgAreaPy = pyList.length > 0
+    ? Math.round(pyList.reduce((s, v) => s + v, 0) / pyList.length * 10) / 10
+    : 0;
+  const avgRentPerPy = avgAreaPy > 0 ? Math.round(estimatedMonthlyRent / avgAreaPy * 10) / 10 : 0;
+
+  // 샘플 comparables — 실제 매매 3건으로 월세 역산
+  const samples = rows
+    .filter(r => Number(String(r.dealAmount || "0").replace(/,/g, "").trim()) > 0 && areaSqm(r) > 0)
+    .slice(0, 3)
+    .map(r => {
+      const price = Number(String(r.dealAmount || "0").replace(/,/g, "").trim());
+      const py = toPyeong(areaSqm(r));
+      return {
+        type: `${r.bldNm || r.aptNm || "인근 매매 실거래"}${r.floor ? ` ${r.floor}층` : ""}`,
+        rent: Math.round((price * capRate) / 12),
+        deposit: Math.round((price * capRate) / 12) * 10,
+        areaPyeong: py,
+        note: `매매 ${(price/10000).toFixed(1)}억 기반 추정 · 수익률 ${(capRate*100).toFixed(1)}%`,
+      };
+    });
 
   return {
     median: estimatedMonthlyRent,
@@ -94,11 +143,14 @@ function analyzeTradeRows(rows, propertyType) {
     p25: Math.round((prices[Math.floor(prices.length * 0.25)] * capRate) / 12),
     p75: Math.round((prices[Math.floor(prices.length * 0.75)] * capRate) / 12),
     medDep: estimatedDeposit,
+    avgRentPerPy,
+    avgAreaPy,
     count: prices.length,
     rentCount: 0,
     totalRows: rows.length,
     salesData: { medianPrice: median, avgPrice: avg, capRate },
     isEstimatedFromSales: true,
+    samples,
   };
 }
 
@@ -147,9 +199,11 @@ function buildPricingPrompt(address, propertyType, marketStats, options = {}) {
 - 월세 평균: ${marketStats.avg.toLocaleString()}만원
 - 25%~75% 구간: ${marketStats.p25}~${marketStats.p75}만원
 - 중위 보증금: ${marketStats.medDep.toLocaleString()}만원
-${marketStats.isEstimatedFromSales ? `- ⚠️ 이 수치는 매매 실거래(중위 ${marketStats.salesData.medianPrice.toLocaleString()}만원)에 연 수익률 ${(marketStats.salesData.capRate*100).toFixed(1)}%를 적용해 역산한 추정치입니다.` : ""}
+- 평균 전용면적: ${marketStats.avgAreaPy || "집계 불가"}평
+- 평당 월세 (계산값): ${marketStats.avgRentPerPy || "집계 불가"}만원/평
+${marketStats.isEstimatedFromSales ? `- ⚠️ 매매 실거래(중위 ${marketStats.salesData.medianPrice.toLocaleString()}만원)에 수익률 ${(marketStats.salesData.capRate*100).toFixed(1)}%를 적용해 역산한 추정치` : ""}
 
-위 실제 수치를 근거로 삼아 응답하세요.`
+**중요**: 위 실제 수치를 근거로 답하세요. comparables는 반드시 areaPyeong(전용면적 평) 포함.`
     : `
 ⚠️ **주의**: 이 지역의 실거래 데이터를 조회할 수 없었습니다.
 일반 시장 지식에 근거해 **추정치**로 분석하되, 보수적으로 수치를 제시하세요.`;
@@ -182,11 +236,12 @@ JSON 형식으로만 응답 (마크다운·코드블록·주석 금지):
   "marketPositionScore": 0,
   "avgRent": 100,
   "avgDeposit": 4000,
-  "pricePerSqm": 150,
+  "avgAreaPy": 20,
+  "rentPerPy": 5.0,
   "comparables": [
-    { "type": "인근 유사 매물 A", "rent": 90, "deposit": 3000, "note": "반경 300m 내" },
-    { "type": "인근 유사 매물 B", "rent": 100, "deposit": 4000, "note": "최근 6개월 거래" },
-    { "type": "인근 프리미엄 매물", "rent": 115, "deposit": 5000, "note": "리모델링 완료" }
+    { "type": "인근 유사 매물 A", "rent": 90, "deposit": 3000, "areaPyeong": 18, "note": "반경 300m 내" },
+    { "type": "인근 유사 매물 B", "rent": 100, "deposit": 4000, "areaPyeong": 20, "note": "최근 6개월 거래" },
+    { "type": "인근 프리미엄 매물", "rent": 115, "deposit": 5000, "areaPyeong": 22, "note": "리모델링 완료" }
   ],
   "strategy": "임대 전략 3문장",
   "vacancyRisk": "보통",
@@ -277,16 +332,36 @@ export async function POST(req) {
       result.comparables = result.comparables.map(c => ({ ...c, rent: toMan(c.rent), deposit: toMan(c.deposit) }));
     }
 
+    // 실거래 샘플이 있으면 AI comparables를 대체 (실 데이터 우선)
+    if (marketStats?.samples?.length) {
+      result.comparables = marketStats.samples;
+    }
+
+    // 평당 월세 — AI 값이 이상하거나 비어있으면 실측값으로 덮어씀
+    if (marketStats?.avgRentPerPy && (!result.rentPerPy || result.rentPerPy <= 0 || result.rentPerPy > 200)) {
+      result.rentPerPy = marketStats.avgRentPerPy;
+    }
+    if (marketStats?.avgAreaPy && !result.avgAreaPy) {
+      result.avgAreaPy = marketStats.avgAreaPy;
+    }
+
     // 메타데이터 추가
     result.address = address;
     result.propertyType = propertyType;
     result.analysisDate = new Date().toLocaleDateString("ko-KR");
     result.hasRealData = !!marketStats;
     result.marketStats = marketStats;
+    result.rawStats = marketStats ? {
+      avgRentPerPy: marketStats.avgRentPerPy,
+      avgAreaPy: marketStats.avgAreaPy,
+      median: marketStats.median,
+      medDep: marketStats.medDep,
+      count: marketStats.count,
+    } : null;
     result.dataNote = marketStats
       ? (marketStats.isEstimatedFromSales
           ? `📊 ${marketStats.source.split(" ")[0]} 실거래 ${marketStats.totalRows}건의 매매가를 기반으로 수익률 역산 (${propertyType} 월세 실거래 미공개)`
-          : `📊 국토부 실거래 ${marketStats.totalRows}건 (유효 ${marketStats.count}건) 분석`)
+          : `📊 국토부 실거래 ${marketStats.totalRows}건 (유효 ${marketStats.count}건, 평균 ${marketStats.avgAreaPy}평) 분석`)
       : null;
 
     return Response.json(result);
