@@ -78,8 +78,19 @@ export default function SiteFooter({ hasFixedBar = false }) {
             flex: 1,
             minWidth: 0,
           }}>
-            <span>(주)맥클린 · 대표 김성민 · 사업자등록번호 137-81-52231 · 통신판매업신고 제2026-경기김포-2785호</span>
-            <span>📍 경기도 김포시 양촌읍 유현삭시로241번길 86 · 📞 02-334-2211 · ✉ inquiry@mclean21.com</span>
+            <span>
+              (주)맥클린 · 대표 김성민 · 사업자등록번호 137-81-52231
+              {" · "}
+              <a
+                href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=1378152231"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#8a8a9a", textDecoration: "underline" }}
+              >사업자정보확인</a>
+              {" · "}
+              통신판매업신고 제2026-경기김포-2785호
+            </span>
+            <span>📍 경기도 김포시 양촌읍 유현삭시로241번길 86 · 📞 02-334-2211 · ✉ inquiry@mclean21.com · 고객센터 평일 10:00~18:00</span>
           </div>
           <span style={{ fontSize: 11, color: "#b0b0be", whiteSpace: "nowrap", flexShrink: 0 }}>© 2025 McLean Inc.</span>
         </div>
