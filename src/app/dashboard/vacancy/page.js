@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, EmptyState, Modal, AuthInput, toast, ConfirmDialog } from "../../../components/shared"; import { C, COLORS } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import PlanGate from "../../../components/PlanGate"; import AddressInput from "../../../components/AddressInput";
+"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, EmptyState, Modal, AuthInput, toast, ConfirmDialog } from "../../../components/shared"; import { C, COLORS } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import PlanGate from "../../../components/PlanGate"; import AddressInput from "../../../components/AddressInput";
 
 const TYPE_CONFIG = { 주거: { icon: "🏠", color: C.indigo, subs: ["아파트","빌라","오피스텔","단독주택","원룸","투룸"] }, 상가: { icon: "🏪", color: C.amber, subs: ["1층 상가","집합상가","근린상가","오피스"] }, 오피스텔: { icon: "🏢", color: C.purple, subs: ["오피스텔(주거)","오피스텔(업무)"] }, 토지: { icon: "🌳", color: "#0d9488", subs: ["나대지","농지","임야","대지"] } };
 
@@ -77,12 +77,14 @@ export default function VacancyPage() { return <PlanGate feature="vacancy"><Vaca
 
 function VacancyContent() {
   const router = useRouter();
-  const { tenants, vacancies, addVacancy, deleteVacancy, updateTenant } = useApp();
+  const { tenants, vacancies, addVacancy, deleteVacancy, updateTenant, setVacancies } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [filterType, setFilterType] = useState("전체");
   const [completeTarget, setCompleteTarget] = useState(null);
   const [copyTarget, setCopyTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null); // 편집 중인 공실 id (null이면 신규)
   const [openPlan, setOpenPlan] = useState(null); // 액션플랜 열린 공실 id
   const [checkedSteps, setCheckedSteps] = useState({}); // {vacancyId_stepId: bool}
 
@@ -107,7 +109,49 @@ function VacancyContent() {
     setCheckedSteps(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleAdd = async()=>{ if(!form.addr){toast("주소를 입력하세요","error");return;} setSaving(true); try{ await addVacancy({addr:form.addr,p_type:form.pType,sub_type:form.sub,vacant_since:form.vacantSince,expected_rent:Number(form.expectedRent||0),deposit:Number(form.dep||0),maintenance:Number(form.maintenance||0),note:form.note,color:COLORS[Math.floor(Math.random()*COLORS.length)]}); toast("공실이 등록되었습니다"); setShowModal(false); setForm(initForm()); }catch{ toast("등록 중 오류가 발생했습니다","error"); }finally{ setSaving(false); } };
+  const handleAdd = async()=>{
+    if(!form.addr){toast("주소를 입력하세요","error");return;}
+    setSaving(true);
+    try{
+      const payload = { addr:form.addr, p_type:form.pType, sub_type:form.sub, vacant_since:form.vacantSince, expected_rent:Number(form.expectedRent||0), deposit:Number(form.dep||0), maintenance:Number(form.maintenance||0), note:form.note };
+      if (editTarget) {
+        // 수정
+        const { data: updated, error } = await supabase.from("vacancies").update(payload).eq("id", editTarget).select().single();
+        if (error) throw error;
+        setVacancies(prev => prev.map(v => v.id === editTarget ? updated : v));
+        toast("공실 정보가 수정되었습니다");
+      } else {
+        // 신규
+        await addVacancy({ ...payload, color:COLORS[Math.floor(Math.random()*COLORS.length)] });
+        toast("공실이 등록되었습니다");
+      }
+      setShowModal(false); setEditTarget(null); setForm(initForm());
+    }catch(err){ toast("처리 중 오류: " + (err.message || ""), "error"); }
+    finally{ setSaving(false); }
+  };
+  const handleDelete = async()=>{
+    const v = deleteTarget;
+    if (!v) return;
+    try {
+      await deleteVacancy(v.id);
+      toast("공실이 삭제되었습니다");
+      setDeleteTarget(null);
+    } catch { toast("삭제 중 오류가 발생했습니다","error"); setDeleteTarget(null); }
+  };
+  const startEdit = (v) => {
+    setEditTarget(v.id);
+    setForm({
+      addr: gf(v,"addr","address") || "",
+      pType: gf(v,"p_type","pType") || "주거",
+      sub: gf(v,"sub_type","sub") || "아파트",
+      vacantSince: gf(v,"vacant_since","vacantSince") || new Date().toISOString().slice(0,10),
+      expectedRent: String(gf(v,"expected_rent","expectedRent") || ""),
+      dep: String(gf(v,"deposit","dep") || ""),
+      maintenance: String(v.maintenance || ""),
+      note: v.note || "",
+    });
+    setShowModal(true);
+  };
   const handleComplete = async()=>{ const v=completeTarget; if(!v)return; try{ v._source==="tenant" ? await updateTenant(v.tenantId,{status:"정상"}) : await deleteVacancy(v.id); toast("임대 완료 처리되었습니다"); setCompleteTarget(null); router.push("/dashboard/properties"); }catch{ toast("처리 중 오류가 발생했습니다","error"); setCompleteTarget(null); } };
   const copyListing = (v) => { const text = buildListingText(v, gf); if (navigator.clipboard) { navigator.clipboard.writeText(text).then(()=>toast("📋 복사 완료! 네이버·직방·다방에 바로 붙여넣기 하세요")).catch(()=>setCopyTarget(v)); } else { setCopyTarget(v); } };
 
@@ -224,6 +268,14 @@ function VacancyContent() {
                       <button onClick={()=>setCompleteTarget(v)} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:`1px solid ${C.emerald}40`, background:C.emerald+"12", color:"#0fa573" }}>✅ 임대 완료</button>
                       <button onClick={()=>copyListing(v)} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid rgba(59,91,219,0.35)", background:"rgba(59,91,219,0.07)", color:"#3b5bdb" }}>📋 매물 정보 복사</button>
                       <button onClick={()=>router.push("/dashboard/premium/ai-report")} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid rgba(15,165,115,0.3)", background:"rgba(15,165,115,0.06)", color:"#0fa573" }}>🤖 AI 시세 분석</button>
+                      {v._source === "tenant" ? (
+                        <button onClick={()=>router.push("/dashboard/properties")} style={{ padding:"7px 14px", borderRadius:9, fontSize:11, fontWeight:700, cursor:"pointer", border:"1px solid #ebe9e3", background:"transparent", color:"#8a8a9a" }}>📋 물건 관리에서 수정</button>
+                      ) : (
+                        <div style={{ display:"flex", gap:5 }}>
+                          <button onClick={()=>startEdit(v)} style={{ flex:1, padding:"7px 0", borderRadius:9, fontSize:11, fontWeight:700, cursor:"pointer", border:"1px solid #ebe9e3", background:"transparent", color:"#6a6a7a" }}>✏️ 수정</button>
+                          <button onClick={()=>setDeleteTarget(v)} style={{ flex:1, padding:"7px 0", borderRadius:9, fontSize:11, fontWeight:700, cursor:"pointer", border:`1px solid ${C.rose}40`, background:"transparent", color:C.rose }}>🗑️ 삭제</button>
+                        </div>
+                      )}
                       <p style={{ fontSize:10, color:"#8a8a9a", textAlign:"center", margin:0 }}>공실 {days}일째</p>
                     </div>
                   </div>
@@ -283,8 +335,10 @@ function VacancyContent() {
 
       <ConfirmDialog open={!!completeTarget} title="임대 완료 처리" desc={completeTarget?`${gf(completeTarget,"addr","address")} 공실을 임대 완료 처리합니다. 처리 후 물건 관리 페이지로 이동해서 새 세입자 정보를 입력하시겠습니까?`:""} onConfirm={handleComplete} onCancel={()=>setCompleteTarget(null)} />
 
-      <Modal open={showModal} onClose={()=>{ setShowModal(false); setForm(initForm()); }}>
-        <h2 style={{ fontSize:19, fontWeight:800, color:"#1a2744", marginBottom:16 }}>공실 등록</h2>
+      <ConfirmDialog open={!!deleteTarget} title="공실 삭제" desc={deleteTarget?`"${gf(deleteTarget,"addr","address")}" 공실을 삭제합니다. 되돌릴 수 없습니다. 계속하시겠습니까?`:""} onConfirm={handleDelete} onCancel={()=>setDeleteTarget(null)} />
+
+      <Modal open={showModal} onClose={()=>{ setShowModal(false); setEditTarget(null); setForm(initForm()); }}>
+        <h2 style={{ fontSize:19, fontWeight:800, color:"#1a2744", marginBottom:16 }}>{editTarget ? "공실 수정" : "공실 등록"}</h2>
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           <div><p style={{ fontSize:11, color:"#8a8a9a", fontWeight:700, letterSpacing:".5px", textTransform:"uppercase", marginBottom:8 }}>물건 유형</p><div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:7 }}>{Object.entries(TYPE_CONFIG).map(([type,cfg])=><button key={type} onClick={()=>setForm(f=>({...f,pType:type,sub:cfg.subs[0]}))} style={{ padding:"9px 0", borderRadius:10, fontSize:12, fontWeight:700, cursor:"pointer", border:`2px solid ${form.pType===type?cfg.color:"#ebe9e3"}`, background:form.pType===type?cfg.color+"18":"transparent", color:form.pType===type?cfg.color:"#8a8a9a" }}>{cfg.icon} {type}</button>)}</div></div>
           <div><p style={{ fontSize:11, color:"#8a8a9a", fontWeight:700, letterSpacing:".5px", textTransform:"uppercase", marginBottom:8 }}>세부 유형</p><div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{(TYPE_CONFIG[form.pType]?.subs||[]).map(s=><button key={s} onClick={()=>setForm(f=>({...f,sub:s}))} style={{ padding:"6px 13px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", border:`1px solid ${form.sub===s?TYPE_CONFIG[form.pType]?.color:"#ebe9e3"}`, background:form.sub===s?TYPE_CONFIG[form.pType]?.color+"18":"transparent", color:form.sub===s?TYPE_CONFIG[form.pType]?.color:"#8a8a9a" }}>{s}</button>)}</div></div>
@@ -293,7 +347,7 @@ function VacancyContent() {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}><AuthInput label="기대 월세 (만원)" placeholder="120" value={form.expectedRent} onChange={e=>setForm(f=>({...f,expectedRent:e.target.value}))} icon="💰" /><AuthInput label="보증금 (만원)" placeholder="5000" value={form.dep} onChange={e=>setForm(f=>({...f,dep:e.target.value}))} icon="🏦" /></div>
           {showMaint&&<div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}><AuthInput label="관리비 (만원/월)" placeholder="15" value={form.maintenance} onChange={e=>setForm(f=>({...f,maintenance:e.target.value}))} icon="🏢" /><div style={{ background:"rgba(15,165,115,0.06)", border:"1px solid rgba(15,165,115,0.2)", borderRadius:10, padding:"10px 13px" }}><p style={{ fontSize:11, fontWeight:700, color:"#0fa573", marginBottom:3 }}>총 월 수익 (예상)</p><p style={{ fontSize:14, fontWeight:800, color:"#1a2744" }}>{totalRent>0?`${totalRent.toLocaleString()}만원`:"—"}</p></div></div>}
           <div><p style={{ fontSize:11, color:"#8a8a9a", fontWeight:700, letterSpacing:".5px", textTransform:"uppercase", marginBottom:7 }}>메모</p><textarea value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} placeholder="공실 관련 메모..." rows={2} style={{ width:"100%", padding:"11px 13px", fontSize:13, color:"#1a2744", background:"#f8f7f4", border:"1px solid #ebe9e3", borderRadius:10, resize:"vertical", outline:"none", fontFamily:"inherit" }} /></div>
-          <div style={{ display:"flex", gap:10 }}><button onClick={()=>{ setShowModal(false); setForm(initForm()); }} style={{ flex:1, padding:"12px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>취소</button><button onClick={handleAdd} disabled={saving} className="btn-primary" style={{ flex:2, padding:"12px", borderRadius:11, background:`linear-gradient(135deg,${C.indigo},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer", opacity:saving?0.7:1 }}>{saving?"등록 중...":"등록하기"}</button></div>
+          <div style={{ display:"flex", gap:10 }}><button onClick={()=>{ setShowModal(false); setEditTarget(null); setForm(initForm()); }} style={{ flex:1, padding:"12px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>취소</button><button onClick={handleAdd} disabled={saving} className="btn-primary" style={{ flex:2, padding:"12px", borderRadius:11, background:`linear-gradient(135deg,${C.indigo},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer", opacity:saving?0.7:1 }}>{saving?(editTarget?"수정 중...":"등록 중..."):(editTarget?"수정하기":"등록하기")}</button></div>
         </div>
       </Modal>
     </div>
