@@ -1,4 +1,5 @@
 import { POSTS_META } from "./blog/posts-meta";
+import { REGIONS } from "../lib/regions";
 import { createClient } from "@supabase/supabase-js";
 
 // 커뮤니티 인기 글 최근 100개 (재생성 1시간)
@@ -36,11 +37,21 @@ export default async function sitemap() {
     priority: 0.6,
   }));
 
+  // 지역별 시세 페이지 (실거래 기반 SEO 자산)
+  const siseRoutes = REGIONS.map(r => ({
+    url: `${base}/sise/${r.slug}`,
+    lastModified: now,
+    changeFrequency: "daily",
+    priority: 0.8,
+  }));
+
   return [
     { url: base,                          lastModified: now, changeFrequency: "weekly",  priority: 1.0 },
     { url: `${base}/features`,            lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${base}/community`,           lastModified: now, changeFrequency: "daily",   priority: 0.9 },
+    { url: `${base}/sise`,                lastModified: now, changeFrequency: "daily",   priority: 0.9 },
     { url: `${base}/blog`,                lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
+    ...siseRoutes,
     ...blogRoutes,
     ...communityRoutes,
     { url: `${base}/login`,               lastModified: now, changeFrequency: "monthly", priority: 0.7 },
