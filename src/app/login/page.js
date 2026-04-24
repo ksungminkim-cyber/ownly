@@ -59,7 +59,10 @@ export default function AuthPage() {
       if (tab === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.pw });
         if (error) throw error;
-        router.push("/dashboard");
+        // next 파라미터 있으면 원래 가려던 페이지로 복귀
+        const nextParam = new URLSearchParams(window.location.search).get("next");
+        const dest = nextParam && nextParam.startsWith("/") ? nextParam : "/dashboard";
+        router.push(dest);
       } else {
         // ✅ 회원가입 시 닉네임 자동 생성해서 포함
         const autoNickname = generateNickname();
