@@ -13,7 +13,9 @@ const STEPS = [
 export default function OnboardingModal() {
   const [step, setStep] = useState(0);
   const [pType, setPType] = useState("주거");
-  const [visible, setVisible] = useState(true);
+  // ✅ 초기값 false — SSR·초기 렌더에선 무조건 숨김 (깜빡임 제거)
+  // 마운트 후 localStorage 확인해서 미완료 유저만 노출
+  const [visible, setVisible] = useState(false);
 
   const close = (path) => {
     try { localStorage.setItem("ownly_onboarding_done", "1"); } catch(e) {}
@@ -23,11 +25,13 @@ export default function OnboardingModal() {
     }
   };
 
-  // 이미 완료됐으면 즉시 숨김
+  // 최초 진입 유저에게만 노출 (localStorage 플래그 없을 때만 true 설정)
   useEffect(() => {
-    if (localStorage.getItem("ownly_onboarding_done")) {
-      setVisible(false);
-    }
+    try {
+      if (!localStorage.getItem("ownly_onboarding_done")) {
+        setVisible(true);
+      }
+    } catch (e) { /* localStorage 접근 불가 환경 */ }
   }, []);
 
   if (!visible) return null;
