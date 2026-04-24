@@ -93,7 +93,7 @@ function VacancyContent() {
   const set = (k) => (val) => setForm(f=>({...f,[k]:val}));
   const gf = (v,...keys) => { for(const k of keys) if(v[k]!==undefined&&v[k]!==null) return v[k]; return ""; };
 
-  const tenantVacancies = useMemo(()=>tenants.filter(t=>t.status==="공실").map(t=>{const industry=extractIndustry(t.biz);return {_source:"tenant",id:"t_"+t.id,tenantId:t.id,addr:t.addr,p_type:t.pType,sub_type:t.sub,vacant_since:t.start_date||new Date().toISOString().slice(0,10),expected_rent:t.rent||0,deposit:t.dep||0,maintenance:t.maintenance||0,note:industry?`추천 업종: ${industry}`:"",color:t.color};}),[tenants]);
+  const tenantVacancies = useMemo(()=>tenants.filter(t=>t.status==="공실").map(t=>{const industry=extractIndustry(t.biz);return {_source:"tenant",id:"t_"+t.id,tenantId:t.id,addr:t.addr,p_type:t.pType,sub_type:t.sub,vacant_since:t.vacant_since||t.start_date||new Date().toISOString().slice(0,10),expected_rent:t.rent||0,deposit:t.dep||0,maintenance:t.maintenance||0,note:industry?`추천 업종: ${industry}`:"",color:t.color};}),[tenants]);
   const allVacancies = useMemo(()=>{ const s=new Set(vacancies.map(v=>v.addr)); return [...vacancies,...tenantVacancies.filter(tv=>!s.has(tv.addr))]; },[vacancies,tenantVacancies]);
   const totalUnits = tenants.filter(t=>t.status!=="공실").length + allVacancies.length;
   const vacancyRate = totalUnits>0 ? Math.round((allVacancies.length/totalUnits)*100) : 0;
