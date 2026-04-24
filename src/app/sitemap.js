@@ -50,6 +50,8 @@ export default async function sitemap() {
     { url: `${base}/features`,            lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${base}/community`,           lastModified: now, changeFrequency: "daily",   priority: 0.9 },
     { url: `${base}/sise`,                lastModified: now, changeFrequency: "daily",   priority: 0.9 },
+    { url: `${base}/tools/yield`,         lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${base}/diagnose`,            lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     { url: `${base}/blog`,                lastModified: now, changeFrequency: "weekly",  priority: 0.9 },
     ...siseRoutes,
     ...blogRoutes,
