@@ -56,6 +56,12 @@ export default function SiteFooter({ hasFixedBar = false }) {
                 {l.label}
               </Link>
             ))}
+            {/* 카카오톡 채널 — 다음 검색등록 요건 */}
+            <a href="http://pf.kakao.com/_ZBcxhX" target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "#3c1e1e", background: "#fee500", padding: "5px 10px", borderRadius: 7, textDecoration: "none", whiteSpace: "nowrap" }}
+              title="카카오톡 채널 '온리_ownly'로 문의">
+              💬 카카오톡 채널
+            </a>
           </nav>
         </div>
 
@@ -92,7 +98,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
               {" · "}
               통신판매업신고 제2026-경기김포-2785호
             </span>
-            <span>📍 경기도 김포시 양촌읍 유현삭시로241번길 86 · 📞 02-334-2211 · ✉ inquiry@mclean21.com · 고객센터 평일 10:00~18:00</span>
+            <span>📍 경기도 김포시 양촌읍 유현삭시로241번길 86 · 📞 02-334-2211 · ✉ inquiry@mclean21.com · 고객센터 평일 10:00~18:00 · 카카오톡 채널 <a href="http://pf.kakao.com/_ZBcxhX" target="_blank" rel="noopener noreferrer" style={{ color: "#a0a0b0", textDecoration: "underline" }}>온리_ownly</a> (@온리_ownly)</span>
           </div>
           <span style={{ fontSize: 11, color: "#b0b0be", whiteSpace: "nowrap", flexShrink: 0 }}>© 2025 McLean Inc.</span>
         </div>
