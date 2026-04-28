@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { calcPaymentRisk, RISK_CONFIG } from "../lib/paymentRisk";
+import { getInitial } from "../lib/initial";
 
 // 수금 위험 대시보드 위젯 — 주의/고위험 세입자 조기 경보
 export default function PaymentRiskWidget({ tenants = [], payments = [], onNavigate }) {
@@ -42,7 +43,7 @@ export default function PaymentRiskWidget({ tenants = [], payments = [], onNavig
             return (
               <div key={t.id} onClick={() => onNavigate?.("/dashboard/payments")}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid #f4f3f0", cursor: "pointer" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: (t.color || "#1a2744") + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: t.color || "#1a2744", flexShrink: 0 }}>{t.name?.[0]}</div>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: (t.color || "#1a2744") + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: t.color || "#1a2744", flexShrink: 0 }}>{getInitial(t.name)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "#1a2744" }}>{t.name} <span style={{ fontSize: 10, color: "#a0a0b0", fontWeight: 400 }}>· {Number(t.rent).toLocaleString()}만</span></p>
                   <p style={{ fontSize: 10, color: "#8a8a9a", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{risk.reason}</p>
