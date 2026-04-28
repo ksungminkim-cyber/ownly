@@ -10,9 +10,8 @@ import { toast } from "../../../../components/shared";
 // PG사 심사 요건: 상품 선택 → 정보 입력 → '결제하기' 버튼까지 전 과정 구현 필수
 
 const PG_OPTIONS = [
-  { id: "kakao",  label: "카카오페이",   icon: "💛", desc: "카카오톡 간편결제", color: "#fee500", textColor: "#3c1e1e", available: false },
-  { id: "naver",  label: "네이버페이",   icon: "💚", desc: "네이버 간편결제", color: "#03c75a", textColor: "#fff", available: false },
-  { id: "toss",   label: "신용·체크카드", icon: "💳", desc: "토스페이먼츠 (Visa/Master/JCB)", color: "#3182f6", textColor: "#fff", available: true },
+  { id: "kakao",  label: "카카오페이",   icon: "💛", desc: "카카오톡 간편결제 (정기결제 자동 갱신)", color: "#fee500", textColor: "#3c1e1e", available: false },
+  { id: "naver",  label: "네이버페이",   icon: "💚", desc: "네이버 간편결제 (정기결제 자동 갱신)", color: "#03c75a", textColor: "#fff", available: false },
 ];
 
 export default function CheckoutPage() {
@@ -76,35 +75,17 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     try {
-      // PG별 분기 처리
+      // PG별 분기 처리 — 비즈 심사 통과 후 분기에 실제 통합 추가
       if (selectedPg === "kakao") {
-        // 카카오페이 정기결제 — 비즈센터 심사 통과 후 활성화
-        toast("💛 카카오페이 비즈 심사 진행 중입니다. 다른 결제 수단을 이용하시거나 잠시 후 다시 시도해주세요.", "info");
+        toast("💛 카카오페이 비즈 심사 진행 중입니다. 승인 즉시 활성화됩니다.", "info");
         return;
       }
       if (selectedPg === "naver") {
-        toast("💚 네이버페이 비즈 심사 진행 중입니다. 다른 결제 수단을 이용해주세요.", "info");
+        toast("💚 네이버페이 비즈 심사 진행 중입니다. 승인 즉시 활성화됩니다.", "info");
         return;
       }
-      if (selectedPg === "toss") {
-        // 토스페이먼츠 빌링 (실제 결제 모듈)
-        if (!process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY) {
-          toast("토스페이먼츠 빌링 심사 진행 중입니다. 결제 모듈 활성화 시 즉시 처리됩니다.", "info");
-          return;
-        }
-        const tossPayments = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY);
-        await tossPayments.requestBillingAuth("카드", {
-          customerKey: user.id,
-          customerName,
-          customerEmail: user.email,
-          successUrl: `${window.location.origin}/dashboard/checkout/success?plan=${planId}&cycle=${billingCycle}`,
-          failUrl: `${window.location.origin}/dashboard/checkout/fail?plan=${planId}`,
-        });
-      }
     } catch (e) {
-      if (e?.code !== "USER_CANCEL") {
-        toast("결제 중 오류: " + (e?.message || "알 수 없는 오류"), "error");
-      }
+      toast("결제 중 오류: " + (e?.message || "알 수 없는 오류"), "error");
     } finally {
       setSubmitting(false);
     }
@@ -315,13 +296,3 @@ function Row({ label, value, bold }) {
   );
 }
 
-async function loadTossPayments(clientKey) {
-  if (window.TossPayments) return window.TossPayments(clientKey);
-  await new Promise((res, rej) => {
-    const s = document.createElement("script");
-    s.src = "https://js.tosspayments.com/v1/payment";
-    s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
-  return window.TossPayments(clientKey);
-}
