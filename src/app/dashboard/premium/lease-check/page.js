@@ -109,6 +109,7 @@ export default function LeaseCheckPage() {
   const router = useRouter();
   const [answers, setAnswers] = useState({});
   const [openSections, setOpenSections] = useState({ renewal: true, cap: false, convert: false, dispute: false });
+  const [diagnosisExpanded, setDiagnosisExpanded] = useState(true);
 
   // 계산기 상태
   const [capCurrent, setCapCurrent] = useState("");
@@ -204,65 +205,76 @@ export default function LeaseCheckPage() {
         }
 
         return (
+          // ✅ 스크롤해도 항상 보이도록 sticky 처리
           <div style={{
-            background: `linear-gradient(135deg, ${overallColor}10, ${overallColor}05)`,
-            border: `1.5px solid ${overallColor}40`,
+            position: "sticky",
+            top: 12,
+            zIndex: 50,
+            background: `linear-gradient(135deg, ${overallColor}15, ${overallColor}08), #fff`,
+            border: `1.5px solid ${overallColor}50`,
             borderRadius: 16,
-            padding: "22px 24px",
-            marginBottom: 24,
+            padding: diagnosisExpanded ? "20px 22px" : "12px 18px",
+            marginBottom: 20,
+            boxShadow: "0 4px 16px rgba(26,39,68,0.08)",
+            transition: "padding .2s",
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap", gap: 12 }}>
-              <div>
-                <p style={{ fontSize: 11, color: C.muted, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 6 }}>📋 종합 진단 결과</p>
-                <p style={{ fontSize: 22, fontWeight: 900, color: overallColor, lineHeight: 1.3 }}>{overallLabel}</p>
-                <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{answeredQs.length}/{totalQs} 문항 답변 완료</p>
+            {/* 컴팩트 헤더 (항상 노출) — 클릭 시 펼침/접힘 */}
+            <div onClick={() => setDiagnosisExpanded(v => !v)}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 18 }}>📋</span>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: diagnosisExpanded ? 18 : 15, fontWeight: 900, color: overallColor, lineHeight: 1.2 }}>{overallLabel}</p>
+                  <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                    {answeredQs.length}/{totalQs} 문항 답변
+                    {highRisks.length > 0 && <span style={{ color: C.rose, fontWeight: 700, marginLeft: 8 }}>🔴 고위험 {highRisks.length}건</span>}
+                    {medRisks.length > 0 && <span style={{ color: C.amber, fontWeight: 700, marginLeft: 6 }}>🟡 주의 {medRisks.length}건</span>}
+                  </p>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {highRisks.length > 0 && (
-                  <div style={{ background: `${C.rose}15`, color: C.rose, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
-                    🔴 고위험 {highRisks.length}건
-                  </div>
-                )}
-                {medRisks.length > 0 && (
-                  <div style={{ background: `${C.amber}15`, color: C.amber, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
-                    🟡 주의 {medRisks.length}건
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 권장 조치 */}
-            <div style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", marginBottom: 12 }}>
-              <p style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 10 }}>📌 권장 조치 ({recommendations.length}건)</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {recommendations.map((r, i) => (
-                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: i < recommendations.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>{r.icon}</span>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>{r.title}</p>
-                      <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>{r.desc}</p>
-                    </div>
-                  </div>
-                ))}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                <span style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>{diagnosisExpanded ? "접기" : "상세 보기"}</span>
+                <span style={{ fontSize: 14, color: C.muted, transition: "transform .2s", transform: diagnosisExpanded ? "rotate(180deg)" : "rotate(0deg)", display: "inline-block" }}>▼</span>
               </div>
             </div>
 
-            {/* 다음 단계 */}
-            {(highRisks.length > 0 || medRisks.length > 0) && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => router.push("/dashboard/certified")}
-                  style={{ padding: "11px 18px", background: C.navy, color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  📨 내용증명 작성
-                </button>
-                <a href="https://www.hldcc.or.kr" target="_blank" rel="noopener noreferrer"
-                  style={{ padding: "11px 18px", background: "rgba(15,165,115,0.1)", color: C.emerald, border: `1px solid ${C.emerald}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                  🏛️ 분쟁조정위 신청
-                </a>
-                <a href="https://www.klac.or.kr" target="_blank" rel="noopener noreferrer"
-                  style={{ padding: "11px 18px", background: "rgba(79,70,229,0.08)", color: C.accent, border: `1px solid ${C.accent}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                  📞 무료 법률 상담 (132)
-                </a>
-              </div>
+            {/* 펼친 상세 영역 */}
+            {diagnosisExpanded && (
+              <>
+                {/* 권장 조치 */}
+                <div style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", margin: "16px 0 12px" }}>
+                  <p style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 10 }}>📌 권장 조치 ({recommendations.length}건)</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {recommendations.map((r, i) => (
+                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: i < recommendations.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <span style={{ fontSize: 18, flexShrink: 0 }}>{r.icon}</span>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>{r.title}</p>
+                          <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>{r.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 다음 단계 */}
+                {(highRisks.length > 0 || medRisks.length > 0) && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button onClick={() => router.push("/dashboard/certified")}
+                      style={{ padding: "11px 18px", background: C.navy, color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      📨 내용증명 작성
+                    </button>
+                    <a href="https://www.hldcc.or.kr" target="_blank" rel="noopener noreferrer"
+                      style={{ padding: "11px 18px", background: "rgba(15,165,115,0.1)", color: C.emerald, border: `1px solid ${C.emerald}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                      🏛️ 분쟁조정위 신청
+                    </a>
+                    <a href="https://www.klac.or.kr" target="_blank" rel="noopener noreferrer"
+                      style={{ padding: "11px 18px", background: "rgba(79,70,229,0.08)", color: C.accent, border: `1px solid ${C.accent}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                      📞 무료 법률 상담 (132)
+                    </a>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
