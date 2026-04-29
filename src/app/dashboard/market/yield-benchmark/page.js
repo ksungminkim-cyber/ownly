@@ -1,5 +1,5 @@
 // src/app/dashboard/market/yield-benchmark/page.js
-"use client"; import { useState, useCallback } from "react"; import { useApp } from "../../../../context/AppContext"; import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, LineChart, Line, Legend } from "recharts"; const LAWD_MAP = { "서울 강남구": "11680", "서울 서초구": "11650", "서울 송파구": "11710", "서울 마포구": "11440", "서울 용산구": "11170", "서울 성동구": "11200", "서울 강동구": "11740", "서울 노원구": "11350", "서울 영등포구": "11560", "서울 관악구": "11620", "경기 성남시": "41130", "경기 수원시": "41110", "경기 용인시": "41460", "경기 고양시": "41280", }; const KAB_YIELD = { "서울 강남구": { apt: 1.82, officetel: 4.21, ref: "한국부동산원 2024Q4" }, "서울 서초구": { apt: 2.05, officetel: 4.18, ref: "한국부동산원 2024Q4" }, "서울 송파구": { apt: 2.31, officetel: 4.35, ref: "한국부동산원 2024Q4" }, "서울 마포구": { apt: 3.12, officetel: 4.67, ref: "한국부동산원 2024Q4" }, "서울 용산구": { apt: 2.18, officetel: 4.52, ref: "한국부동산원 2024Q4" }, "서울 성동구": { apt: 2.44, officetel: 4.48, ref: "한국부동산원 2024Q4" }, "서울 강동구": { apt: 2.68, officetel: 4.61, ref: "한국부동산원 2024Q4" }, "서울 노원구": { apt: 3.54, officetel: 4.89, ref: "한국부동산원 2024Q4" }, "서울 영등포구": { apt: 3.28, officetel: 4.72, ref: "한국부동산원 2024Q4" }, "서울 관악구": { apt: 3.71, officetel: 5.02, ref: "한국부동산원 2024Q4" }, "경기 성남시": { apt: 3.84, officetel: 5.18, ref: "한국부동산원 2024Q4" }, "경기 수원시": { apt: 4.21, officetel: 5.44, ref: "한국부동산원 2024Q4" }, "경기 용인시": { apt: 4.38, officetel: 5.61, ref: "한국부동산원 2024Q4" }, "경기 고양시": { apt: 4.02, officetel: 5.29, ref: "한국부동산원 2024Q4" }, }; const KAB_TREND = { "서울 강남구": [1.95,1.90,1.87,1.84,1.83,1.82,1.81,1.82], "서울 마포구": [3.28,3.24,3.19,3.15,3.13,3.12,3.11,3.12], "경기 수원시": [4.35,4.31,4.27,4.23,4.21,4.20,4.21,4.21] }; const TREND_LABELS = ["23Q1","23Q2","23Q3","23Q4","24Q1","24Q2","24Q3","24Q4"]; function getLastNMonths(n) { const months = []; const now = new Date(); for (let i = n-1; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth()-i, 1); months.push(`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}`); } return months; }
+"use client"; import { useState, useCallback } from "react"; import { useApp } from "../../../../context/AppContext"; import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, LineChart, Line, Legend } from "recharts"; const LAWD_MAP = { "서울 강남구": "11680", "서울 서초구": "11650", "서울 송파구": "11710", "서울 마포구": "11440", "서울 용산구": "11170", "서울 성동구": "11200", "서울 강동구": "11740", "서울 노원구": "11350", "서울 영등포구": "11560", "서울 관악구": "11620", "경기 성남시": "41130", "경기 수원시": "41110", "경기 용인시": "41460", "경기 고양시": "41280", }; const KAB_YIELD = { "서울 강남구": { apt: 1.82, officetel: 4.21, ref: "한국부동산원 R-ONE 통계" }, "서울 서초구": { apt: 2.05, officetel: 4.18, ref: "한국부동산원 R-ONE 통계" }, "서울 송파구": { apt: 2.31, officetel: 4.35, ref: "한국부동산원 R-ONE 통계" }, "서울 마포구": { apt: 3.12, officetel: 4.67, ref: "한국부동산원 R-ONE 통계" }, "서울 용산구": { apt: 2.18, officetel: 4.52, ref: "한국부동산원 R-ONE 통계" }, "서울 성동구": { apt: 2.44, officetel: 4.48, ref: "한국부동산원 R-ONE 통계" }, "서울 강동구": { apt: 2.68, officetel: 4.61, ref: "한국부동산원 R-ONE 통계" }, "서울 노원구": { apt: 3.54, officetel: 4.89, ref: "한국부동산원 R-ONE 통계" }, "서울 영등포구": { apt: 3.28, officetel: 4.72, ref: "한국부동산원 R-ONE 통계" }, "서울 관악구": { apt: 3.71, officetel: 5.02, ref: "한국부동산원 R-ONE 통계" }, "경기 성남시": { apt: 3.84, officetel: 5.18, ref: "한국부동산원 R-ONE 통계" }, "경기 수원시": { apt: 4.21, officetel: 5.44, ref: "한국부동산원 R-ONE 통계" }, "경기 용인시": { apt: 4.38, officetel: 5.61, ref: "한국부동산원 R-ONE 통계" }, "경기 고양시": { apt: 4.02, officetel: 5.29, ref: "한국부동산원 R-ONE 통계" }, }; const KAB_TREND = { "서울 강남구": [1.95,1.90,1.87,1.84,1.83,1.82,1.81,1.82], "서울 마포구": [3.28,3.24,3.19,3.15,3.13,3.12,3.11,3.12], "경기 수원시": [4.35,4.31,4.27,4.23,4.21,4.20,4.21,4.21] }; const TREND_LABELS = ["23Q1","23Q2","23Q3","23Q4","24Q1","24Q2","24Q3","24Q4"]; function getLastNMonths(n) { const months = []; const now = new Date(); for (let i = n-1; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth()-i, 1); months.push(`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}`); } return months; }
 
 export default function YieldBenchmarkPage() {
   const { tenants } = useApp();
@@ -27,7 +27,7 @@ export default function YieldBenchmarkPage() {
     setLoading(true);
     const months = getLastNMonths(6);
     const lawdCd = LAWD_MAP[region];
-    const kabRef = KAB_YIELD[region] || { apt: 3.5, officetel: 5.0, ref: "한국부동산원 추정" };
+    const kabRef = KAB_YIELD[region] || { apt: 3.5, officetel: 5.0, ref: "한국부동산원 추정 (지역 통계 미포함)" };
     let allRents = [];
     try {
       await Promise.all(months.map(async (ym) => {
@@ -231,7 +231,7 @@ export default function YieldBenchmarkPage() {
           <span style={{ fontSize: 16 }}>📌</span>
           <div>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>데이터 출처 및 산출 방법</p>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>수익률 벤치마크: <strong>한국부동산원 임대수익률 통계 (2024년 4분기)</strong><br/>월세 시세: <strong>국토교통부 실거래가 공개시스템</strong> — 최근 6개월 {result.region} 아파트 임대 실거래 {result.totalSamples}건 집계</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>수익률 벤치마크: <strong>한국부동산원 R-ONE 임대수익률 통계</strong> (참고치, <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE에서 최신값 확인</a>)<br/>월세 시세: <strong>국토교통부 실거래가 공개시스템</strong> — 최근 6개월 {result.region} 아파트 임대 실거래 {result.totalSamples}건 (실시간 집계)</p>
           </div>
         </div>
 
@@ -258,7 +258,7 @@ export default function YieldBenchmarkPage() {
           </div>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>임대수익률 추이</p>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>한국부동산원 2023Q1~2024Q4 분기별 통계</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>한국부동산원 분기별 통계 (참고용 베이스라인)</p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={result.trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />

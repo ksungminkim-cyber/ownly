@@ -28,7 +28,7 @@ const KAB_VACANCY = {
   "경기 고양시": { rate: 10.7, trend: "상승", risk: "주의" },
 };
 
-// 한국부동산원 상업용부동산 임대동향조사 2024Q4 기준 (%)
+// 한국부동산원 상업용부동산 임대동향조사 (참고 베이스라인 — R-ONE에서 최신값 확인 가능)
 const COMMERCIAL_VACANCY = {
   중대형상가: {
     "서울 강남구": { rate: 10.8, trend: "상승", risk: "주의" },
@@ -238,10 +238,10 @@ export default function VacancyRiskPage() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>데이터 출처</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>
               {data.isResidential ? (<>
-                공실률: <strong>한국부동산원 주택 임대동향 (2024년 4분기)</strong><br/>
+                공실률: <strong>한국부동산원 주택 임대동향</strong> (참고치, <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE 최신값 확인</a>)<br/>
                 거래량 추이: <strong>국토교통부 실거래가 공개시스템</strong> — {region} 아파트 임대 실거래 12개월 ({data.totalTx.toLocaleString()}건)
               </>) : (<>
-                공실률: <strong>한국부동산원 상업용부동산 임대동향조사 (2024년 4분기, {propType})</strong><br/>
+                공실률: <strong>한국부동산원 상업용부동산 임대동향조사 ({propType})</strong> (참고치, <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE 최신값 확인</a>)<br/>
                 <span style={{ fontSize: 10, color: "#e8960a" }}>※ 상업용은 실거래 거래량 데이터가 제공되지 않아 공실률·추세만 표시됩니다.</span>
               </>)}
             </p>
@@ -264,14 +264,14 @@ export default function VacancyRiskPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {(data.isResidential ? [
-              { label: "한국부동산원 공실률", value: `${data.kabVacancy.rate}%`, sub: "2024Q4 공식 통계", color: data.kabVacancy.rate > 10 ? "#e11d48" : data.kabVacancy.rate > 7 ? "#d97706" : "#0fa573" },
+              { label: "한국부동산원 공실률", value: `${data.kabVacancy.rate}%`, sub: "한국부동산원 R-ONE 통계", color: data.kabVacancy.rate > 10 ? "#e11d48" : data.kabVacancy.rate > 7 ? "#d97706" : "#0fa573" },
               { label: "공실률 추세", value: data.kabVacancy.trend, sub: "전분기 대비", color: data.kabVacancy.trend === "하락" ? "#0fa573" : data.kabVacancy.trend === "보합" ? "#0284c7" : "#d97706" },
               { label: "최근 3개월 월평균 거래량", value: `${data.recent3avg.toLocaleString()}건`, sub: `이전 3개월 ${data.prev3avg.toLocaleString()}건` },
               { label: "거래량 변화율", value: `${parseFloat(data.trendChange) >= 0 ? "+" : ""}${data.trendChange}%`, sub: "최근 vs 이전 3개월", color: parseFloat(data.trendChange) >= 0 ? "#0fa573" : "#e8445a" },
               { label: "전세 비중", value: `${data.jeonseRatio}%`, sub: "전세 선호도 지표" },
               { label: "12개월 총 임대거래", value: `${data.totalTx.toLocaleString()}건`, sub: "국토부 실거래 기준" },
             ] : [
-              { label: `${propType} 공실률`, value: `${data.kabVacancy.rate}%`, sub: "2024Q4 공식 통계", color: data.kabVacancy.rate > 12 ? "#e11d48" : data.kabVacancy.rate > 8 ? "#d97706" : "#0fa573" },
+              { label: `${propType} 공실률`, value: `${data.kabVacancy.rate}%`, sub: "한국부동산원 R-ONE 통계", color: data.kabVacancy.rate > 12 ? "#e11d48" : data.kabVacancy.rate > 8 ? "#d97706" : "#0fa573" },
               { label: "공실률 추세", value: data.kabVacancy.trend, sub: "전분기 대비", color: data.kabVacancy.trend === "하락" ? "#0fa573" : data.kabVacancy.trend === "보합" ? "#0284c7" : "#d97706" },
               { label: "리스크 등급", value: data.kabVacancy.risk, sub: "한국부동산원 분류", color: data.kabVacancy.risk === "위험" ? "#e11d48" : data.kabVacancy.risk === "주의" ? "#d97706" : "#0fa573" },
               { label: "데이터 기준", value: "분기별", sub: "상업용 통계 주기" },
@@ -288,7 +288,7 @@ export default function VacancyRiskPage() {
         <div style={{ display: "grid", gridTemplateColumns: data.isResidential ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 16 }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>공실률 분기별 추이</p>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>한국부동산원 2023Q1~2024Q4</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>한국부동산원 분기별 통계 (참고용 베이스라인)</p>
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={data.vacancyTrend}>
                 <defs>

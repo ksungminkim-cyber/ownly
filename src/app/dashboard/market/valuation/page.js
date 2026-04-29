@@ -12,7 +12,7 @@ const LAWD_MAP = {
   "경기 용인시": "41460", "경기 고양시": "41280",
 };
 
-// 한국부동산원 임대수익률 (2024Q4) — 수익환원법 기준가
+// 한국부동산원 임대수익률 (R-ONE 참고치) — 수익환원법 기준가
 const KAB_YIELD = {
   "서울 강남구": 1.82, "서울 서초구": 2.05, "서울 송파구": 2.31,
   "서울 마포구": 3.12, "서울 용산구": 2.18, "서울 성동구": 2.44,
@@ -21,7 +21,7 @@ const KAB_YIELD = {
   "경기 용인시": 4.38, "경기 고양시": 4.02,
 };
 
-// KB 아파트 평균 시세 (2024년 12월 기준, 3.3㎡당 만원)
+// KB 아파트 평균 시세 (KB부동산 참고치, 3.3㎡당 만원 — KB Liiv ON에서 최신값 확인)
 const KB_PRICE_PER_PYEONG = {
   "서울 강남구": 11800, "서울 서초구": 10200, "서울 송파구": 8900,
   "서울 마포구": 6800,  "서울 용산구": 9400,  "서울 성동구": 7200,
@@ -218,7 +218,7 @@ export default function ValuationPage() {
           <div>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>추정 방법 및 데이터 출처</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>
-              <strong>KB 시세법:</strong> KB부동산 2024년 12월 기준 {result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원<br/>
+              <strong>KB 시세법:</strong> KB부동산 평균 시세 ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원) · <a href="https://onland.kbstar.com" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>KB Liiv ON에서 최신값 확인</a><br/>
               <strong>수익환원법:</strong> 한국부동산원 {result.region} 임대수익률 {result.kabYield}% 기준 역산<br/>
               <strong>임대시세법:</strong> 국토부 실거래 최근 6개월 유사면적 임대 {result.similarCount}건 → 수익률 역산
             </p>
