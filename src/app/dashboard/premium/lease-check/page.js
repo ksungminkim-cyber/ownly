@@ -183,35 +183,49 @@ export default function LeaseCheckPage() {
         const overallLabel = overallRisk === "high" ? "고위험 — 즉시 대응 필요" : overallRisk === "medium" ? "주의 — 신중한 검토 권장" : "안전 — 일반 운영 가능";
         const overallColor = riskColor[overallRisk];
 
-        // 답변 패턴별 맞춤 권장사항
+        // 답변 패턴별 맞춤 권장사항 (섹션별로 그룹핑)
         const recommendations = [];
+        const SEC = {
+          renewal: { id: "renewal", title: "🔄 계약갱신청구권" },
+          cap:     { id: "cap",     title: "📊 전월세 상한제" },
+          convert: { id: "convert", title: "💱 전월세 전환율" },
+          dispute: { id: "dispute", title: "⚖️ 분쟁 대응" },
+        };
         if (answers.r1 === "yes" && answers.r3 !== "yes" && answers.r4 !== "yes") {
-          recommendations.push({ icon: "📝", title: "갱신 거절 사유 검토 필요", desc: "임차인이 갱신 청구했고 정당한 거절 사유가 명확하지 않습니다. 거절 시 손해배상 청구 가능. 변호사 상담 권장." });
+          recommendations.push({ section: SEC.renewal, icon: "📝", title: "갱신 거절 사유 검토 필요", desc: "임차인이 갱신 청구했고 정당한 거절 사유가 명확하지 않습니다. 거절 시 손해배상 청구 가능. 변호사 상담 권장." });
         }
         if (answers.r3 === "yes") {
-          recommendations.push({ icon: "🏠", title: "실거주 거절 통보 시 주의", desc: "내용증명으로 서면 통보. 거절 후 2년 내 제3자에게 임대 시 손해배상 의무 발생합니다." });
+          recommendations.push({ section: SEC.renewal, icon: "🏠", title: "실거주 거절 통보 시 주의", desc: "내용증명으로 서면 통보. 거절 후 2년 내 제3자에게 임대 시 손해배상 의무 발생합니다." });
         }
         if (answers.c1 === "yes" && answers.c2 === "yes") {
-          recommendations.push({ icon: "📊", title: "5% 초과 인상 — 무효 위험", desc: "갱신 계약에서 5% 초과 인상은 초과분 무효. 임차인이 반환 청구 가능. 5% 이내로 조정하세요." });
+          recommendations.push({ section: SEC.cap, icon: "📊", title: "5% 초과 인상 — 무효 위험", desc: "갱신 계약에서 5% 초과 인상은 초과분 무효. 임차인이 반환 청구 가능. 5% 이내로 조정하세요." });
         }
         if (answers.v1 === "yes" && answers.v2 === "yes") {
-          recommendations.push({ icon: "💱", title: "전환율 초과 — 법정 한도 위반", desc: "법정 전환율(연 6%) 초과는 무효. 임차인이 초과분 반환 청구 가능합니다." });
+          recommendations.push({ section: SEC.convert, icon: "💱", title: "전환율 초과 — 법정 한도 위반", desc: "법정 전환율(연 6%) 초과는 무효. 임차인이 초과분 반환 청구 가능합니다." });
         }
         if (answers.d1 === "yes") {
-          recommendations.push({ icon: "📨", title: "차임 연체 — 내용증명 권장", desc: "2기 연체 시 통지, 3기 연체 시 계약 해지 가능. 내용증명으로 명확히 통보하세요." });
+          recommendations.push({ section: SEC.dispute, icon: "📨", title: "차임 연체 — 내용증명 권장", desc: "2기 연체 시 통지, 3기 연체 시 계약 해지 가능. 내용증명으로 명확히 통보하세요." });
         }
         if (answers.d2 === "yes") {
-          recommendations.push({ icon: "🚪", title: "무단 전대 — 즉시 대응", desc: "동의 없는 전대는 계약 해지 사유. 내용증명 후 명도 절차 진행 가능." });
+          recommendations.push({ section: SEC.dispute, icon: "🚪", title: "무단 전대 — 즉시 대응", desc: "동의 없는 전대는 계약 해지 사유. 내용증명 후 명도 절차 진행 가능." });
         }
         if (answers.d3 === "yes") {
-          recommendations.push({ icon: "⚖️", title: "퇴거 거부 — 명도소송", desc: "임의 강제 퇴거는 불법. 분쟁조정위 또는 법원 명도소송으로 진행." });
+          recommendations.push({ section: SEC.dispute, icon: "⚖️", title: "퇴거 거부 — 명도소송", desc: "임의 강제 퇴거는 불법. 분쟁조정위 또는 법원 명도소송으로 진행." });
         }
         if (answers.d4 === "yes") {
-          recommendations.push({ icon: "🔧", title: "원상복구 분쟁", desc: "입주 전후 사진·영상 증거 확보. 통상 마모는 임대인 부담, 임차인 과실만 청구 가능." });
+          recommendations.push({ section: SEC.dispute, icon: "🔧", title: "원상복구 분쟁", desc: "입주 전후 사진·영상 증거 확보. 통상 마모는 임대인 부담, 임차인 과실만 청구 가능." });
         }
         if (recommendations.length === 0 && highRisks.length === 0 && medRisks.length === 0) {
-          recommendations.push({ icon: "✅", title: "현재 특별한 법적 위험 없음", desc: "답변 기준으로 즉각 대응이 필요한 사안은 없습니다. 정기적으로 다시 점검하세요." });
+          recommendations.push({ section: null, icon: "✅", title: "현재 특별한 법적 위험 없음", desc: "답변 기준으로 즉각 대응이 필요한 사안은 없습니다. 정기적으로 다시 점검하세요." });
         }
+
+        // 섹션별 그룹핑
+        const grouped = {};
+        recommendations.forEach(r => {
+          const key = r.section?.id || "_none";
+          if (!grouped[key]) grouped[key] = { title: r.section?.title || "", items: [] };
+          grouped[key].items.push(r);
+        });
 
         return (
           // ✅ 데스크탑(1200+): 우측 floating · 좁은 화면: sticky top
@@ -264,16 +278,27 @@ export default function LeaseCheckPage() {
             {/* 펼친 상세 영역 */}
             {diagnosisExpanded && (
               <>
-                {/* 권장 조치 */}
-                <div style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", margin: "16px 0 12px" }}>
-                  <p style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 10 }}>📌 권장 조치 ({recommendations.length}건)</p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {recommendations.map((r, i) => (
-                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: i < recommendations.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <span style={{ fontSize: 18, flexShrink: 0 }}>{r.icon}</span>
-                        <div>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>{r.title}</p>
-                          <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>{r.desc}</p>
+                {/* 권장 조치 — 섹션별 그룹 */}
+                <div style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", margin: "16px 0 12px" }}>
+                  <p style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 12 }}>📌 권장 조치 ({recommendations.length}건)</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {Object.entries(grouped).map(([key, group]) => (
+                      <div key={key}>
+                        {group.title && (
+                          <p style={{ fontSize: 11, fontWeight: 800, color: C.accent, background: `${C.accent}10`, padding: "4px 10px", borderRadius: 6, display: "inline-block", marginBottom: 8 }}>
+                            {group.title}
+                          </p>
+                        )}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: group.title ? 6 : 0, borderLeft: group.title ? `2px solid ${C.accent}30` : "none" }}>
+                          {group.items.map((r, i) => (
+                            <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0 8px 8px" }}>
+                              <span style={{ fontSize: 16, flexShrink: 0 }}>{r.icon}</span>
+                              <div>
+                                <p style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>{r.title}</p>
+                                <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>{r.desc}</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     ))}
