@@ -55,8 +55,32 @@ export default function ValuationPage() {
     setLoading(true);
     const months = getLastNMonths(6);
     const lawdCd = LAWD_MAP[region];
-    const kabYield = KAB_YIELD[region] || 3.5;
-    const kbPricePerPyeong = KB_PRICE_PER_PYEONG[region] || 5000;
+    let kabYield = KAB_YIELD[region] || 3.5;
+    let kbPricePerPyeong = KB_PRICE_PER_PYEONG[region] || 5000;
+    let isRealtime = false;
+    let realtimeSampleSize = null;
+
+    // ✅ 실시간 계산: MOLIT 실거래로 평당가·수익률 직접 산출
+    try {
+      const realtimeRes = await fetch("/api/market/regional-stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lawdCd, propTypes: ["apt"] }),
+      });
+      if (realtimeRes.ok) {
+        const realtime = await realtimeRes.json();
+        const apt = realtime?.types?.apt;
+        if (apt?.avgPricePerPyeong > 0) {
+          kbPricePerPyeong = apt.avgPricePerPyeong;
+          isRealtime = true;
+          realtimeSampleSize = apt.sampleSize;
+        }
+        if (apt?.yieldRate > 0) kabYield = apt.yieldRate;
+      }
+    } catch (e) {
+      console.warn("실시간 계산 실패, 베이스라인 사용:", e.message);
+    }
+
     const myArea = parseFloat(area);
     const myPyeong = myArea / 3.3058;
 
@@ -147,7 +171,7 @@ export default function ValuationPage() {
       setResult({
         kbValue, incomeValue, rentBasedValue,
         low, mid, high, impliedYield,
-        kabYield, kbPricePerPyeong,
+        kabYield, kbPricePerPyeong, isRealtime, realtimeSampleSize,
         medianRent, avgRent, p25Rent, p75Rent,
         similarCount: similarRents.length, totalRents: allRents.length,
         monthlyRentTrend, areaGroups,
@@ -218,7 +242,11 @@ export default function ValuationPage() {
           <div>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>추정 방법 및 데이터 출처</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>
-              <strong>KB 시세법:</strong> KB부동산 평균 시세 ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원) · <a href="https://onland.kbstar.com" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>KB Liiv ON에서 최신값 확인</a><br/>
+              <strong>① 평당가 기준법:</strong> {result.isRealtime ? (
+                <><strong style={{ color: "#0fa573" }}>🟢 MOLIT 실거래 실시간 계산</strong> ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원, 실거래 {result.realtimeSampleSize?.trade || 0}건)</>
+              ) : (
+                <>KB부동산 평균 시세 ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원) · <a href="https://onland.kbstar.com" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>KB Liiv ON에서 최신값 확인</a></>
+              )}<br/>
               <strong>수익환원법:</strong> 한국부동산원 {result.region} 임대수익률 {result.kabYield}% 기준 역산<br/>
               <strong>임대시세법:</strong> 국토부 실거래 최근 6개월 유사면적 임대 {result.similarCount}건 → 수익률 역산
             </p>
