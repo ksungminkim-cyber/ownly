@@ -261,9 +261,11 @@ function NotificationSettings() {
   );
 }
 
+import { exportTenants, exportPayments, exportContracts, exportLedger, exportAll } from "../../../lib/csvExport";
+
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, tenants, payments, contracts, resetAllData, userPlan } = useApp();
+  const { user, tenants, payments, contracts, ledger, resetAllData, userPlan } = useApp();
   const currentNickname = user?.user_metadata?.nickname || "";
   const currentPhone = user?.user_metadata?.phone || "";
   const currentLandlordName = user?.user_metadata?.landlord_name || "";
@@ -561,6 +563,35 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* 데이터 내보내기 */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>데이터 내보내기</p>
+        <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 14, lineHeight: 1.6 }}>등록된 데이터를 CSV 파일(엑셀 호환)로 내려받아 백업하거나 세무사에게 전달할 수 있습니다.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+          {[
+            { icon: "👤", label: "세입자 목록", count: tenants.length, action: () => exportTenants(tenants), color: "#5b4fcf" },
+            { icon: "💰", label: "수금 이력", count: payments.length, action: () => exportPayments(payments, tenants), color: "#0fa573" },
+            { icon: "📝", label: "계약서 목록", count: (contracts || []).length, action: () => exportContracts(contracts, tenants), color: "#e8960a" },
+            { icon: "📊", label: "장부 (수입·지출)", count: (ledger || []).length, action: () => exportLedger(ledger), color: "#0d9488" },
+          ].map(({ icon, label, count, action, color }) => (
+            <button key={label} onClick={action} disabled={count === 0}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 11, border: `1px solid ${count > 0 ? color + "40" : "var(--border)"}`, background: count > 0 ? color + "08" : "var(--surface2)", cursor: count > 0 ? "pointer" : "not-allowed", textAlign: "left", opacity: count === 0 ? 0.5 : 1 }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: count > 0 ? color : "#8a8a9a", margin: 0 }}>{label}</p>
+                <p style={{ fontSize: 11, color: "#8a8a9a", margin: "2px 0 0" }}>{count}건 · CSV 다운로드</p>
+              </div>
+            </button>
+          ))}
+        </div>
+        {tenants.length > 0 && (
+          <button onClick={() => exportAll({ tenants, payments, contracts, ledger })}
+            style={{ marginTop: 12, width: "100%", padding: "12px", borderRadius: 11, border: "1px solid #1a2744", background: "#1a2744", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+            📦 전체 일괄 다운로드 (4개 파일)
+          </button>
+        )}
       </div>
 
       {/* 위험 구역 */}
