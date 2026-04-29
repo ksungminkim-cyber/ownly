@@ -117,9 +117,12 @@ export default function PriceTrackerPage() {
 
   return (
     <div style={{ padding: "28px 28px 80px", maxWidth: 920, margin: "0 auto", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>📈 시세 트래커</h1>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>국토부 실거래가 기반 · 최근 12개월 추이</p>
+      <div style={{ marginBottom: 18 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>📈 시세 트래커 (12개월 심층 분석)</h1>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>국토부 실거래가 기반 · 12개월 추이 · 거래 유형별 (전월세/매매)</p>
+      </div>
+      <div style={{ background: "rgba(91,79,207,0.05)", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: "#5b4fcf", lineHeight: 1.6 }}>
+        💡 <b>최근 3개월 종합 통계</b>는 <a href="/sise" style={{ color: "#5b4fcf", fontWeight: 700, textDecoration: "underline" }}>전국 시세 페이지</a>에서 확인하세요. 본 페이지는 <b>12개월 장기 트렌드</b>와 <b>거래 유형별 추이</b>를 분석합니다.
       </div>
 
       {/* 필터 */}

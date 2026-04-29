@@ -237,8 +237,13 @@ export default async function RegionMarketPage({ params }) {
               </section>
             )}
 
+            {/* 12개월 심층 분석 안내 */}
+            <section style={{ marginTop: 18, padding: "14px 18px", background: "rgba(91,79,207,0.05)", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 12, fontSize: 13, color: "#5b4fcf", lineHeight: 1.6 }}>
+              📈 <b>12개월 장기 트렌드 + 거래 유형별 분석</b>이 필요하시면 회원 전용 <Link href="/dashboard/market/price-tracker" style={{ color: "#5b4fcf", fontWeight: 700, textDecoration: "underline" }}>시세 트래커</Link>를 이용하세요. (PLUS 플랜)
+            </section>
+
             {/* 가입 CTA */}
-            <section style={{ marginTop: 32, background: "linear-gradient(135deg,#1a2744,#5b4fcf)", color: "#fff", borderRadius: 16, padding: "28px 26px" }}>
+            <section style={{ marginTop: 18, background: "linear-gradient(135deg,#1a2744,#5b4fcf)", color: "#fff", borderRadius: 16, padding: "28px 26px" }}>
               <p style={{ fontSize: 18, fontWeight: 900, marginBottom: 8 }}>내 물건 시세, 이 데이터로 계산해드려요</p>
               <p style={{ fontSize: 13, opacity: 0.85, marginBottom: 18, lineHeight: 1.7 }}>
                 {region.name} 실거래 + 내 물건 주소·평형을 넣으면 AI가 적정 임대료 범위와 시장 포지션을 분석합니다.

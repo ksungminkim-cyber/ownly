@@ -1,7 +1,22 @@
 "use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabase } from "../lib/supabase";
 
 export default function SiteFooter({ hasFixedBar = false }) {
+  // 로그인 상태에 따라 커뮤니티 링크 분기 (대시보드 vs 공개)
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) setIsLoggedIn(!!session?.user);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (mounted) setIsLoggedIn(!!session?.user);
+    });
+    return () => { mounted = false; subscription.unsubscribe(); };
+  }, []);
+  const communityHref = isLoggedIn ? "/dashboard/community" : "/community";
   return (
     <footer style={{
       width: "100%",
@@ -43,7 +58,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
               { label: "전국 시세", href: "/sise" },
               { label: "등급 진단", href: "/diagnose" },
               { label: "수익률 계산기", href: "/tools/yield" },
-              { label: "커뮤니티", href: "/community" },
+              { label: "커뮤니티", href: communityHref },
               { label: "임대인 가이드", href: "/blog" },
               { label: "FAQ", href: "/legal/faq" },
               { label: "이용약관", href: "/legal/terms" },
