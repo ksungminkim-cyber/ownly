@@ -119,7 +119,7 @@ export default function OnboardingModal() {
                   { icon:"🚪", t:"공실 단계별 액션플랜", d:"D+일수에 따라 5단계 해소 전략 자동 제안" },
                   { icon:"🗺️", t:"주변 매물 실거래 비교", d:"국토부 최근 3개월 · 내 월세 vs 지역 평균" },
                   { icon:"💬", t:"임대인 커뮤니티", d:"질문·답변 · 인기 글 · 실시간 활동 알림" },
-                  { icon:"🤖", t:"AI 입지·시세 분석", d:"PRO 무제한 · 플러스 월 10회" },
+                  { icon:"🤖", t:"AI 적정 임대료 분석", d:"국토부 실거래 기반 · PRO 무제한 · 플러스 월 10회" },
                 ].map(f => (
                   <div key={f.t} style={{ display:"flex", gap:12, padding:"10px 12px", background:"#f8f7f4", borderRadius:11 }}>
                     <span style={{ fontSize:22, flexShrink:0 }}>{f.icon}</span>

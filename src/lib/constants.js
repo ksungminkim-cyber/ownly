@@ -19,7 +19,7 @@ export const PLANS = {
       tenants: 5,       // ✅ 3 → 5
       reports: false, tax: false, certified: false, vacancy: false,
       export: false, roi: false, vacancyLoss: false, leaseCheck: false,
-      mapSearch: false, aiReport: 0, aiPricing: 0, kakaoAlert: false, globalReports: false,
+      mapSearch: false, aiPricing: 0, kakaoAlert: false, globalReports: false,
     },
     features: [
       { t: "물건 최대 3개", ok: true },
@@ -47,7 +47,7 @@ export const PLANS = {
     limits: {
       properties: 15, tenants: 30, reports: true, tax: true, certified: 10,
       vacancy: true, export: true, roi: true, vacancyLoss: true, leaseCheck: true,
-      mapSearch: false, aiReport: 10, aiPricing: 10, kakaoAlert: false, globalReports: true,
+      mapSearch: false, aiPricing: 10, kakaoAlert: false, globalReports: true,
     },
     features: [
       { t: "물건 최대 15개", ok: true },
@@ -76,7 +76,7 @@ export const PLANS = {
     limits: {
       properties: Infinity, tenants: Infinity, reports: true, tax: true, certified: Infinity,
       vacancy: true, export: true, roi: true, vacancyLoss: true, leaseCheck: true,
-      mapSearch: true, aiReport: Infinity, aiPricing: Infinity, kakaoAlert: true, globalReports: true,
+      mapSearch: true, aiPricing: Infinity, kakaoAlert: true, globalReports: true,
     },
     features: [
       { t: "물건·세입자 무제한", ok: true },

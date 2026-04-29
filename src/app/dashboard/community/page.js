@@ -19,7 +19,7 @@ function getFeatureNudge(post) {
   const cat = post.category;
   // 공실 관련
   if (cat === "공실매물" || /공실|광고|월세\s*내리|세입자\s*구/.test(text)) {
-    return { icon:"🤖", color:"#0fa573", title:"AI 입지 분석으로 적정 시세 확인", desc:"공실이 길어질수록 기회비용이 커집니다. 주변 시세 기반 적정 임대료를 AI가 분석합니다.", href:"/dashboard/premium/ai-report" };
+    return { icon:"🤖", color:"#0fa573", title:"AI 적정 임대료 분석", desc:"공실이 길어질수록 기회비용이 커집니다. 국토부 실거래 기반 적정 임대료를 AI가 분석합니다.", href:"/dashboard/premium/ai-report" };
   }
   if (/공실\s*\d+(개월|달)|오래\s*안/.test(text)) {
     return { icon:"📉", color:"#e8445a", title:"공실 손실 계산 + 해소 액션플랜", desc:"누적 손실을 정확히 파악하고 공실 기간별 단계별 대응 전략을 확인하세요.", href:"/dashboard/vacancy" };

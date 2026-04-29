@@ -142,7 +142,9 @@ function AddressInput({ value, onChange, onSelect, error }) {
 export default function AIReportPage() {
   const router = useRouter();
   const { tenants, checkAiUsage, recordAiUsage, userPlan } = useApp();
-  const [activeTab, setActiveTab] = useState("location"); // location | pricing
+  // ✅ 'location' (AI 입지 분석) 탭 제거 — 실데이터 미연동으로 정확도 낮아 비활성화
+  // 적정 임대료 분석(MOLIT 실거래 기반)만 운영
+  const [activeTab, setActiveTab] = useState("pricing");
   const [inputAddr, setInputAddr] = useState("");
   const [confirmedAddr, setConfirmedAddr] = useState("");
   const [propType, setPropType] = useState("주거");
@@ -259,17 +261,16 @@ export default function AIReportPage() {
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#1a2744,#5b4fcf)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🤖</div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 900, color: C.navy, letterSpacing: "-.4px" }}>AI 부동산 분석</h1>
+              <h1 style={{ fontSize: 22, fontWeight: 900, color: C.navy, letterSpacing: "-.4px" }}>AI 적정 임대료 분석</h1>
               <span style={{ fontSize: 10, fontWeight: 800, color: C.purple, background: "rgba(91,79,207,0.1)", padding: "3px 8px", borderRadius: 6 }}>PRO</span>
             </div>
-            <p style={{ fontSize: 13, color: C.muted }}>입지 분석 · 적정 임대료 산출 · 투자 전략까지 AI가 전문가 수준으로 분석합니다</p>
+            <p style={{ fontSize: 13, color: C.muted }}>국토부 실거래 데이터 기반으로 적정 임대료 범위와 시장 포지션을 AI가 분석합니다</p>
           </div>
         </div>
 
-        {/* 탭 */}
-        <div style={{ display: "flex", gap: 0, marginBottom: 20, background: C.faint, borderRadius: 12, padding: 4 }}>
+        {/* 탭 — 적정 임대료만 활성 */}
+        <div style={{ display: "none" }}>
           {[
-            { key: "location", icon: "🗺️", label: "입지 분석 리포트", desc: "상권·학군·교통·수요 종합 분석" },
             { key: "pricing",  icon: "💰", label: "적정 임대료 분석", desc: "시세 기반 적정 임대료 산출" },
           ].map(tab => (
             <button key={tab.key} onClick={() => {
