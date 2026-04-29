@@ -36,12 +36,17 @@
       if (c.end_date) { const d = new Date(c.end_date); if (d.getFullYear() === year && d.getMonth() === month) add(d.getDate(), { type: "contract_end", label: c.tenant_name || c.tenantName || "", sub: "계약종료", color: "#5b4fcf" }); }
     });
 
-    // 기존: 세금 신고 이벤트
+    // 세금 신고·납부 일정 (소득세·부가세·재산세·종부세)
     const TAX_EVENTS = [
       { month: 5, day: 31, label: "종합소득세 신고", sub: "신고 마감", color: "#7c3aed", type: "tax" },
       { month: 1, day: 25, label: "부가세 신고(2기)", sub: "신고 마감", color: "#dc2626", type: "tax" },
       { month: 7, day: 25, label: "부가세 신고(1기)", sub: "신고 마감", color: "#dc2626", type: "tax" },
       { month: 11, day: 30, label: "종합소득세 중간예납", sub: "납부 마감", color: "#9333ea", type: "tax" },
+      // 재산세 (지방세) — 주택·토지·건축물에 따라 분납
+      { month: 7, day: 31, label: "재산세 1기 납부", sub: "주택 1/2 + 건축물 + 선박/항공기", color: "#0d9488", type: "tax" },
+      { month: 9, day: 30, label: "재산세 2기 납부", sub: "주택 1/2 + 토지", color: "#0d9488", type: "tax" },
+      // 종합부동산세 (국세) — 매년 12월 1~15일
+      { month: 12, day: 15, label: "종합부동산세 납부", sub: "국세청 고지 후 납부", color: "#5b4fcf", type: "tax" },
     ];
     TAX_EVENTS.forEach(ev => { if (ev.month === month + 1) add(ev.day, { type: ev.type, label: ev.label, sub: ev.sub, color: ev.color }); });
 
@@ -214,23 +219,38 @@
           </>
         )}
 
-        {/* 범례 */}
+        {/* 범례 — 카테고리별 그룹화 */}
         <div style={{ marginTop: 24, paddingTop: 18, borderTop: "1px solid #ebe9e3" }}>
-          <p style={{ fontSize: 10, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", marginBottom: 10 }}>범례</p>
+          <p style={{ fontSize: 11, color: "#1a2744", fontWeight: 800, letterSpacing: ".5px", marginBottom: 12 }}>범례</p>
           {[
-            { color: "#e8960a", label: "수금 예정" },
-            { color: "#0fa573", label: "납부 완료" },
-            { color: "#e8445a", label: "미납 / 계약만료" },
-            { color: "#1a2744", label: "계약 시작" },
-            { color: "#5b4fcf", label: "계약 종료" },
-            { color: "#e8445a", label: "🏚️ 공실 시작" },
-            { color: "#f97316", label: "🏚️ 공실 진행 중" },
-            { color: "#e8960a", label: "📍 공실 30/60일" },
-            { color: "#e8445a", label: "📍 공실 90일" },
-          ].map(({ color, label }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: "#8a8a9a" }}>{label}</span>
+            { group: "수금·계약", items: [
+              { color: "#e8960a", label: "수금 예정" },
+              { color: "#0fa573", label: "납부 완료" },
+              { color: "#e8445a", label: "미납 / 계약만료" },
+              { color: "#1a2744", label: "계약 시작" },
+              { color: "#5b4fcf", label: "계약 종료" },
+            ]},
+            { group: "🏚️ 공실 단계", items: [
+              { color: "#e8445a", label: "공실 시작" },
+              { color: "#f97316", label: "공실 진행 중" },
+              { color: "#e8960a", label: "30·60일 마일스톤" },
+              { color: "#e8445a", label: "90일 장기 공실" },
+            ]},
+            { group: "🧾 세금 일정", items: [
+              { color: "#7c3aed", label: "종합소득세 (5/31)" },
+              { color: "#dc2626", label: "부가세 (1/25, 7/25)" },
+              { color: "#0d9488", label: "재산세 (7/31, 9/30)" },
+              { color: "#5b4fcf", label: "종합부동산세 (12/15)" },
+            ]},
+          ].map(({ group, items }) => (
+            <div key={group} style={{ marginBottom: 14 }}>
+              <p style={{ fontSize: 11, color: "#6a6a7a", fontWeight: 700, marginBottom: 6 }}>{group}</p>
+              {items.map(({ color, label }) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, paddingLeft: 4 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: "#6a6a7a" }}>{label}</span>
+                </div>
+              ))}
             </div>
           ))}
         </div>

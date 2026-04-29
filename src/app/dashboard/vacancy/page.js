@@ -267,6 +267,18 @@ function VacancyContent() {
                     <div style={{ display:"flex", flexDirection:"column", gap:7, alignItems:"stretch", minWidth:140 }}>
                       <button onClick={()=>setCompleteTarget(v)} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:`1px solid ${C.emerald}40`, background:C.emerald+"12", color:"#0fa573" }}>✅ 임대 완료</button>
                       <button onClick={()=>copyListing(v)} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid rgba(59,91,219,0.35)", background:"rgba(59,91,219,0.07)", color:"#3b5bdb" }}>📋 매물 정보 복사</button>
+                      {/* 매물 등록 사이트 바로가기 (3개) */}
+                      <div style={{ display:"flex", gap:4 }}>
+                        <a href={`https://land.naver.com/article/?ms=${encodeURIComponent(addr)}`} target="_blank" rel="noopener noreferrer"
+                          style={{ flex:1, padding:"7px 6px", borderRadius:8, fontSize:11, fontWeight:700, cursor:"pointer", border:"1px solid #03c75a", background:"#03c75a08", color:"#03c75a", textDecoration:"none", textAlign:"center" }}
+                          title="네이버 부동산에 매물 등록">N 부동산</a>
+                        <a href={`https://www.zigbang.com/home/officetel?search_text=${encodeURIComponent(addr)}`} target="_blank" rel="noopener noreferrer"
+                          style={{ flex:1, padding:"7px 6px", borderRadius:8, fontSize:11, fontWeight:700, cursor:"pointer", border:"1px solid #ff6e0e", background:"#ff6e0e08", color:"#ff6e0e", textDecoration:"none", textAlign:"center" }}
+                          title="직방에 매물 등록">직방</a>
+                        <a href={`https://www.dabangapp.com/search/${encodeURIComponent(addr)}`} target="_blank" rel="noopener noreferrer"
+                          style={{ flex:1, padding:"7px 6px", borderRadius:8, fontSize:11, fontWeight:700, cursor:"pointer", border:"1px solid #1672e4", background:"#1672e408", color:"#1672e4", textDecoration:"none", textAlign:"center" }}
+                          title="다방에 매물 등록">다방</a>
+                      </div>
                       <button onClick={()=>router.push("/dashboard/premium/ai-report")} style={{ padding:"8px 14px", borderRadius:9, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid rgba(15,165,115,0.3)", background:"rgba(15,165,115,0.06)", color:"#0fa573" }}>🤖 AI 시세 분석</button>
                       {v._source === "tenant" ? (
                         <button onClick={()=>router.push("/dashboard/properties")} style={{ padding:"7px 14px", borderRadius:9, fontSize:11, fontWeight:700, cursor:"pointer", border:"1px solid #ebe9e3", background:"transparent", color:"#8a8a9a" }}>📋 물건 관리에서 수정</button>

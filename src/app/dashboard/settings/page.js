@@ -90,7 +90,7 @@ function BrowserNotificationSettings() {
   const [supported, setSupported] = useState(true);
   const [permission, setPermission] = useState("default");
   const [enabled, setLocalEnabled] = useState(false);
-  const [cats, setCats] = useState({ payment: true, repair: true, expiry: true });
+  const [cats, setCats] = useState({ payment: true, repair: true, expiry: true, vacancy: true, tax: true });
 
   useEffect(() => {
     setSupported(isPushSupported());
@@ -177,6 +177,9 @@ function BrowserNotificationSettings() {
           {[
             { key: "payment", icon: "💰", label: "월세 입금 확인", sub: "세입자 납부 처리 시" },
             { key: "repair", icon: "🔧", label: "수리 요청 접수", sub: "세입자가 새 수리 요청 등록 시 (긴급 포함)" },
+            { key: "expiry", icon: "📅", label: "계약 만료 임박", sub: "만료 60일 전부터 매주 알림" },
+            { key: "vacancy", icon: "🏚️", label: "공실 진행 알림", sub: "공실 30·60·90일 마일스톤" },
+            { key: "tax", icon: "🧾", label: "세금 신고 일정", sub: "종소세 5/31, 부가세 1/25·7/25 등" },
           ].map(({ key, icon, label, sub }) => (
             <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
