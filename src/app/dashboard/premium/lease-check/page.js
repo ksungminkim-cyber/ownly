@@ -159,6 +159,115 @@ export default function LeaseCheckPage() {
         ⚠️ 이 가이드는 참고용이며, 구체적 법적 판단은 반드시 변호사·법무사에게 문의하세요.
       </div>
 
+      {/* 종합 진단 결과 (체크리스트 답변 시 표시) */}
+      {(() => {
+        const allQs = SECTIONS.flatMap(s => s.questions.map(q => ({ ...q, sectionId: s.id, sectionTitle: s.title, sectionIcon: s.icon })));
+        const totalQs = allQs.length;
+        const answeredQs = allQs.filter(q => answers[q.id]);
+        const yesQs = answeredQs.filter(q => answers[q.id] === "yes");
+        const highRisks = yesQs.filter(q => q.risk === "high");
+        const medRisks = yesQs.filter(q => q.risk === "medium");
+        if (answeredQs.length === 0) return null;
+
+        const overallRisk = highRisks.length > 0 ? "high" : medRisks.length > 0 ? "medium" : "low";
+        const overallLabel = overallRisk === "high" ? "고위험 — 즉시 대응 필요" : overallRisk === "medium" ? "주의 — 신중한 검토 권장" : "안전 — 일반 운영 가능";
+        const overallColor = riskColor[overallRisk];
+
+        // 답변 패턴별 맞춤 권장사항
+        const recommendations = [];
+        if (answers.r1 === "yes" && answers.r3 !== "yes" && answers.r4 !== "yes") {
+          recommendations.push({ icon: "📝", title: "갱신 거절 사유 검토 필요", desc: "임차인이 갱신 청구했고 정당한 거절 사유가 명확하지 않습니다. 거절 시 손해배상 청구 가능. 변호사 상담 권장." });
+        }
+        if (answers.r3 === "yes") {
+          recommendations.push({ icon: "🏠", title: "실거주 거절 통보 시 주의", desc: "내용증명으로 서면 통보. 거절 후 2년 내 제3자에게 임대 시 손해배상 의무 발생합니다." });
+        }
+        if (answers.c1 === "yes" && answers.c2 === "yes") {
+          recommendations.push({ icon: "📊", title: "5% 초과 인상 — 무효 위험", desc: "갱신 계약에서 5% 초과 인상은 초과분 무효. 임차인이 반환 청구 가능. 5% 이내로 조정하세요." });
+        }
+        if (answers.v1 === "yes" && answers.v2 === "yes") {
+          recommendations.push({ icon: "💱", title: "전환율 초과 — 법정 한도 위반", desc: "법정 전환율(연 6%) 초과는 무효. 임차인이 초과분 반환 청구 가능합니다." });
+        }
+        if (answers.d1 === "yes") {
+          recommendations.push({ icon: "📨", title: "차임 연체 — 내용증명 권장", desc: "2기 연체 시 통지, 3기 연체 시 계약 해지 가능. 내용증명으로 명확히 통보하세요." });
+        }
+        if (answers.d2 === "yes") {
+          recommendations.push({ icon: "🚪", title: "무단 전대 — 즉시 대응", desc: "동의 없는 전대는 계약 해지 사유. 내용증명 후 명도 절차 진행 가능." });
+        }
+        if (answers.d3 === "yes") {
+          recommendations.push({ icon: "⚖️", title: "퇴거 거부 — 명도소송", desc: "임의 강제 퇴거는 불법. 분쟁조정위 또는 법원 명도소송으로 진행." });
+        }
+        if (answers.d4 === "yes") {
+          recommendations.push({ icon: "🔧", title: "원상복구 분쟁", desc: "입주 전후 사진·영상 증거 확보. 통상 마모는 임대인 부담, 임차인 과실만 청구 가능." });
+        }
+        if (recommendations.length === 0 && highRisks.length === 0 && medRisks.length === 0) {
+          recommendations.push({ icon: "✅", title: "현재 특별한 법적 위험 없음", desc: "답변 기준으로 즉각 대응이 필요한 사안은 없습니다. 정기적으로 다시 점검하세요." });
+        }
+
+        return (
+          <div style={{
+            background: `linear-gradient(135deg, ${overallColor}10, ${overallColor}05)`,
+            border: `1.5px solid ${overallColor}40`,
+            borderRadius: 16,
+            padding: "22px 24px",
+            marginBottom: 24,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 11, color: C.muted, fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 6 }}>📋 종합 진단 결과</p>
+                <p style={{ fontSize: 22, fontWeight: 900, color: overallColor, lineHeight: 1.3 }}>{overallLabel}</p>
+                <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{answeredQs.length}/{totalQs} 문항 답변 완료</p>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {highRisks.length > 0 && (
+                  <div style={{ background: `${C.rose}15`, color: C.rose, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
+                    🔴 고위험 {highRisks.length}건
+                  </div>
+                )}
+                {medRisks.length > 0 && (
+                  <div style={{ background: `${C.amber}15`, color: C.amber, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
+                    🟡 주의 {medRisks.length}건
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 권장 조치 */}
+            <div style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", marginBottom: 12 }}>
+              <p style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 10 }}>📌 권장 조치 ({recommendations.length}건)</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {recommendations.map((r, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 0", borderBottom: i < recommendations.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>{r.icon}</span>
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>{r.title}</p>
+                      <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>{r.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 다음 단계 */}
+            {(highRisks.length > 0 || medRisks.length > 0) && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => router.push("/dashboard/certified")}
+                  style={{ padding: "11px 18px", background: C.navy, color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  📨 내용증명 작성
+                </button>
+                <a href="https://www.hldcc.or.kr" target="_blank" rel="noopener noreferrer"
+                  style={{ padding: "11px 18px", background: "rgba(15,165,115,0.1)", color: C.emerald, border: `1px solid ${C.emerald}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                  🏛️ 분쟁조정위 신청
+                </a>
+                <a href="https://www.klac.or.kr" target="_blank" rel="noopener noreferrer"
+                  style={{ padding: "11px 18px", background: "rgba(79,70,229,0.08)", color: C.accent, border: `1px solid ${C.accent}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                  📞 무료 법률 상담 (132)
+                </a>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* 섹션들 */}
       {SECTIONS.map((section) => {
         const open = openSections[section.id];
