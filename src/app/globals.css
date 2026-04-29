@@ -33,7 +33,23 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
-body { background: var(--bg); overflow-x: hidden; color: var(--text); }
+body {
+  background: var(--bg); overflow-x: hidden; color: var(--text);
+  /* 한글 본문 가독성 향상 (기본 line-height 1.5~1.6 → 1.7) */
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 터치 영역 최소 보장 (모바일) — WCAG AA */
+@media (max-width: 768px) {
+  button, a[role="button"], input[type="button"], input[type="submit"] {
+    min-height: 38px;
+  }
+  input[type="text"], input[type="email"], input[type="number"], input[type="tel"], input[type="date"], textarea, select {
+    font-size: 14px !important; /* iOS Safari 자동 줌 방지 + 가독성 */
+  }
+}
 
 /* ✅ 숫자 전용 폰트 설정 — 금액·수치가 훨씬 선명하게 */
 .num {
