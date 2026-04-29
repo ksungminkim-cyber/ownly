@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const C = {
@@ -111,6 +111,15 @@ export default function LeaseCheckPage() {
   const [openSections, setOpenSections] = useState({ renewal: true, cap: false, convert: false, dispute: false });
   const [diagnosisExpanded, setDiagnosisExpanded] = useState(true);
 
+  // 화면 폭 추적 — 데스크탑(1200+)에선 진단 결과를 우측 floating, 그 미만에선 sticky top
+  const [isWide, setIsWide] = useState(false);
+  useEffect(() => {
+    const check = () => setIsWide(typeof window !== "undefined" && window.innerWidth >= 1200);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   // 계산기 상태
   const [capCurrent, setCapCurrent] = useState("");
   const [convertDeposit, setConvertDeposit] = useState("");
@@ -205,8 +214,22 @@ export default function LeaseCheckPage() {
         }
 
         return (
-          // ✅ 스크롤해도 항상 보이도록 sticky 처리
-          <div style={{
+          // ✅ 데스크탑(1200+): 우측 floating · 좁은 화면: sticky top
+          <div style={isWide ? {
+            position: "fixed",
+            right: 24,
+            top: 100,
+            width: 340,
+            maxHeight: "calc(100vh - 130px)",
+            overflowY: "auto",
+            zIndex: 50,
+            background: `linear-gradient(135deg, ${overallColor}15, ${overallColor}08), #fff`,
+            border: `1.5px solid ${overallColor}50`,
+            borderRadius: 16,
+            padding: diagnosisExpanded ? "20px 22px" : "12px 18px",
+            boxShadow: "0 12px 32px rgba(26,39,68,0.15), 0 4px 12px rgba(26,39,68,0.08)",
+            transition: "padding .2s",
+          } : {
             position: "sticky",
             top: 12,
             zIndex: 50,
@@ -259,17 +282,17 @@ export default function LeaseCheckPage() {
 
                 {/* 다음 단계 */}
                 {(highRisks.length > 0 || medRisks.length > 0) && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", flexDirection: isWide ? "column" : "row", gap: 8, flexWrap: "wrap" }}>
                     <button onClick={() => router.push("/dashboard/certified")}
-                      style={{ padding: "11px 18px", background: C.navy, color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      style={{ padding: "11px 18px", background: C.navy, color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
                       📨 내용증명 작성
                     </button>
                     <a href="https://www.hldcc.or.kr" target="_blank" rel="noopener noreferrer"
-                      style={{ padding: "11px 18px", background: "rgba(15,165,115,0.1)", color: C.emerald, border: `1px solid ${C.emerald}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                      style={{ padding: "11px 18px", background: "rgba(15,165,115,0.1)", color: C.emerald, border: `1px solid ${C.emerald}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", textAlign: "center" }}>
                       🏛️ 분쟁조정위 신청
                     </a>
                     <a href="https://www.klac.or.kr" target="_blank" rel="noopener noreferrer"
-                      style={{ padding: "11px 18px", background: "rgba(79,70,229,0.08)", color: C.accent, border: `1px solid ${C.accent}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                      style={{ padding: "11px 18px", background: "rgba(79,70,229,0.08)", color: C.accent, border: `1px solid ${C.accent}40`, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", textAlign: "center" }}>
                       📞 무료 법률 상담 (132)
                     </a>
                   </div>
