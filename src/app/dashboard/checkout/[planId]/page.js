@@ -106,9 +106,9 @@ export default function CheckoutPage() {
             {plan.name} 플랜
           </h1>
           <p style={{ fontSize: 14, color: "#6b7280", marginTop: 6 }}>{plan.tagline}</p>
-          {/* SaaS 명시 (PG 심사용) */}
+          {/* 결제 성격 명시 (PG 심사용) */}
           <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(91,79,207,0.05)", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 10, fontSize: 12, color: "#5b4fcf", fontWeight: 600, lineHeight: 1.6 }}>
-            💻 <b>SaaS 소프트웨어 사용권 결제</b> — 본 결제는 임대 관리 소프트웨어(클라우드 서비스)의 월 구독료이며, 부동산 매매·임대·중개와 무관합니다.
+            💼 <b>임대 물건 관리 구독료 결제</b> — 본 결제는 임대 물건 관리 서비스의 월 구독료이며, 부동산 매매·임대·중개와 무관합니다.
           </div>
         </div>
 
@@ -154,17 +154,17 @@ export default function CheckoutPage() {
           {/* 주문 요약 */}
           <Card num="4" title="주문 요약">
             <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "18px 20px" }}>
-              <Row label="상품" value="임대 관리 SaaS 구독권" />
+              <Row label="상품" value="임대 물건 관리 구독권" />
               <Row label="플랜" value={plan.name} />
               <Row label="결제 주기" value={periodLabel} />
               <Row label="다음 결제일" value={billingPeriodEnd} />
               <Row label="결제 수단" value={PG_OPTIONS.find(p => p.id === selectedPg)?.label || ""} />
               <div style={{ height: 1, background: "#e5e3dd", margin: "14px 0" }} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ fontSize: 14, color: "#0f172a", fontWeight: 800 }}>SaaS 구독료</span>
+                <span style={{ fontSize: 14, color: "#0f172a", fontWeight: 800 }}>구독료</span>
                 <div style={{ textAlign: "right" }}>
                   <span style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px" }}>₩{totalAmount.toLocaleString()}</span>
-                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>소프트웨어 사용료 · VAT 포함</p>
+                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>VAT 포함</p>
                 </div>
               </div>
             </div>
