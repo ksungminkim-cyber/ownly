@@ -111,10 +111,11 @@ export default function LeaseCheckPage() {
   const [openSections, setOpenSections] = useState({ renewal: true, cap: false, convert: false, dispute: false });
   const [diagnosisExpanded, setDiagnosisExpanded] = useState(true);
 
-  // 화면 폭 추적 — 데스크탑(1200+)에선 진단 결과를 우측 floating, 그 미만에선 sticky top
+  // 화면 폭 추적 — 1400+ 데스크탑에선 메인 콘텐츠 좌측 정렬 + 진단 결과 우측 floating
+  // 그 미만에선 sticky top (모바일 대응)
   const [isWide, setIsWide] = useState(false);
   useEffect(() => {
-    const check = () => setIsWide(typeof window !== "undefined" && window.innerWidth >= 1200);
+    const check = () => setIsWide(typeof window !== "undefined" && window.innerWidth >= 1400);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -142,7 +143,12 @@ export default function LeaseCheckPage() {
   };
 
   return (
-    <div className="page-in page-padding" style={{ maxWidth: 800, fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
+    <div className="page-in page-padding" style={{
+      maxWidth: 800,
+      fontFamily: "'Pretendard','DM Sans',sans-serif",
+      // 데스크탑(1400+): 메인을 왼쪽 정렬해서 panel을 옆에 붙임
+      ...(isWide ? { marginLeft: 0, marginRight: "auto" } : {}),
+    }}>
 
       {/* 헤더 */}
       <div style={{ marginBottom: 28 }}>
@@ -228,12 +234,15 @@ export default function LeaseCheckPage() {
         });
 
         return (
-          // ✅ 데스크탑(1200+): 우측 floating · 좁은 화면: sticky top
+          // ✅ 데스크탑(1400+): 메인 콘텐츠 우측 옆에 자연스럽게 위치
+          //    좁은 화면: sticky top
           <div style={isWide ? {
             position: "fixed",
-            right: 24,
+            // 사이드바(--sidebar-w) + 메인 maxWidth(800) + 갭(24) = panel 시작점
+            // 메인 콘텐츠가 marginLeft: 0이면 panel이 정확히 옆에 붙음
+            left: "calc(var(--sidebar-w, 230px) + 824px)",
             top: 100,
-            width: 340,
+            width: 360,
             maxHeight: "calc(100vh - 130px)",
             overflowY: "auto",
             zIndex: 50,
