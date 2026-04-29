@@ -27,7 +27,33 @@ export default function YieldBenchmarkPage() {
     setLoading(true);
     const months = getLastNMonths(6);
     const lawdCd = LAWD_MAP[region];
-    const kabRef = KAB_YIELD[region] || { apt: 3.5, officetel: 5.0, ref: "한국부동산원 추정 (지역 통계 미포함)" };
+    let kabRef = KAB_YIELD[region] || { apt: 3.5, officetel: 5.0, ref: "한국부동산원 추정 (지역 통계 미포함)" };
+
+    // ✅ 실시간 계산: MOLIT 실거래로 임대수익률 직접 산출
+    try {
+      const realtimeRes = await fetch("/api/market/regional-stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lawdCd, propTypes: ["apt", "officetel"] }),
+      });
+      if (realtimeRes.ok) {
+        const realtime = await realtimeRes.json();
+        const aptYield = realtime?.types?.apt?.yieldRate;
+        const offiYield = realtime?.types?.officetel?.yieldRate;
+        if (aptYield > 0 || offiYield > 0) {
+          kabRef = {
+            apt: aptYield > 0 ? aptYield : kabRef.apt,
+            officetel: offiYield > 0 ? offiYield : kabRef.officetel,
+            ref: "MOLIT 실거래 실시간 계산",
+            isRealtime: true,
+            sampleSize: realtime?.types?.apt?.sampleSize,
+          };
+        }
+      }
+    } catch (e) {
+      console.warn("실시간 계산 실패, 베이스라인 사용:", e.message);
+    }
+
     let allRents = [];
     try {
       await Promise.all(months.map(async (ym) => {
@@ -231,7 +257,13 @@ export default function YieldBenchmarkPage() {
           <span style={{ fontSize: 16 }}>📌</span>
           <div>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>데이터 출처 및 산출 방법</p>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>수익률 벤치마크: <strong>한국부동산원 R-ONE 임대수익률 통계</strong> (참고치, <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE에서 최신값 확인</a>)<br/>월세 시세: <strong>국토교통부 실거래가 공개시스템</strong> — 최근 6개월 {result.region} 아파트 임대 실거래 {result.totalSamples}건 (실시간 집계)</p>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>
+{result.kabRef?.isRealtime ? (
+  <>수익률 벤치마크: <strong style={{ color: "#0fa573" }}>🟢 MOLIT 실거래 실시간 계산</strong> ({result.kabRef.sampleSize?.rent || 0}건 임대 + {result.kabRef.sampleSize?.trade || 0}건 매매)<br/></>
+) : (
+  <>수익률 벤치마크: <strong>한국부동산원 R-ONE 통계 (참고치)</strong> · <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE 최신값 확인</a><br/></>
+)}
+월세 시세: <strong>국토교통부 실거래가 공개시스템</strong> — 최근 6개월 {result.region} 아파트 임대 실거래 {result.totalSamples}건 (실시간 집계)</p>
           </div>
         </div>
 
