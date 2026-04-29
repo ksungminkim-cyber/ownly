@@ -5,24 +5,61 @@ import { useApp } from "../context/AppContext";
 import { toast } from "./shared";
 
 // 친구 초대 UI — 내 초대 링크 + 초대 현황
+// 코드 미발급 시 즉석 발급 (백필 누락된 기존 유저 대응)
 export default function ReferralSection() {
   const { user } = useApp();
   const [code, setCode] = useState(null);
   const [stats, setStats] = useState({ invited: 0, rewardDays: 0 });
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user?.id) return;
+    let cancelled = false;
     (async () => {
-      const { data: codeRow } = await supabase.from("user_invite_codes").select("code").eq("user_id", user.id).single();
-      if (codeRow) setCode(codeRow.code);
+      setLoading(true); setError("");
+      try {
+        // 1) 기존 코드 조회
+        const { data: codeRow, error: codeErr } = await supabase
+          .from("user_invite_codes").select("code").eq("user_id", user.id).maybeSingle();
 
-      const { data: rewards } = await supabase.from("invite_rewards").select("reward_days").eq("inviter_id", user.id);
-      if (rewards) {
-        const totalDays = rewards.reduce((s, r) => s + (r.reward_days || 0), 0);
-        setStats({ invited: rewards.length, rewardDays: totalDays });
+        if (codeErr) {
+          // 테이블 자체가 없거나 RLS 문제 — 친구초대 기능 비활성 상태
+          if (!cancelled) { setError("초대 기능 준비 중 (관리자에게 문의)"); setLoading(false); }
+          return;
+        }
+
+        let resolvedCode = codeRow?.code;
+
+        // 2) 코드 없으면 즉석 발급 시도
+        if (!resolvedCode) {
+          const { data: { session } } = await supabase.auth.getSession();
+          const res = await fetch("/api/invite/generate-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+          });
+          const result = await res.json();
+          if (result.code) resolvedCode = result.code;
+          else throw new Error(result.error || "코드 발급 실패");
+        }
+
+        if (!cancelled) setCode(resolvedCode);
+
+        // 3) 보상 통계
+        const { data: rewards } = await supabase
+          .from("invite_rewards").select("reward_days").eq("inviter_id", user.id);
+        if (rewards && !cancelled) {
+          const totalDays = rewards.reduce((s, r) => s + (r.reward_days || 0), 0);
+          setStats({ invited: rewards.length, rewardDays: totalDays });
+        }
+      } catch (e) {
+        if (!cancelled) setError(e.message);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   const inviteUrl = code ? `https://www.ownly.kr/login?mode=signup&ref=${code}` : "";
@@ -38,7 +75,7 @@ export default function ReferralSection() {
   };
 
   const shareNative = () => {
-    const text = `온리(Ownly) 임대 자산 관리 플랫폼에 초대합니다! 이 링크로 가입하면 Plus 30일 무료 체험이 추가돼요:\n${inviteUrl}`;
+    const text = `온리(Ownly) 임대 관리 플랫폼에 초대합니다! 이 링크로 가입하면 Plus 30일 무료 체험이 추가돼요:\n${inviteUrl}`;
     if (navigator.share) {
       navigator.share({ title: "온리 초대", text, url: inviteUrl }).catch(() => copyLink());
     } else {
@@ -46,6 +83,22 @@ export default function ReferralSection() {
     }
   };
 
+  // 로딩 또는 에러 상태도 명확히 노출 (이전엔 null 반환해서 무엇도 안 보였음)
+  if (loading) {
+    return (
+      <div style={{ background: "rgba(91,79,207,0.04)", border: "1px solid rgba(91,79,207,0.15)", borderRadius: 16, padding: 22, marginBottom: 18, fontSize: 13, color: "#8a8a9a" }}>
+        🎁 친구 초대 기능 불러오는 중...
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div style={{ background: "rgba(232,68,90,0.04)", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 16, padding: 22, marginBottom: 18 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: "#e8445a", marginBottom: 4 }}>🎁 친구 초대</p>
+        <p style={{ fontSize: 12, color: "#6a6a7a" }}>{error}</p>
+      </div>
+    );
+  }
   if (!code) return null;
 
   return (
@@ -69,10 +122,10 @@ export default function ReferralSection() {
       </div>
 
       {/* 링크 박스 */}
-      <div style={{ padding: "11px 14px", background: "#fff", border: "1px dashed #c4c1fa", borderRadius: 10, display: "flex", alignItems: "center", gap: 8, marginBottom: 10, overflow: "hidden" }}>
+      <div style={{ padding: "11px 14px", background: "#fff", border: "1px dashed #c4c1fa", borderRadius: 10, display: "flex", alignItems: "center", gap: 8, marginBottom: 10, overflow: "hidden", flexWrap: "wrap" }}>
         <span style={{ fontSize: 12, color: "#5b4fcf", fontWeight: 800, flexShrink: 0 }}>내 코드</span>
         <span style={{ fontSize: 15, fontWeight: 900, color: "#1a2744", letterSpacing: 1 }}>{code}</span>
-        <span style={{ fontSize: 11, color: "#8a8a9a", flex: 1, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>
+        <span style={{ fontSize: 11, color: "#8a8a9a", flex: 1, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", minWidth: 0 }}>
           {inviteUrl}
         </span>
       </div>
@@ -89,7 +142,7 @@ export default function ReferralSection() {
       </div>
 
       <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 12, lineHeight: 1.7 }}>
-        💡 <b>Tip</b>: 카카오톡 오픈채팅, 임대인 카페, 블로그 댓글 등에 공유하면 효과적이에요. 친구도 이득, 나도 이득.
+        💡 <b>Tip</b>: 카카오톡, 임대인 카페, 블로그 등에 공유하면 효과적이에요. 친구도 이득, 나도 이득.
       </p>
     </div>
   );
