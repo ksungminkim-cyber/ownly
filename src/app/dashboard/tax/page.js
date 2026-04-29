@@ -34,49 +34,16 @@ function LandTaxTab({ tenants }) {
   const localTax = Math.round(incomeTax * 0.1);
   const totalIncomeTax = incomeTax + localTax;
 
-  // 2. 종합부동산세 계산 (토지분)
-  // 나대지·잡종지: 5억 초과분에 종부세 (별도합산)
-  // 농지·임야: 비과세 or 감면 대상
-  const pubTotal = pub; // 공시지가 합계
-  const JONGBU_THRESHOLD_NAJI = 50000; // 나대지 별도합산 5억
-  const JONGBU_THRESHOLD_ETC = 50000; // 기타 5억 (단순화)
+  // ⚠️ 종합부동산세 / 재산세 등 보유세는 별도 '보유세' 탭에서 모든 자산 통합 계산
+  //    (이전엔 여기에 토지분 계산이 있었으나 보유세 탭과 중복되어 분리)
 
-  let jongbuBase = 0;
-  let jongbuRate = 0;
-  let jongbuTax = 0;
-  let jongbuNote = "";
-
-  if (landType === "나대지" || landType === "대지") {
-    // 별도합산토지: 공시가 80% × 공정시장가액비율 100%
-    const jongbuFair = Math.round(pubTotal * 0.8);
-    jongbuBase = Math.max(0, jongbuFair - JONGBU_THRESHOLD_NAJI);
-    if (jongbuBase <= 20000) { jongbuRate = 0.005; }
-    else if (jongbuBase <= 130000) { jongbuRate = 0.006; }
-    else { jongbuRate = 0.007; }
-    jongbuTax = jongbuBase > 0 ? Math.round(jongbuBase * jongbuRate) : 0;
-    jongbuNote = "별도합산토지 (공시가 80% 기준, 5억 공제)";
-  } else if (landType === "농지" || landType === "임야") {
-    jongbuTax = 0;
-    jongbuNote = isFarmer ? "✅ 농업인 직접 경작 시 종부세 비과세" : "농지·임야는 종부세 합산 제외 (분리과세)";
-  }
-
-  // 3. 재산세 (참고용 간이 계산)
-  // 토지 재산세: 공시가 × 공정시장가액비율(70%) × 세율
-  const propertyTaxBase = Math.round(pubTotal * 0.7);
-  let propertyTaxRate = 0.002; // 나대지 0.2%
-  if (landType === "농지") propertyTaxRate = 0.007; // 농지 0.07% (실제 더 복잡)
-  else if (landType === "임야") propertyTaxRate = 0.007;
-  else if (landType === "대지") propertyTaxRate = 0.002;
-  const propertyTax = pubTotal > 0 ? Math.round(propertyTaxBase * propertyTaxRate) : 0;
-
-  // 4. 농지감면 여부
+  // 2. 농지감면 여부 (토지 임대 소득세에 한함)
   const hasExemption = selectedType?.exemption && isFarmer;
-  const exemptionRate = hasExemption ? 0.1 : 0; // 농업인 자경: 종소세 100% 감면 (단순화)
   const finalIncomeTax = hasExemption ? 0 : totalIncomeTax;
   const exemptionNote = hasExemption ? "✅ 농지 직접 경작 감면 적용 (종소세 면제)" : "";
 
-  // 5. 총 세금
-  const totalTax = finalIncomeTax + jongbuTax + propertyTax;
+  // 3. 총 세금 (토지 임대 소득세만)
+  const totalTax = finalIncomeTax;
   const afterTaxRent = rent - totalTax;
 
   // 6. 실효 수익률
@@ -176,39 +143,28 @@ function LandTaxTab({ tenants }) {
             </div>
           )}
 
-          {/* 세금 내역 */}
+          {/* 세금 내역 (토지 임대 소득세) */}
           <div style={cardStyle}>
-            <p style={labelStyle}>세금 내역 추정</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {[
-                {
-                  label: "종합소득세 + 지방소득세",
-                  value: finalIncomeTax,
-                  color: finalIncomeTax > 0 ? C.rose : C.emerald,
-                  note: hasExemption ? exemptionNote : `실효세율 ${effectiveRate(incomeTax, totalIncome)}%`,
-                },
-                {
-                  label: "종합부동산세 (토지분)",
-                  value: jongbuTax,
-                  color: jongbuTax > 0 ? C.amber : C.emerald,
-                  note: jongbuNote,
-                },
-                {
-                  label: "재산세 (참고용)",
-                  value: propertyTax,
-                  color: "#8a8a9a",
-                  note: "공시가 × 70% × 세율 (간이 계산)",
-                },
-              ].map(({ label, value, color, note }) => (
-                <div key={label} style={{ padding: "12px 0", borderBottom: "1px solid #f0efe9" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                    <span style={{ fontSize: 13, color: "#1a2744", fontWeight: 600 }}>{label}</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color }}>{value.toLocaleString()}만원</span>
-                  </div>
-                  {note && <p style={{ fontSize: 11, color: value === 0 ? C.emerald : "#8a8a9a" }}>{note}</p>}
-                </div>
-              ))}
+            <p style={labelStyle}>토지 임대 소득세</p>
+            <div style={{ padding: "12px 0", borderBottom: "1px solid #f0efe9" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                <span style={{ fontSize: 14, color: "#1a2744", fontWeight: 700 }}>종합소득세 + 지방소득세</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: finalIncomeTax > 0 ? C.rose : C.emerald }}>{finalIncomeTax.toLocaleString()}만원</span>
+              </div>
+              <p style={{ fontSize: 12, color: finalIncomeTax === 0 ? C.emerald : "#8a8a9a" }}>
+                {hasExemption ? exemptionNote : `실효세율 ${effectiveRate(incomeTax, totalIncome)}%`}
+              </p>
             </div>
+          </div>
+
+          {/* 보유세는 보유세 탭에서 안내 */}
+          <div style={{ background: "rgba(91,79,207,0.05)", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 12, padding: "14px 16px" }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: "#5b4fcf", marginBottom: 6 }}>📌 토지 보유세는 별도 탭에서</p>
+            <p style={{ fontSize: 12, color: "#6a6a7a", lineHeight: 1.6 }}>
+              <b>재산세 + 종합부동산세(토지분)</b>는 모든 자산을 통합 합산하는<br/>
+              <b style={{ color: "#5b4fcf" }}>🏘️ 보유세 탭</b>에서 정확하게 계산됩니다.<br/>
+              본 탭은 토지 <b>임대 소득세</b> 및 농지·임야 감면 분석에 집중합니다.
+            </p>
           </div>
 
           {/* 총 세금 + 세후 수입 */}
