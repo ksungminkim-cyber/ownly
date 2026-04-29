@@ -8,6 +8,10 @@ export default function GlobalReportsPage() {
   return <PlanGate feature="globalReports"><GlobalReportsContent /></PlanGate>;
 }
 
+// 5대 글로벌 부동산 자문사의 연간/분기 리포트 큐레이션
+// 연도(2025/2026 등)와 특정 호 URL은 stale 방지를 위해 제외, 자문사 랜딩 URL 사용
+// 각 자문사는 매년/분기마다 최신 리포트를 동일 페이지에서 발행
+
 const REPORTS = [
   {
     firm: "JLL",
@@ -15,11 +19,11 @@ const REPORTS = [
     firmBg: "#fff0f0",
     logo: "JLL",
     category: "글로벌 시장",
-    title: "Global Real Estate Outlook 2025",
-    desc: "전 세계 주요 도시 오피스·물류·리테일 시장 전망. 금리 하락기 투자 전략 분석.",
+    title: "Global Real Estate Perspective",
+    desc: "전 세계 주요 도시 오피스·물류·리테일 시장 전망. 자본시장 흐름 분석 (분기 발행).",
     tags: ["오피스", "물류", "글로벌"],
     url: "https://www.jll.com/en/trends-and-insights/research/global-real-estate-perspective",
-    date: "2025 Q1",
+    date: "분기 발행",
   },
   {
     firm: "JLL",
@@ -27,11 +31,11 @@ const REPORTS = [
     firmBg: "#fff0f0",
     logo: "JLL",
     category: "한국 시장",
-    title: "Korea Real Estate Market Report",
-    desc: "서울 오피스 공실률·임대료 동향, 물류센터 수요 분석, 주요 거래 사례 포함.",
+    title: "JLL Korea Research",
+    desc: "서울 오피스 공실률·임대료 동향, 물류센터 수요 분석, 주요 거래 사례 (분기 발행).",
     tags: ["서울", "오피스", "물류"],
     url: "https://www.jll.co.kr/ko/trends-and-insights/research",
-    date: "2025 Q1",
+    date: "분기 발행",
   },
   {
     firm: "CBRE",
@@ -39,11 +43,11 @@ const REPORTS = [
     firmBg: "#f0fff8",
     logo: "CBRE",
     category: "글로벌 시장",
-    title: "2025 Global Real Estate Market Outlook",
-    desc: "아시아·유럽·미주 상업용 부동산 투자 흐름 및 섹터별 성과 전망.",
+    title: "Global Real Estate Market Outlook",
+    desc: "아시아·유럽·미주 상업용 부동산 투자 흐름 및 섹터별 성과 전망 (연간 발행).",
     tags: ["투자", "아시아", "리테일"],
-    url: "https://www.cbre.com/insights/books/2025-global-real-estate-market-outlook",
-    date: "2025 Q1",
+    url: "https://www.cbre.com/insights/books",
+    date: "연간 발행",
   },
   {
     firm: "CBRE",
@@ -51,11 +55,11 @@ const REPORTS = [
     firmBg: "#f0fff8",
     logo: "CBRE",
     category: "아시아태평양",
-    title: "Asia Pacific Real Estate Market Outlook 2025",
+    title: "Asia Pacific Real Estate Market Outlook",
     desc: "한국·일본·싱가포르·호주 등 아태 시장 섹터별 투자 기회 및 리스크 분석.",
     tags: ["아태", "한국", "오피스"],
-    url: "https://www.cbre.com/insights/books/asia-pacific-real-estate-market-outlook-2025",
-    date: "2025 Q1",
+    url: "https://www.cbre.com/insights/asia-pacific",
+    date: "연간 발행",
   },
   {
     firm: "Cushman",
@@ -63,11 +67,11 @@ const REPORTS = [
     firmBg: "#fff5f0",
     logo: "C&W",
     category: "글로벌 시장",
-    title: "Global Outlook 2025 — Cushman & Wakefield",
-    desc: "글로벌 경기 사이클 분석과 상업용 부동산 자산군별 투자 전략 제시.",
+    title: "Cushman & Wakefield Global Outlook",
+    desc: "글로벌 경기 사이클 분석과 상업용 부동산 자산군별 투자 전략 제시 (연간 발행).",
     tags: ["글로벌", "투자전략", "경기분석"],
     url: "https://www.cushmanwakefield.com/en/insights/global-outlook",
-    date: "2025 Q1",
+    date: "연간 발행",
   },
   {
     firm: "Cushman",
@@ -75,11 +79,11 @@ const REPORTS = [
     firmBg: "#fff5f0",
     logo: "C&W",
     category: "아시아태평양",
-    title: "APAC Office MarketBeat 2025",
+    title: "APAC Office MarketBeat",
     desc: "아시아태평양 오피스 시장 분기별 공실률, 임대료, 흡수량 데이터 분석 리포트.",
     tags: ["오피스", "아태", "MarketBeat"],
     url: "https://www.cushmanwakefield.com/en/asia-pacific/insights",
-    date: "2025 Q1",
+    date: "분기 발행",
   },
   {
     firm: "Savills",
@@ -87,11 +91,11 @@ const REPORTS = [
     firmBg: "#f0f7ff",
     logo: "SAV",
     category: "글로벌 시장",
-    title: "World Research — Savills 2025",
+    title: "Savills World Research",
     desc: "주거·리테일·오피스·산업시설 전반에 걸친 글로벌 부동산 트렌드 종합 리포트.",
     tags: ["주거", "글로벌", "트렌드"],
-    url: "https://www.savills.com/research_articles/255800/359297-0",
-    date: "2025",
+    url: "https://www.savills.com/research/",
+    date: "연간 발행",
   },
   {
     firm: "Knight Frank",
@@ -99,11 +103,11 @@ const REPORTS = [
     firmBg: "#f0f2ff",
     logo: "KF",
     category: "글로벌 시장",
-    title: "The Wealth Report 2025",
-    desc: "글로벌 초고자산가(UHNWI) 부동산 투자 패턴과 프라임 주거 시장 가격 전망.",
+    title: "The Wealth Report",
+    desc: "글로벌 초고자산가(UHNWI) 부동산 투자 패턴과 프라임 주거 시장 가격 전망 (연간 발행).",
     tags: ["프라임", "럭셔리", "투자"],
     url: "https://www.knightfrank.com/wealthreport",
-    date: "2025",
+    date: "연간 발행",
   },
 ];
 
