@@ -1,9 +1,13 @@
 // 카카오페이 정기결제 — 매월 자동 청구 (3단계, sid 사용)
 // 호출 주체:
-//   - Supabase Edge Function 의 billing-renewal (cron, 매일 00:30 KST)
-//   - 또는 운영자 어드민 페이지 수동 호출
+//   - ✅ Vercel Cron Jobs (vercel.json 의 crons 정의 — 매일 09:30 KST)
+//   - 외부 cron 서비스 (cron-job.org 등)
+//   - 운영자 어드민 페이지 수동 호출
 //
-// 보안: SERVICE_ROLE_KEY 또는 BILLING_RENEWAL_TOKEN 헤더로 인증
+// 인증 (셋 중 하나):
+//   1. Vercel Cron: user-agent "vercel-cron/..." 자동 첨부
+//   2. 외부 cron: x-billing-token 헤더 = BILLING_RENEWAL_TOKEN
+//   3. 운영자: Bearer SERVICE_ROLE_KEY
 
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
@@ -12,20 +16,33 @@ import { KAKAOPAY_BASE, KAKAOPAY_CID, KAKAOPAY_SECRET, authHeaders, adminClient,
 const RENEWAL_TOKEN = process.env.BILLING_RENEWAL_TOKEN || "";
 
 function isAuthorized(req) {
-  // cron job 인증: x-billing-token 헤더 또는 Bearer SERVICE_ROLE_KEY
+  // 1) Vercel Cron — 내부 호출, user-agent 헤더로 식별
+  const ua = req.headers.get("user-agent") || "";
+  if (/vercel-cron/i.test(ua)) return true;
+  // 2) 외부 cron: x-billing-token 헤더
   const token = req.headers.get("x-billing-token");
   if (RENEWAL_TOKEN && token === RENEWAL_TOKEN) return true;
+  // 3) 운영자/Edge Function: Bearer SERVICE_ROLE_KEY
   const auth = req.headers.get("authorization") || "";
   if (auth === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`) return true;
   return false;
 }
 
+// Vercel Cron 은 GET 으로 호출하므로 POST/GET 모두 허용
+export async function GET(req) {
+  return handle(req, {});
+}
+
 export async function POST(req) {
+  let body = {};
+  try { body = await req.json(); } catch {}
+  return handle(req, body);
+}
+
+async function handle(req, body) {
   if (!isAuthorized(req)) return NextResponse.json({ error: "권한 없음" }, { status: 401 });
   if (!KAKAOPAY_SECRET) return NextResponse.json({ error: "KAKAOPAY_SECRET_KEY 미설정" }, { status: 500 });
 
-  let body = {};
-  try { body = await req.json(); } catch {}
   const onlyUserId = body.userId; // 특정 사용자만 청구 (테스트용)
   const force = body.force === true; // next_payment_at 무시 (어드민 강제 청구)
 
