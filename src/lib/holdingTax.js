@@ -1,6 +1,23 @@
 // 부동산 보유세 계산 (재산세 + 종합부동산세)
-// 2024년 세법 기준 · 참고용 추정치
+//
+// 기준 연도: 2024-2025년 세법 (2025-12 기준 공시된 누진세율·공정시장가액비율 사용)
 // 단위: 만원
+//
+// ⚠️ 미반영 항목 (정확한 신고는 반드시 세무사·홈택스로 확인):
+//   · 농어촌특별세 (종부세의 20%)
+//   · 도시지역분 (재산세의 0.14% 가산)
+//   · 지방교육세 (재산세의 20% 가산)
+//   · 세부담상한제 (전년 대비 105~150% 한도)
+//   · 1세대1주택 고령자 공제 (60세 이상 20~40%)
+//   · 장기보유공제 (5년 이상 20~50%)
+//   · 신축감면, 임대주택 등록사업자 감면 등 정책 감면
+//
+// 따라서 이 계산기는 "대략적인 보유세 부담을 가늠하기 위한 참고용"이며,
+// 실제 고지서 금액과 차이가 날 수 있습니다.
+
+export const HOLDING_TAX_BASIS_YEAR = "2024-2025";
+export const HOLDING_TAX_DISCLAIMER =
+  "본 계산은 2024-2025 세법 기준 참고용 추정치입니다. 농어촌특별세·도시지역분·지방교육세·세부담상한제·각종 공제는 반영되지 않았으니 실제 신고는 홈택스 또는 세무사 검증을 받으세요.";
 
 // ─── 재산세 (지방세) ───
 
@@ -132,19 +149,37 @@ export function calcTotalHoldingTax({
   is3Plus = false,
   isJointOwnership = false,
 }) {
-  // 재산세
+  // 재산세는 명의와 무관하게 합산 과세
   const housingPropertyTax = calcHousingPropertyTax(housingPriceSum);
   const commercialPropertyTax = calcCommercialPropertyTax(commercialPriceSum);
   const landPropertyTax = calcLandPropertyTaxSeparate(landPriceSum);
 
-  // 종부세
-  const housingComprehensive = calcHousingComprehensiveTax({ publicPriceSum: housingPriceSum, is1Home, is3Plus });
-  const landComprehensive = calcLandComprehensiveTax(landPriceSum);
+  // 종부세는 인별 과세이므로 부부공동명의일 때는 각 1/2씩 보유한 것으로
+  // 분리 계산해 두 사람의 세액을 합산하는 것이 실제 세법에 가깝습니다.
+  // (단순 50% 감면 가정은 부정확하므로 사용하지 않습니다.)
+  let housingComprehensive, landComprehensive;
+  if (isJointOwnership) {
+    const halfHousing = Math.round(housingPriceSum / 2);
+    const halfLand = Math.round(landPriceSum / 2);
+    const hOwner = calcHousingComprehensiveTax({ publicPriceSum: halfHousing, is1Home, is3Plus });
+    const lOwner = calcLandComprehensiveTax(halfLand);
+    housingComprehensive = {
+      tax: hOwner.tax * 2,
+      base: hOwner.base * 2,
+      exemption: hOwner.exemption * 2,
+    };
+    landComprehensive = {
+      tax: lOwner.tax * 2,
+      base: lOwner.base * 2,
+      exemption: lOwner.exemption * 2,
+    };
+  } else {
+    housingComprehensive = calcHousingComprehensiveTax({ publicPriceSum: housingPriceSum, is1Home, is3Plus });
+    landComprehensive = calcLandComprehensiveTax(landPriceSum);
+  }
 
-  // 부부공동명의 시 종부세 50% 감면 (단순 가정)
-  const jointDiscount = isJointOwnership ? 0.5 : 1;
-  const housingCompFinal = Math.round(housingComprehensive.tax * jointDiscount);
-  const landCompFinal = Math.round(landComprehensive.tax * jointDiscount);
+  const housingCompFinal = housingComprehensive.tax;
+  const landCompFinal = landComprehensive.tax;
 
   const totalProperty = housingPropertyTax + commercialPropertyTax + landPropertyTax;
   const totalComprehensive = housingCompFinal + landCompFinal;
@@ -165,5 +200,10 @@ export function calcTotalHoldingTax({
       total: totalComprehensive,
     },
     grandTotal,
+    meta: {
+      basisYear: HOLDING_TAX_BASIS_YEAR,
+      disclaimer: HOLDING_TAX_DISCLAIMER,
+      jointOwnershipMode: isJointOwnership ? "명의별 1/2 분할 합산" : "단독 명의",
+    },
   };
 }

@@ -1,31 +1,33 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-const REAL_ESTATE_INDICES = [
-  { name: "🇰🇷 서울 아파트",    value: "4.2억",    change: "+0.8%",  up: true,  url: "https://www.kbland.kr/map" },
-  { name: "🇰🇷 KB주택가격",     value: "109.3",   change: "+0.3%",  up: true,  url: "https://www.kbland.kr/map" },
-  { name: "🇰🇷 전세가율",       value: "68.2%",   change: "+0.4%",  up: true,  url: "https://www.reb.or.kr/r-one/" },
-  { name: "🇰🇷 월임대수익률",   value: "4.1%",    change: "-0.1%",  up: false, url: "https://www.reb.or.kr/r-one/" },
-  { name: "🇰🇷 중대형상가 공실률", value: "13.1%", change: "+0.4%",  up: false, url: "https://www.reb.or.kr/r-one/" },
-  { name: "🇰🇷 소규모상가 공실률", value: "7.9%",  change: "+0.2%",  up: false, url: "https://www.reb.or.kr/r-one/" },
-  { name: "🇰🇷 오피스 공실률",  value: "9.6%",    change: "-0.1%",  up: true,  url: "https://www.reb.or.kr/r-one/" },
-  { name: "🇰🇷 기준금리",       value: "3.00%",   change: "-0.25%", up: true,  url: "https://www.bok.or.kr/portal/main/contents.do?menuNo=200643" },
-  { name: "🇺🇸 케이스-실러",    value: "331.5",   change: "+4.2%",  up: true,  url: "https://www.spglobal.com/spdji/en/indices/indicators/sp-corelogic-case-shiller-us-national-home-price-nsa-index/" },
-  { name: "🇺🇸 Zillow HVI",    value: "$361K",   change: "+2.1%",  up: true,  url: "https://www.zillow.com/research/data/" },
-  { name: "🇺🇸 30년 모기지",    value: "6.65%",   change: "-0.12%", up: false, url: "https://www.freddiemac.com/pmms" },
-  { name: "🇺🇸 NAR 주택판매",   value: "4.02M",   change: "+3.1%",  up: true,  url: "https://www.nar.realtor/research-and-statistics" },
-  { name: "🇯🇵 도쿄 주택",      value: "¥5,280만", change: "+3.1%",  up: true,  url: "https://www.reinfolib.mlit.go.jp/" },
-  { name: "🇬🇧 Nationwide HPI", value: "£265K",   change: "+3.9%",  up: true,  url: "https://www.nationwide.co.uk/about/house-price-index/house-price-index-results/" },
-  { name: "🇩🇪 독일 부동산",    value: "€3,200",  change: "-1.2%",  up: false, url: "https://www.empirica-regio.de/" },
-  { name: "🇦🇺 CoreLogic AU",   value: "A$802K",  change: "+4.7%",  up: true,  url: "https://www.corelogic.com.au/news-research/news/2024/home-value-index" },
-  { name: "🇸🇬 싱가포르 PPI",   value: "180.4",   change: "+1.8%",  up: true,  url: "https://www.ura.gov.sg/Corporate/Property/Property-Data/Private-Residential-Properties" },
-  { name: "🇨🇳 베이징 주택",    value: "¥71,000", change: "-2.3%",  up: false, url: "https://www.nbs.gov.cn/sj/" },
-  { name: "🇭🇰 홍콩 주택",      value: "HK$1.4억", change: "-4.1%", up: false, url: "https://www.rvd.gov.hk/en/publications/pro-review.html" },
-  { name: "🇮🇳 뭄바이 임대",    value: "₹45K",    change: "+6.3%",  up: true,  url: "https://www.magicbricks.com/property-trends" },
-  { name: "🌏 글로벌 REIT",     value: "2,847",   change: "+1.4%",  up: true,  url: "https://www.ftserussell.com/products/indices/EPRA" },
+// 국토부 실거래 기반 지역 평균 월세 티커
+// 마운트 시 핵심 지역의 /api/market/sigungu 응답을 받아 라이브 항목으로 표시.
+// 페치 실패 시 fallback 으로 공식 출처 링크 모음만 표시합니다.
+
+const LIVE_REGIONS = [
+  { code: "11680", name: "서울 강남구", slug: "seoul-gangnam" },
+  { code: "11440", name: "서울 마포구", slug: "seoul-mapo" },
+  { code: "11710", name: "서울 송파구", slug: "seoul-songpa" },
+  { code: "41130", name: "경기 성남시 분당", slug: "gyeonggi-bundang" },
+  { code: "26350", name: "부산 해운대구", slug: "busan-haeundae" },
+];
+
+const REFERENCE_LINKS = [
+  { name: "🇰🇷 KB부동산",         source: "KBland",      url: "https://www.kbland.kr/map" },
+  { name: "🇰🇷 한국부동산원",     source: "R-ONE",       url: "https://www.reb.or.kr/r-one/" },
+  { name: "🇰🇷 국토부 실거래가",  source: "MOLIT",       url: "https://rt.molit.go.kr/" },
+  { name: "🇰🇷 한국은행 기준금리", source: "BOK",        url: "https://www.bok.or.kr/portal/main/contents.do?menuNo=200643" },
+  { name: "🌏 글로벌 REIT",         source: "FTSE EPRA",   url: "https://www.ftserussell.com/products/indices/EPRA" },
 ];
 
 const SPEED = 0.6; // px per frame
+
+function fmtMan(n) {
+  if (!n || isNaN(n)) return "-";
+  if (n >= 10000) return `${(n / 10000).toFixed(1)}억`;
+  return `${Math.round(n).toLocaleString()}만`;
+}
 
 export default function RealEstateTicker() {
   const trackRef    = useRef(null);
@@ -36,16 +38,66 @@ export default function RealEstateTicker() {
 
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const [paused, setPaused]         = useState(false);
-  const lastUpdate = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  const [liveItems, setLiveItems]   = useState([]); // [{ name, sub, value, deposit, count, slug }]
+  const [updatedAt, setUpdatedAt]   = useState(null);
 
-  // 2배 복제로 끊김 없는 루프
-  const items = [...REAL_ESTATE_INDICES, ...REAL_ESTATE_INDICES];
+  // 국토부 실거래 5개 지역 라이브 페치 (24h CDN 캐시)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const results = await Promise.all(LIVE_REGIONS.map(async (r) => {
+          try {
+            const res = await fetch("/api/market/sigungu", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lawdCd: r.code }),
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (!data || data.empty || data.error) return null;
+            return {
+              name: r.name,
+              slug: r.slug,
+              monthly: data.rent?.medianMonthly,
+              deposit: data.rent?.medianDeposit,
+              count: data.total?.rentTx,
+              updatedAt: data.updatedAt,
+            };
+          } catch { return null; }
+        }));
+        if (cancelled) return;
+        const ok = results.filter(Boolean);
+        if (ok.length > 0) {
+          setLiveItems(ok);
+          const latestTs = ok.map(o => o.updatedAt).filter(Boolean).sort().pop();
+          if (latestTs) setUpdatedAt(latestTs);
+        }
+      } catch { /* fallback to reference links */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // 라이브 항목이 있으면 라이브 + 출처를 함께, 없으면 출처만 표시
+  const dynamicItems = liveItems.length > 0
+    ? [
+        ...liveItems.map(it => ({
+          type: "live",
+          name: `📍 ${it.name}`,
+          source: `월세 중위 ${fmtMan(it.monthly)} · 보증금 ${fmtMan(it.deposit)} · ${it.count?.toLocaleString() || 0}건`,
+          url: `/sise/${it.slug}`,
+        })),
+        ...REFERENCE_LINKS.map(l => ({ type: "ref", ...l })),
+      ]
+    : REFERENCE_LINKS.map(l => ({ type: "ref", ...l }));
+
+  const items = [...dynamicItems, ...dynamicItems];
 
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
 
-    // 한 세트 너비 측정 (렌더 후)
+    // 한 세트 너비 측정 (렌더 후, dynamicItems 변경 시 재측정)
     const measure = () => {
       halfRef.current = track.scrollWidth / 2;
     };
@@ -67,7 +119,7 @@ export default function RealEstateTicker() {
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, []);
+  }, [liveItems.length]);
 
   const handleMouseEnter = () => {
     pausedRef.current = true;
@@ -97,48 +149,61 @@ export default function RealEstateTicker() {
         height: "100%", display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
         background: "#0d1220", zIndex: 2,
       }}>
-        <span>🏠</span>
-        <span style={{ color: "#4b6cb7" }}>REAL ESTATE</span>
+        {liveItems.length > 0 ? (
+          <>
+            <span className="pulse-dot" style={{ width: 7, height: 7 }} />
+            <span style={{ color: "#4b6cb7" }}>LIVE · MOLIT</span>
+          </>
+        ) : (
+          <>
+            <span>🔗</span>
+            <span style={{ color: "#4b6cb7" }}>REFERENCE INDICES</span>
+          </>
+        )}
       </div>
 
       {/* 스크롤 트랙 */}
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
         <div ref={trackRef} style={{ display: "flex", alignItems: "center", width: "max-content", willChange: "transform" }}>
-          {items.map((idx, i) => (
-            <div
-              key={i}
-              onClick={() => window.open(idx.url, "_blank", "noopener,noreferrer")}
-              onMouseEnter={() => setHoveredIdx(i)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "0 18px", height: 36,
-                borderRight: "1px solid #1e2535",
-                whiteSpace: "nowrap", cursor: "pointer",
-                transition: "background .15s",
-                background: hoveredIdx === i ? "rgba(75,108,183,0.15)" : "transparent",
-                position: "relative",
-              }}
-            >
-              <span style={{ fontSize: 11, color: "#8899bb", fontWeight: 500 }}>{idx.name}</span>
-              <span style={{ fontSize: 12, color: "#cdd6f4", fontWeight: 700 }}>{idx.value}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: idx.up ? "#50fa7b" : "#ff5555" }}>
-                {idx.up ? "▲" : "▼"} {idx.change}
-              </span>
-              {/* 호버 툴팁 */}
-              {hoveredIdx === i && (
-                <div style={{
-                  position: "absolute", bottom: 40, left: "50%", transform: "translateX(-50%)",
-                  background: "#1e2535", border: "1px solid #2e3a55", borderRadius: 8,
-                  padding: "6px 12px", fontSize: 11, color: "#cdd6f4", whiteSpace: "nowrap",
-                  zIndex: 100, pointerEvents: "none",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
-                }}>
-                  🔗 클릭하면 상세 지수 페이지로 이동
-                </div>
-              )}
-            </div>
-          ))}
+          {items.map((idx, i) => {
+            const isLive = idx.type === "live";
+            const open = () => {
+              if (isLive) window.location.href = idx.url;
+              else window.open(idx.url, "_blank", "noopener,noreferrer");
+            };
+            return (
+              <div
+                key={i}
+                onClick={open}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "0 18px", height: 36,
+                  borderRight: "1px solid #1e2535",
+                  whiteSpace: "nowrap", cursor: "pointer",
+                  transition: "background .15s",
+                  background: hoveredIdx === i ? "rgba(75,108,183,0.15)" : "transparent",
+                  position: "relative",
+                }}
+              >
+                <span style={{ fontSize: 11, color: isLive ? "#cdd6f4" : "#8899bb", fontWeight: isLive ? 700 : 500 }}>{idx.name}</span>
+                <span style={{ fontSize: 11, color: isLive ? "#50fa7b" : "#4b6cb7", fontWeight: 600 }}>· {idx.source}</span>
+                <span style={{ fontSize: 11, color: "#3d5a9e" }}>{isLive ? "→" : "↗"}</span>
+                {hoveredIdx === i && (
+                  <div style={{
+                    position: "absolute", bottom: 40, left: "50%", transform: "translateX(-50%)",
+                    background: "#1e2535", border: "1px solid #2e3a55", borderRadius: 8,
+                    padding: "6px 12px", fontSize: 11, color: "#cdd6f4", whiteSpace: "nowrap",
+                    zIndex: 100, pointerEvents: "none",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+                  }}>
+                    {isLive ? "🔗 지역 시세 상세 보기" : "🔗 공식 출처 페이지로 이동"}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -150,7 +215,11 @@ export default function RealEstateTicker() {
         background: "#0d1220", whiteSpace: "nowrap", gap: 6,
       }}>
         {paused && <span style={{ color: "#4b6cb7", fontSize: 9 }}>⏸</span>}
-        <span>{lastUpdate} 기준</span>
+        {liveItems.length > 0 ? (
+          <span>국토부 실거래 · {updatedAt ? new Date(updatedAt).toLocaleDateString("ko-KR") : "최근 3개월"}</span>
+        ) : (
+          <span>공식 출처 모음 · 클릭 시 이동</span>
+        )}
       </div>
     </div>
   );

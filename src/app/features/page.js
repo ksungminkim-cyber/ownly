@@ -65,19 +65,19 @@ export default function FeaturesPage() {
         임대인에게 필요한 모든 도구를 하나의 플랫폼에서. 수금부터 세금까지 임대 자산 관리의 전 과정을 지원합니다.
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         {FEATURES.map((f) => (
-          <article key={f.slug} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, padding: "28px 32px" }}>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1a2744", marginBottom: 8 }}>{f.title}</h2>
+          <article key={f.slug} className="surface-card" style={{ padding: "28px 32px" }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", marginBottom: 10, letterSpacing: "-0.3px" }}>{f.title}</h2>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
               {f.keywords.map(k => (
-                <span key={k} style={{ fontSize: 11, fontWeight: 600, color: "#5b4fcf", background: "rgba(91,79,207,0.08)", padding: "2px 8px", borderRadius: 20 }}>{k}</span>
+                <span key={k} className="chip" style={{ fontSize: 11, padding: "4px 10px" }}>{k}</span>
               ))}
             </div>
             <p style={{ fontSize: 14, color: "#4a4a6a", lineHeight: 1.85, marginBottom: 16 }}>{f.desc}</p>
             <ul style={{ paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
               {f.details.map(d => (
-                <li key={d} style={{ fontSize: 13, color: "#6a6a7a", display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <li key={d} style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "flex-start", gap: 8 }}>
                   <span style={{ color: "#0fa573", flexShrink: 0, fontWeight: 700 }}>✓</span> {d}
                 </li>
               ))}
@@ -86,12 +86,11 @@ export default function FeaturesPage() {
         ))}
       </div>
 
-      <div style={{ marginTop: 56, textAlign: "center", padding: "40px 24px", background: "#f5f4f0", borderRadius: 20 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#1a2744", marginBottom: 8 }}>지금 무료로 시작하세요</h2>
-        <p style={{ fontSize: 14, color: "#6a6a7a", marginBottom: 24 }}>물건 2개, 세입자 3명까지 영구 무료. 신용카드 불필요.</p>
-        <Link href="/login" style={{ display: "inline-block", padding: "14px 36px", borderRadius: 12, background: "linear-gradient(135deg,#1a2744,#2d4270)", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
-          무료로 시작하기
-        </Link>
+      <div style={{ marginTop: 56, textAlign: "center", padding: "40px 24px", background: "linear-gradient(135deg, rgba(91,79,207,0.06), rgba(26,39,68,0.04))", borderRadius: 20, border: "1px solid var(--border)" }}>
+        <p className="section-eyebrow" style={{ marginBottom: 10 }}>START FREE</p>
+        <h2 className="section-title" style={{ marginBottom: 10 }}>지금 무료로 시작하세요</h2>
+        <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 24 }}>물건 3개, 세입자 5명까지 영구 무료. 신용카드 불필요.</p>
+        <Link href="/login" className="btn btn-fill btn-lg">무료로 시작하기 →</Link>
       </div>
     </main>
   );

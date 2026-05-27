@@ -1,16 +1,16 @@
 // src/app/dashboard/market/price-tracker/page.js
 "use client";
-import { useState, useCallback } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from "recharts";
+import { LAWD_MAP as REGION_MAP, findRegionFromAddr } from "../../../../lib/regions";
+import { useApp } from "../../../../context/AppContext";
+import PlanGate from "../../../../components/PlanGate";
 
-const LAWD_MAP = {
-  "서울 강남구": "11680", "서울 서초구": "11650", "서울 송파구": "11710",
-  "서울 마포구": "11440", "서울 용산구": "11170", "서울 성동구": "11200",
-  "서울 강동구": "11740", "서울 노원구": "11350", "서울 영등포구": "11560",
-  "서울 관악구": "11620", "경기 성남시": "41130", "경기 수원시": "41110",
-  "경기 용인시": "41460", "경기 고양시": "41280", "인천 연수구": "28185",
-  "부산 해운대구": "26350", "대구 수성구": "27260",
-};
+// 시세 트래커 — Plus 플랜 전용 (사이드바에서도 plan="plus"로 게이팅)
+// 국토부 실거래 API(/api/market/molit) 기반 12개월 추이 + 내 평균 임대료 비교
+
+const LAWD_MAP = REGION_MAP;
 
 const TYPE_MAP = {
   "아파트 전월세": "apt_rent",
@@ -32,7 +32,30 @@ function getLastNMonths(n) {
 }
 
 export default function PriceTrackerPage() {
-  const [region, setRegion] = useState("서울 강남구");
+  return <PlanGate feature="reports"><PriceTrackerContent /></PlanGate>;
+}
+
+function PriceTrackerContent() {
+  const { tenants = [] } = useApp();
+
+  // 사용자 물건 주소에서 지역을 자동 추출
+  const myRegion = useMemo(() => {
+    for (const t of tenants) {
+      const r = findRegionFromAddr(t.addr || t.address || "");
+      if (r && LAWD_MAP[r]) return r;
+    }
+    return null;
+  }, [tenants]);
+
+  // 사용자 평균 월세 (주거 세입자 기준)
+  const myMonthlyAvg = useMemo(() => {
+    const target = tenants.filter(t => (t.pType || t.p_type) === "주거" && t.status !== "공실" && Number(t.rent) > 0);
+    if (target.length === 0) return null;
+    return Math.round(target.reduce((s, t) => s + Number(t.rent), 0) / target.length);
+  }, [tenants]);
+
+  const defaultRegion = myRegion || Object.keys(LAWD_MAP)[0] || "서울 강남구";
+  const [region, setRegion] = useState(defaultRegion);
   const [tradeType, setTradeType] = useState("아파트 전월세");
   const [loading, setLoading] = useState(false);
   const [chartData, setChartData] = useState([]);
@@ -115,15 +138,29 @@ export default function PriceTrackerPage() {
   const isRentType = type.includes("rent");
   const isTradeType = type === "apt_trade";
 
+  // 내 물건 지역이 감지되면 첫 진입 시 자동 조회
+  useEffect(() => {
+    if (myRegion && chartData.length === 0 && !loading) {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myRegion]);
+
   return (
     <div style={{ padding: "28px 28px 80px", maxWidth: 920, margin: "0 auto", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
       <div style={{ marginBottom: 18 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>📈 시세 트래커 (12개월 심층 분석)</h1>
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>국토부 실거래가 기반 · 12개월 추이 · 거래 유형별 (전월세/매매)</p>
       </div>
-      <div style={{ background: "rgba(91,79,207,0.05)", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: "#5b4fcf", lineHeight: 1.6 }}>
-        💡 <b>최근 3개월 종합 통계</b>는 <a href="/sise" style={{ color: "#5b4fcf", fontWeight: 700, textDecoration: "underline" }}>전국 시세 페이지</a>에서 확인하세요. 본 페이지는 <b>12개월 장기 트렌드</b>와 <b>거래 유형별 추이</b>를 분석합니다.
+      <div style={{ background: "rgba(91,79,207,0.05)", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#5b4fcf", lineHeight: 1.6 }}>
+        💡 <b>최근 3개월 종합 통계</b>는 <Link href="/sise" style={{ color: "#5b4fcf", fontWeight: 700, textDecoration: "underline" }}>전국 시세 페이지</Link>에서 확인하세요. 본 페이지는 <b>12개월 장기 트렌드</b>와 <b>거래 유형별 추이</b>를 분석합니다.
       </div>
+      {myRegion && (
+        <div style={{ background: "rgba(15,165,115,0.06)", border: "1px solid rgba(15,165,115,0.25)", borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: "#0fa573", lineHeight: 1.6 }}>
+          📍 내 물건 지역 <b>{myRegion}</b>으로 자동 선택했습니다.
+          {myMonthlyAvg && <> 내 월세 평균 <b>{myMonthlyAvg.toLocaleString()}만원</b>은 차트의 점선으로 표시됩니다.</>}
+        </div>
+      )}
 
       {/* 필터 */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
@@ -194,6 +231,9 @@ export default function PriceTrackerPage() {
               {isTradeType && <Line type="monotone" dataKey="매매평균" stroke="#1a2744" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} connectNulls />}
               {isRentType  && <Line type="monotone" dataKey="전세평균" stroke="#1a2744" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} connectNulls />}
               {isRentType  && <Line type="monotone" dataKey="월세평균" stroke="#0fa573" strokeWidth={2}   dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls />}
+              {isRentType && myMonthlyAvg && (
+                <ReferenceLine y={myMonthlyAvg} stroke="#e8445a" strokeDasharray="6 4" strokeWidth={1.5} label={{ value: `내 월세 평균 ${myMonthlyAvg}만원`, position: "right", fill: "#e8445a", fontSize: 11, fontWeight: 700 }} />
+              )}
             </LineChart>
           </ResponsiveContainer>
           <p style={{ fontSize: 11, color: "var(--text-faint)", textAlign: "center", marginTop: 8 }}>

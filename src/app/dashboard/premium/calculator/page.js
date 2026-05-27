@@ -519,8 +519,7 @@ function CalculatorContent() {
       {/* 탭 */}
       <div style={{ display:"flex", gap:8, marginBottom:28, overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
         {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            style={{ padding:"10px 18px", borderRadius:11, fontSize:13, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0, border:`2px solid ${tab===t.key ? C.navy : C.border}`, background: tab===t.key ? "rgba(26,39,68,0.07)" : "transparent", color: tab===t.key ? C.navy : C.muted }}>
+          <button key={t.key} onClick={() => setTab(t.key)} className={`chip ${tab===t.key ? "is-active" : ""}`} style={{ padding:"8px 14px", fontSize:13 }}>
             {t.label}
           </button>
         ))}

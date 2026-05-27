@@ -195,9 +195,10 @@ export default function HoldingTaxTab({ tenants = [] }) {
           </div>
 
           {/* 안내 */}
-          <div style={{ background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 10, padding: "14px 16px" }}>
-            <p style={{ fontSize: 12, color: "#6a6a7a", lineHeight: 1.7 }}>
-              ⚠️ 본 계산은 2024년 세법 기준 <b style={{ color: "#1a2744" }}>참고용 추정치</b>입니다. 실제 세액은 보유 형태(개인/부부/법인), 보유 기간, 고령자 공제, 농어촌특별세 등에 따라 달라질 수 있습니다.
+          <div style={{ background: "rgba(232,150,10,0.06)", border: "1px solid rgba(232,150,10,0.25)", borderRadius: 10, padding: "14px 16px" }}>
+            <p style={{ fontSize: 12, color: "#8a6510", fontWeight: 700, marginBottom: 6 }}>⚠️ 참고용 추정치 · 2024-2025 기준</p>
+            <p style={{ fontSize: 12, color: "#6a6a7a", lineHeight: 1.7, margin: 0 }}>
+              본 계산은 누진세율의 큰 틀만 반영한 추정치이며, <b style={{ color: "#1a2744" }}>농어촌특별세·도시지역분·지방교육세·세부담상한제·고령자 공제·장기보유 공제·임대주택 감면</b> 등은 적용되지 않았습니다. 부부공동명의는 명의별 1/2 분할 합산으로 계산합니다 (실제는 명의별 신고). <b>실제 신고는 반드시 홈택스 또는 세무사 검증</b>을 받아 주세요.
             </p>
           </div>
         </div>

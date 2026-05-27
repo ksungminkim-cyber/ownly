@@ -224,11 +224,11 @@ export default function PortfolioPage() {
           { icon: "📊", label: "월별 수익 차트", desc: "YTD 수금 추이 상세", path: "/dashboard/reports", color: "#0fa573" },
           { icon: "🧾", label: "세금 시뮬레이터", desc: "예상 세액 + 간주임대료", path: "/dashboard/tax", color: "#e8445a" },
         ].map(a => (
-          <div key={a.label} onClick={() => router.push(a.path)}
-            style={{ background: "#fff", border: `1px solid ${a.color}30`, borderLeft: `4px solid ${a.color}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer" }}>
-            <p style={{ fontSize: 20, marginBottom: 6 }}>{a.icon}</p>
-            <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 2 }}>{a.label}</p>
-            <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.5 }}>{a.desc}</p>
+          <div key={a.label} onClick={() => router.push(a.path)} className="surface-card interactive" role="button" tabIndex={0}
+            style={{ borderLeft: `4px solid ${a.color}`, padding: "16px 18px" }}>
+            <p style={{ fontSize: 22, marginBottom: 6 }}>{a.icon}</p>
+            <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>{a.label}</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{a.desc}</p>
           </div>
         ))}
       </div>

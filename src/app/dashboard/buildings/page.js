@@ -82,9 +82,10 @@ export default function BuildingsPage() {
             return (
               <div key={b.id}
                 onClick={() => !b.virtual && router.push(`/dashboard/buildings/${b.id}`)}
-                style={{ background: "#fff", border: `1.5px solid ${b.virtual ? "#ebe9e3" : C.indigo + "30"}`, borderRadius: 14, padding: "18px 20px", cursor: b.virtual ? "default" : "pointer", transition: "all .15s" }}
-                onMouseEnter={(e) => { if (!b.virtual) e.currentTarget.style.boxShadow = "0 4px 20px rgba(26,39,68,0.1)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}>
+                className={`surface-card ${b.virtual ? "" : "interactive"}`}
+                role={b.virtual ? undefined : "button"}
+                tabIndex={b.virtual ? undefined : 0}
+                style={{ padding: "18px 20px", cursor: b.virtual ? "default" : "pointer", opacity: b.virtual ? 0.85 : 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>

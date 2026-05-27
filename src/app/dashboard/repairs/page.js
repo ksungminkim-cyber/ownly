@@ -60,13 +60,12 @@ export default function RepairsPage() {
         { k: "in_progress", label: `⚙️ 처리 중 ${inProgCount > 0 ? `(${inProgCount})` : ""}` },
         { k: "done", label: "✅ 완료" },
       ].map(s => (
-        <button key={s.k} onClick={() => setFilterStatus(s.k)}
-          style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:700, cursor:"pointer", border:`1px solid ${filterStatus===s.k ? C.navy : C.border}`, background: filterStatus===s.k ? C.navy : "transparent", color: filterStatus===s.k ? "#fff" : C.muted }}>
+        <button key={s.k} onClick={() => setFilterStatus(s.k)} className={`chip ${filterStatus===s.k ? "is-active" : ""}`} style={{ padding:"5px 12px", fontSize:12 }}>
           {s.label}
         </button>
       ))}
     </div>
-    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:16 }}> {["전체", ...CATEGORIES].map(c => ( <button key={c} onClick={() => setFilterCat(c)} style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", border:`1px solid ${filterCat===c ? C.navy : C.border}`, background: filterCat===c ? C.navy : "transparent", color: filterCat===c ? "#fff" : C.muted }}>{CATEGORY_ICONS[c] || ""} {c}</button> ))} </div>
+    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:16 }}> {["전체", ...CATEGORIES].map(c => ( <button key={c} onClick={() => setFilterCat(c)} className={`chip ${filterCat===c ? "is-active" : ""}`} style={{ padding:"5px 12px", fontSize:12 }}>{CATEGORY_ICONS[c] || ""} {c}</button> ))} </div>
 
     {filtered.length === 0 ? (
       <EmptyState icon="🔨" title="수리 이력이 없습니다" desc="수리·교체 내역을 기록해두면 세금 신고 시 비용 처리에 도움이 됩니다" hint="수리비를 등록하면 간편 장부에도 자동으로 기록됩니다" />

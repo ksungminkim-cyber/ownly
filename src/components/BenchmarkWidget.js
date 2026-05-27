@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-import { findLawdCodeFromAddr, findRegionFromAddr, LAWD_MAP } from "../lib/regions";
+import { useEffect, useMemo, useState } from "react";
+import { findRegionFromAddr, LAWD_MAP } from "../lib/regions";
 
 const AI_CACHE_KEY = "ownly_ai_benchmark_cache";
 const AI_TTL = 24 * 60 * 60 * 1000; // 24h
@@ -70,10 +70,10 @@ async function fetchBenchmark(lawdCd, region, molitType = "apt_rent") {
 }
 
 export default function BenchmarkWidget({ tenants = [] }) {
-  const [data, setData] = useState(null);
+  const [fetchedData, setFetchedData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [aiComment, setAiComment] = useState(null);
+  const [fetchedAiComment, setFetchedAiComment] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [showDataSource, setShowDataSource] = useState(false);
 
@@ -107,57 +107,76 @@ export default function BenchmarkWidget({ tenants = [] }) {
 
   const cacheKey = primaryRegion ? `${primaryRegion}__${molitType}` : null;
 
-  useEffect(() => {
-    if (!primaryRegion || !LAWD_MAP[primaryRegion]) return;
-    const cached = getCached(cacheKey);
-    if (cached) { setData(cached); return; }
+  // 캐시 적중은 derived state — effect 내부 동기 setState 회피
+  const cachedData = useMemo(() => {
+    if (!primaryRegion || !LAWD_MAP[primaryRegion] || !cacheKey) return null;
+    return getCached(cacheKey);
+  }, [primaryRegion, cacheKey]);
 
-    setLoading(true);
-    setError(null);
-    fetchBenchmark(LAWD_MAP[primaryRegion], primaryRegion, molitType)
-      .then(d => {
-        if (d) { setCached(cacheKey, d); setData(d); }
-        else setError("데이터 없음");
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [primaryRegion, molitType, cacheKey]);
+  const data = cachedData || fetchedData;
+  const aiCacheKey = data && primaryRegion ? `${primaryRegion}__${molitType}__${myAvg}` : null;
 
-  // AI 코멘트 (24시간 캐시)
-  useEffect(() => {
-    if (!data || !primaryRegion) return;
-    const aiCacheKey = `${primaryRegion}__${molitType}__${myAvg}`;
+  const cachedAiComment = useMemo(() => {
+    if (!aiCacheKey) return null;
     try {
       const raw = localStorage.getItem(AI_CACHE_KEY);
       const all = raw ? JSON.parse(raw) : {};
       const cached = all[aiCacheKey];
-      if (cached && Date.now() - cached.ts < AI_TTL) {
-        setAiComment(cached.comment);
-        return;
-      }
+      if (cached && Date.now() - cached.ts < AI_TTL) return cached.comment;
     } catch {}
+    return null;
+  }, [aiCacheKey]);
 
-    setAiLoading(true);
-    fetch("/api/ai-comment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "benchmark",
-        context: {
-          region: primaryRegion,
-          type: primaryType === "residential" ? "아파트" : "오피스텔/상가",
-          myRent: myAvg,
-          median: data.median,
-          p25: data.p25,
-          p75: data.p75,
-          count: data.count,
-        },
-      }),
-    })
-      .then(r => r.json())
-      .then(r => {
-        if (r.comment) {
-          setAiComment(r.comment);
+  const aiComment = cachedAiComment || fetchedAiComment;
+
+  useEffect(() => {
+    if (!primaryRegion || !LAWD_MAP[primaryRegion] || cachedData) return;
+
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const d = await fetchBenchmark(LAWD_MAP[primaryRegion], primaryRegion, molitType);
+        if (cancelled) return;
+        if (d) { setCached(cacheKey, d); setFetchedData(d); }
+        else setError("데이터 없음");
+      } catch (e) {
+        if (!cancelled) setError(e.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [primaryRegion, molitType, cacheKey, cachedData]);
+
+  // AI 코멘트 — 캐시 적중 시 effect 진입 자체를 막아 setState 호출 회피
+  useEffect(() => {
+    if (!data || !primaryRegion || !aiCacheKey || cachedAiComment) return;
+
+    let cancelled = false;
+    (async () => {
+      setAiLoading(true);
+      try {
+        const r = await fetch("/api/ai-comment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "benchmark",
+            context: {
+              region: primaryRegion,
+              type: primaryType === "residential" ? "아파트" : "오피스텔/상가",
+              myRent: myAvg,
+              median: data.median,
+              p25: data.p25,
+              p75: data.p75,
+              count: data.count,
+            },
+          }),
+        }).then(res => res.json());
+        if (cancelled) return;
+        if (r?.comment) {
+          setFetchedAiComment(r.comment);
           try {
             const raw = localStorage.getItem(AI_CACHE_KEY);
             const all = raw ? JSON.parse(raw) : {};
@@ -165,18 +184,41 @@ export default function BenchmarkWidget({ tenants = [] }) {
             localStorage.setItem(AI_CACHE_KEY, JSON.stringify(all));
           } catch {}
         }
-      })
-      .catch(() => {})
-      .finally(() => setAiLoading(false));
-  }, [data, primaryRegion, myAvg, molitType, primaryType]);
+      } catch {
+        /* AI 코멘트는 실패해도 위젯 본 기능에는 영향 없음 */
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [data, primaryRegion, myAvg, molitType, primaryType, aiCacheKey, cachedAiComment]);
 
   if (targetTenants.length === 0 || !primaryRegion) return null;
 
   if (loading) {
     return (
-      <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 20px", marginBottom: 14 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", letterSpacing: "1px", marginBottom: 6 }}>📊 지역 임대료 벤치마크</p>
-        <p style={{ fontSize: 12, color: "#8a8a9a" }}>{primaryRegion} 실거래가 분석 중...</p>
+      <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 20px", marginBottom: 14 }} aria-busy="true" aria-live="polite">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 6 }}>📊 지역 임대료 벤치마크</p>
+            <div className="bw-skel" style={{ width: "60%", height: 16, borderRadius: 6 }} />
+          </div>
+          <div className="bw-skel" style={{ width: 80, height: 22, borderRadius: 20 }} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
+          {[0,1,2].map(i => (
+            <div key={i} style={{ background: "#faf9f6", border: "1px solid #f0efe9", borderRadius: 10, padding: "12px 14px" }}>
+              <div className="bw-skel" style={{ width: "70%", height: 10, borderRadius: 4, marginBottom: 8 }} />
+              <div className="bw-skel" style={{ width: "55%", height: 18, borderRadius: 5 }} />
+            </div>
+          ))}
+        </div>
+        <div className="bw-skel" style={{ width: "100%", height: 8, borderRadius: 4 }} />
+        <p style={{ marginTop: 10, fontSize: 11, color: "#8a8a9a" }}>{primaryRegion} 실거래가 불러오는 중…</p>
+        <style>{`
+          .bw-skel { background: linear-gradient(90deg, #f0efe9 0%, #f8f7f4 50%, #f0efe9 100%); background-size: 200% 100%; animation: bwShimmer 1.2s infinite; }
+          @keyframes bwShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        `}</style>
       </div>
     );
   }

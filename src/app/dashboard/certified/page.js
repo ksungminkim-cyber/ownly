@@ -6,6 +6,14 @@ import { useApp } from "../../../context/AppContext";
 import { supabase } from "../../../lib/supabase";
 import PlanGate from "../../../components/PlanGate";
 
+// 내용증명 발송 상태
+const STATUS_META = {
+  drafted:   { label: "작성됨",   color: "#6a6a7a", bg: "rgba(106,106,122,0.10)" },
+  sent:      { label: "발송완료", color: "#1e7fcb", bg: "rgba(30,127,203,0.10)" },
+  received:  { label: "수령확인", color: "#0fa573", bg: "rgba(15,165,115,0.10)" },
+  completed: { label: "종결",     color: "#1a2744", bg: "rgba(26,39,68,0.10)" },
+};
+
 export default function CertifiedPage() {
   return <PlanGate feature="certified"><CertifiedContent /></PlanGate>;
 }
@@ -120,6 +128,9 @@ function CertifiedContent() {
   const [showDetail, setShowDetail] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [trackingTarget, setTrackingTarget] = useState(null);
+  const [trackingInput, setTrackingInput] = useState("");
+  const [postMethodInput, setPostMethodInput] = useState("postal");
 
   // 폼 상태
   const initForm = () => ({
@@ -258,6 +269,52 @@ function CertifiedContent() {
   const showDeposit     = form.reason === "보증금 반환 청구";
   const showCustom      = form.reason === "기타";
 
+  // 등기번호 모달이 열리면 기존 값 미리 채움
+  useEffect(() => {
+    if (trackingTarget) {
+      setTrackingInput(trackingTarget.tracking_no || "");
+      setPostMethodInput(trackingTarget.post_method || "postal");
+    }
+  }, [trackingTarget]);
+
+  // 등기번호 저장
+  const saveTracking = async () => {
+    if (!trackingTarget) return;
+    try {
+      const patch = {
+        tracking_no: trackingInput.trim() || null,
+        post_method: postMethodInput,
+      };
+      // 등기번호를 처음 입력하는 경우 상태를 sent 로 자동 승격
+      if (trackingInput.trim() && (trackingTarget.status === "drafted" || !trackingTarget.status)) {
+        patch.status = "sent";
+        if (!trackingTarget.sent_at) patch.sent_at = new Date().toISOString().slice(0,10);
+      }
+      const { data, error } = await supabase.from("certified_mail").update(patch).eq("id", trackingTarget.id).select().single();
+      if (error) throw error;
+      setHistory(prev => prev.map(x => x.id === data.id ? data : x));
+      setTrackingTarget(null);
+      toast("등기번호가 저장되었습니다");
+    } catch (e) {
+      toast("저장 실패: " + (e?.message || ""), "error");
+    }
+  };
+
+  // 상태 변경 (DB 즉시 반영)
+  const updateStatus = async (h, nextStatus) => {
+    const patch = { status: nextStatus };
+    if (nextStatus === "sent" && !h.sent_at) patch.sent_at = new Date().toISOString().slice(0,10);
+    if (nextStatus === "received" && !h.received_at) patch.received_at = new Date().toISOString().slice(0,10);
+    try {
+      const { data, error } = await supabase.from("certified_mail").update(patch).eq("id", h.id).select().single();
+      if (error) throw error;
+      setHistory(prev => prev.map(x => x.id === data.id ? data : x));
+      toast(`상태가 ${STATUS_META[nextStatus]?.label || nextStatus}(으)로 변경되었습니다`);
+    } catch (e) {
+      toast("상태 변경 실패: " + (e?.message || ""), "error");
+    }
+  };
+
   return (
     <div className="page-in page-padding" style={{ maxWidth: 920 }}>
       {/* 헤더 */}
@@ -272,6 +329,21 @@ function CertifiedContent() {
         </button>
       </div>
 
+      {/* 우체국 정식 발송 가이드 — 정직한 안내 (외부 연동 없음을 명시) */}
+      <div style={{ marginBottom:16, padding:"14px 18px", background:"rgba(232,150,10,0.06)", border:"1px solid rgba(232,150,10,0.2)", borderRadius:12 }}>
+        <p style={{ fontSize:12, fontWeight:800, color:"#c9920a", marginBottom:6 }}>📮 법적 효력 있는 정식 발송 방법</p>
+        <p style={{ fontSize:12, color:"#6a6a7a", lineHeight:1.7, margin:0 }}>
+          이 페이지는 <b style={{ color:"#1a2744" }}>법적 효력을 가진 내용증명 작성·보관 도구</b>입니다. 정식 발송은 본 서비스 내에서 자동 처리되지 않으니, 작성한 PDF를 가지고 다음 중 한 가지 방법으로 직접 보내주세요.
+        </p>
+        <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
+          <a href="https://service.epost.go.kr/iservice/usr/postal/usrpst1003.jsp" target="_blank" rel="noopener noreferrer" style={{ padding:"7px 13px", borderRadius:8, background:"#fff", border:"1px solid #c9920a40", color:"#c9920a", fontSize:11, fontWeight:700, textDecoration:"none" }}>📨 우체국 전자내용증명 (24시간 발송)</a>
+          <a href="https://www.epost.go.kr/main.retrieveMainPage.do" target="_blank" rel="noopener noreferrer" style={{ padding:"7px 13px", borderRadius:8, background:"#fff", border:"1px solid #c9920a40", color:"#c9920a", fontSize:11, fontWeight:700, textDecoration:"none" }}>🏤 가까운 우체국 방문 (배달증명)</a>
+        </div>
+        <p style={{ fontSize:11, color:"#8a8a9a", lineHeight:1.6, margin:"8px 0 0" }}>
+          발송 후 등기번호를 받으셨다면 아래 목록에서 해당 항목의 상태를 <b>발송완료</b>로 바꾸고 등기번호를 입력해 두시면 추후 분쟁 시 근거가 됩니다.
+        </p>
+      </div>
+
       {/* 목록 */}
       {loading ? (
         <div style={{ textAlign:"center", padding:60, color:C.muted }}>불러오는 중...</div>
@@ -281,19 +353,38 @@ function CertifiedContent() {
         <div style={{ background:"#fff", border:"1px solid #ebe9e3", borderRadius:16, overflow:"hidden" }}>
           {history.map((h, i) => {
             const t = REASON_TEMPLATES[h.reason] || REASON_TEMPLATES["기타"];
+            const status = h.status || "drafted";
+            const sm = STATUS_META[status] || STATUS_META.drafted;
             return (
-              <div key={h.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 20px", borderBottom: i < history.length-1 ? "1px solid #f0efe9" : "none" }}>
-                <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+              <div key={h.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 20px", borderBottom: i < history.length-1 ? "1px solid #f0efe9" : "none", flexWrap:"wrap", gap:10 }}>
+                <div style={{ display:"flex", gap:12, alignItems:"center", flex:1, minWidth:240 }}>
                   <div style={{ width:40, height:40, borderRadius:11, background:"rgba(26,39,68,0.06)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0 }}>{t.icon}</div>
-                  <div>
-                    <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:3 }}>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:3, flexWrap:"wrap" }}>
                       <span style={{ fontSize:14, fontWeight:700, color:"#1a2744" }}>{h.tenant_name}</span>
                       <span style={{ fontSize:10, fontWeight:700, color:C.rose, background:C.rose+"15", padding:"2px 8px", borderRadius:20 }}>{h.reason}</span>
+                      <span style={{ fontSize:10, fontWeight:800, color:sm.color, background:sm.bg, padding:"2px 8px", borderRadius:20 }}>{sm.label}</span>
                     </div>
-                    <p style={{ fontSize:12, color:"#8a8a9a" }}>{new Date(h.created_at).toLocaleDateString("ko-KR")} · {h.content?.slice(0,60)}...</p>
+                    <p style={{ fontSize:12, color:"#8a8a9a", margin:0 }}>
+                      작성 {new Date(h.created_at).toLocaleDateString("ko-KR")}
+                      {h.sent_at && <> · 발송 {new Date(h.sent_at).toLocaleDateString("ko-KR")}</>}
+                      {h.tracking_no && <> · 등기 <b style={{ color:"#1a2744" }}>{h.tracking_no}</b></>}
+                      {h.received_at && <> · 수령 {new Date(h.received_at).toLocaleDateString("ko-KR")}</>}
+                    </p>
                   </div>
                 </div>
-                <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                <div style={{ display:"flex", gap:6, flexShrink:0, alignItems:"center", flexWrap:"wrap" }}>
+                  <select
+                    value={status}
+                    onChange={(e) => updateStatus(h, e.target.value)}
+                    aria-label="발송 상태 변경"
+                    style={{ padding:"5px 8px", fontSize:11, fontWeight:700, color:sm.color, background:sm.bg, border:`1px solid ${sm.color}40`, borderRadius:7, cursor:"pointer", minHeight:30 }}
+                  >
+                    {Object.entries(STATUS_META).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
+                  <button onClick={() => setTrackingTarget(h)} style={{ padding:"5px 11px", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border:"1px solid #ebe9e3", background:"transparent", color:"#6a6a7a" }}>📦 등기번호</button>
                   <button onClick={() => setShowDetail(h)} style={{ padding:"5px 11px", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border:"1px solid #ebe9e3", background:"transparent", color:"#8a8a9a" }}>보기</button>
                   <button onClick={() => openEdit(h)} style={{ padding:"5px 11px", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border:`1px solid ${C.indigo}40`, background:C.indigo+"10", color:C.indigo }}>수정</button>
                   <button onClick={() => printPDF(h)} style={{ padding:"5px 11px", borderRadius:7, fontSize:11, fontWeight:600, cursor:"pointer", border:`1px solid ${C.emerald}40`, background:C.emerald+"10", color:C.emerald }}>📄 PDF</button>
@@ -462,6 +553,45 @@ function CertifiedContent() {
           </div>
           <div style={{ background:"#f8f7f4", border:"1px solid #ebe9e3", borderRadius:12, padding:"20px", minHeight:160, fontSize:13, lineHeight:2, color:"#1a2744", whiteSpace:"pre-wrap", maxHeight:400, overflowY:"auto" }}>
             {showDetail.content}
+          </div>
+        </Modal>
+      )}
+
+      {/* 등기번호·발송 방법 입력 */}
+      {trackingTarget && (
+        <Modal open={!!trackingTarget} onClose={() => setTrackingTarget(null)} width={460}>
+          <h2 style={{ fontSize:17, fontWeight:800, color:"#1a2744", marginBottom:6 }}>📦 발송 정보 등록</h2>
+          <p style={{ fontSize:12, color:"#8a8a9a", marginBottom:16 }}>{trackingTarget.tenant_name} — {trackingTarget.reason}</p>
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <div>
+              <FormLabel>발송 방법</FormLabel>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                {[
+                  { id:"postal", label:"🏤 우체국 방문" },
+                  { id:"epost", label:"📨 우체국 전자내용증명" },
+                  { id:"other", label:"기타" },
+                ].map(opt => (
+                  <button key={opt.id} onClick={() => setPostMethodInput(opt.id)}
+                    style={{ padding:"7px 12px", borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer",
+                      border:`1px solid ${postMethodInput===opt.id?C.indigo:"#ebe9e3"}`,
+                      background:postMethodInput===opt.id?C.indigo+"12":"transparent",
+                      color:postMethodInput===opt.id?C.indigo:"#8a8a9a" }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <FormInput label="등기번호 (선택)" placeholder="예: 1234-5678-9012" value={trackingInput} onChange={(e) => setTrackingInput(e.target.value)} />
+            <p style={{ fontSize:11, color:"#8a8a9a", lineHeight:1.6, margin:0 }}>
+              등기번호를 입력하면 추후 분쟁 시 발송 증빙으로 활용할 수 있습니다.
+              등기번호 저장 시 상태가 자동으로 <b>발송완료</b>로 바뀝니다.
+            </p>
+            <div style={{ display:"flex", gap:10 }}>
+              <button onClick={() => setTrackingTarget(null)}
+                style={{ flex:1, padding:"12px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>취소</button>
+              <button onClick={saveTracking}
+                style={{ flex:2, padding:"12px", borderRadius:11, background:`linear-gradient(135deg,${C.navy},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>저장</button>
+            </div>
           </div>
         </Modal>
       )}

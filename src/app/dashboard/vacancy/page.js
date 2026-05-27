@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, EmptyState, Modal, AuthInput, toast, ConfirmDialog } from "../../../components/shared"; import { C, COLORS } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import PlanGate from "../../../components/PlanGate"; import AddressInput from "../../../components/AddressInput";
+"use client"; import { useState, useMemo, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, EmptyState, Modal, AuthInput, toast, ConfirmDialog } from "../../../components/shared"; import { C, COLORS } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import PlanGate from "../../../components/PlanGate"; import AddressInput from "../../../components/AddressInput";
 
 const TYPE_CONFIG = { 주거: { icon: "🏠", color: C.indigo, subs: ["아파트","빌라","오피스텔","단독주택","원룸","투룸"] }, 상가: { icon: "🏪", color: C.amber, subs: ["1층 상가","집합상가","근린상가","오피스"] }, 오피스텔: { icon: "🏢", color: C.purple, subs: ["오피스텔(주거)","오피스텔(업무)"] }, 토지: { icon: "🌳", color: "#0d9488", subs: ["나대지","농지","임야","대지"] } };
 
@@ -93,7 +93,7 @@ function VacancyContent() {
   const set = (k) => (val) => setForm(f=>({...f,[k]:val}));
   const gf = (v,...keys) => { for(const k of keys) if(v[k]!==undefined&&v[k]!==null) return v[k]; return ""; };
 
-  const tenantVacancies = useMemo(()=>tenants.filter(t=>t.status==="공실").map(t=>{const industry=extractIndustry(t.biz);return {_source:"tenant",id:"t_"+t.id,tenantId:t.id,addr:t.addr,p_type:t.pType,sub_type:t.sub,vacant_since:t.vacant_since||t.start_date||new Date().toISOString().slice(0,10),expected_rent:t.rent||0,deposit:t.dep||0,maintenance:t.maintenance||0,note:industry?`추천 업종: ${industry}`:"",color:t.color};}),[tenants]);
+  const tenantVacancies = useMemo(()=>tenants.filter(t=>t.status==="공실").map(t=>{const industry=extractIndustry(t.biz);return {_source:"tenant",id:"t_"+t.id,tenantId:t.id,addr:t.addr,p_type:t.pType,sub_type:t.sub,vacant_since:t.vacant_since||t.start_date||new Date().toISOString().slice(0,10),expected_rent:t.rent||0,deposit:t.dep||0,maintenance:t.maintenance||0,note:industry?`추천 업종: ${industry}`:"",color:t.color,action_steps:t.vacancy_action_steps||t.vacancyActionSteps||{}};}),[tenants]);
   const allVacancies = useMemo(()=>{ const s=new Set(vacancies.map(v=>v.addr)); return [...vacancies,...tenantVacancies.filter(tv=>!s.has(tv.addr))]; },[vacancies,tenantVacancies]);
   const totalUnits = tenants.filter(t=>t.status!=="공실").length + allVacancies.length;
   const vacancyRate = totalUnits>0 ? Math.round((allVacancies.length/totalUnits)*100) : 0;
@@ -104,9 +104,47 @@ function VacancyContent() {
   const showMaint = form.pType==="상가"||form.pType==="오피스텔";
   const totalRent = Number(form.expectedRent||0)+Number(form.maintenance||0);
 
-  const toggleStep = (vacId, stepId) => {
-    const key = `${vacId}_${stepId}`;
-    setCheckedSteps(prev => ({ ...prev, [key]: !prev[key] }));
+  // 페이지 진입 시 모든 공실의 action_steps 를 메모리 상태로 복원
+  useEffect(() => {
+    const restored = {};
+    for (const v of allVacancies) {
+      const steps = v.action_steps || v.actionSteps || {};
+      for (const [stepId, done] of Object.entries(steps)) {
+        if (done) restored[`${v.id}_${stepId}`] = true;
+      }
+    }
+    setCheckedSteps(restored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vacancies, tenants]);
+
+  // DB 저장: tenant 소스는 tenants.vacancy_action_steps, 일반 공실은 vacancies.action_steps
+  const persistActionSteps = async (vac, nextSteps) => {
+    try {
+      if (vac._source === "tenant") {
+        const { error } = await supabase.from("tenants").update({ vacancy_action_steps: nextSteps }).eq("id", vac.tenantId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("vacancies").update({ action_steps: nextSteps }).eq("id", vac.id);
+        if (error) throw error;
+        setVacancies(prev => prev.map(x => x.id === vac.id ? { ...x, action_steps: nextSteps } : x));
+      }
+    } catch (e) {
+      toast("진행 상태 저장 실패: " + (e?.message || ""), "error");
+    }
+  };
+
+  const toggleStep = (vac, stepId) => {
+    const key = `${vac.id}_${stepId}`;
+    const nextChecked = !checkedSteps[key];
+    setCheckedSteps(prev => ({ ...prev, [key]: nextChecked }));
+    // 현재 공실 객체의 모든 단계 상태를 추출해 영속화
+    const plan = getActionPlan(vacantDays(gf(vac, "vacant_since", "vacantSince") || new Date().toISOString().slice(0,10)));
+    const currentSteps = {};
+    for (const s of plan.steps) {
+      const k = `${vac.id}_${s.id}`;
+      currentSteps[s.id] = s.id === stepId ? nextChecked : !!checkedSteps[k];
+    }
+    persistActionSteps(vac, currentSteps);
   };
 
   const handleAdd = async()=>{
@@ -303,7 +341,7 @@ function VacancyContent() {
                         return (
                           <div
                             key={step.id}
-                            onClick={()=>toggleStep(v.id, step.id)}
+                            onClick={()=>toggleStep(v, step.id)}
                             style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:done?"rgba(15,165,115,0.06)":"#fff", border:`1px solid ${done?"#0fa57340":"#ebe9e3"}`, borderRadius:10, cursor:"pointer", transition:"all .15s" }}
                           >
                             <div style={{ width:22, height:22, borderRadius:6, border:`2px solid ${done?"#0fa573":plan.color+"60"}`, background:done?"#0fa573":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>

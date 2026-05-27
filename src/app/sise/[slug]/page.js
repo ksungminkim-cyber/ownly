@@ -91,7 +91,7 @@ export default async function RegionMarketPage({ params }) {
             <span style={{ color: "#ebe9e3" }}>|</span>
             <span style={{ fontSize: 13, fontWeight: 800, color: "#1a2744" }}>온리 시세</span>
           </div>
-          <Link href="/login?mode=signup" style={{ padding: "7px 14px", background: "#1a2744", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+          <Link href="/login?mode=signup" style={{ padding: "11px 18px", minHeight: 44, display: "inline-flex", alignItems: "center", background: "#1a2744", color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
             무료 시작 →
           </Link>
         </div>
@@ -190,12 +190,14 @@ export default async function RegionMarketPage({ params }) {
               <DistributionBars buckets={data.ageBuckets} labels={{ new: "5년 이하(신축)", mid: "5~15년", old: "15~30년", veryOld: "30년+", unknown: "정보 없음" }} />
             </section>
 
-            {/* ⑥ 최근 실거래 10건 */}
+            {/* ⑥ 최근 실거래 10건 — 모바일 카드 / 데스크탑 표 */}
             <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "20px 22px", marginBottom: 18 }}>
               <h2 style={{ fontSize: 14, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>📋 최근 실거래 10건</h2>
               <p style={{ fontSize: 11, color: "#8a8a9a", marginBottom: 14 }}>국토부 공개 데이터 · 건물명 포함</p>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
+
+              {/* 데스크탑(≥640px) — 표 */}
+              <div className="sise-tx-table">
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "#faf9f6", borderBottom: "1px solid #ebe9e3" }}>
                       {["유형", "건물·층", "면적", "보증금", "월세", "거래월"].map(h => (
@@ -222,6 +224,32 @@ export default async function RegionMarketPage({ params }) {
                   </tbody>
                 </table>
               </div>
+
+              {/* 모바일(<640px) — 카드 스택, 가로 스크롤 없음 */}
+              <div className="sise-tx-cards" style={{ display: "none", flexDirection: "column", gap: 10 }}>
+                {data.recentTx.map((t, i) => (
+                  <div key={i} style={{ background: "#faf9f6", border: "1px solid #ebe9e3", borderRadius: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                      <span style={{ padding: "3px 9px", background: TYPE_COLOR[t.type] + "18", color: TYPE_COLOR[t.type], borderRadius: 6, fontSize: 11, fontWeight: 800 }}>{TYPE_LABEL[t.type]}</span>
+                      <span style={{ fontSize: 11, color: "#8a8a9a" }}>{fmtYm(t.ym)}{t.day ? `.${String(t.day).padStart(2,"0")}` : ""}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: "#1a2744", fontWeight: 700, lineHeight: 1.5 }}>
+                      {t.name}{t.floor ? ` · ${t.floor}층` : ""} <span style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 500 }}>· {t.py}평{t.buildYear ? ` · ${t.buildYear}` : ""}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
+                      <span><span style={{ color: "#8a8a9a" }}>보증금 </span><b style={{ color: "#1a2744" }}>{fmtMan(t.deposit)}</b></span>
+                      <span><span style={{ color: "#8a8a9a" }}>월세 </span><b style={{ color: "#5b4fcf" }}>{t.rent.toLocaleString()}만</b></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <style>{`
+                @media (max-width: 640px) {
+                  .sise-tx-table { display: none; }
+                  .sise-tx-cards { display: flex !important; }
+                }
+              `}</style>
             </section>
 
             {/* ⑦ 매매 시세 (참고) */}

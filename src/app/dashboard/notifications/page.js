@@ -119,13 +119,13 @@ export default function NotificationsPage() {
       {/* 요약 카드 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { l: "전체 발송", v: logs.length + "건", c: "#1a2744" },
+          { l: "전체 발송", v: logs.length + "건", c: "var(--text)" },
           { l: "발송 완료", v: totalSent + "건", c: "#0fa573" },
-          { l: "발송 실패", v: totalFailed + "건", c: totalFailed > 0 ? "#e8445a" : "#8a8a9a" },
+          { l: "발송 실패", v: totalFailed + "건", c: totalFailed > 0 ? "#e8445a" : "var(--text-muted)" },
         ].map(k => (
-          <div key={k.l} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 18px" }}>
-            <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>{k.l}</p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: k.c }}>{k.v}</p>
+          <div key={k.l} className="stat">
+            <p className="stat-label">{k.l}</p>
+            <p className="num stat-value" style={{ color: k.c }}>{k.v}</p>
           </div>
         ))}
       </div>
@@ -133,7 +133,7 @@ export default function NotificationsPage() {
       {/* 필터 탭 */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {filterTabs.map(t => (
-          <button key={t} onClick={() => { setFilter(t); setPage(0); }} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${filter===t?"#1a2744":"#ebe9e3"}`, background: filter===t?"#1a2744":"transparent", color: filter===t?"#fff":"#8a8a9a" }}>
+          <button key={t} onClick={() => { setFilter(t); setPage(0); }} className={`chip ${filter===t?"is-active":""}`} style={{ padding:"5px 12px", fontSize:12 }}>
             {t !== "전체" && TYPE_CONFIG[t] ? TYPE_CONFIG[t].icon + " " : ""}{t !== "전체" && TYPE_CONFIG[t] ? TYPE_CONFIG[t].label : t}
           </button>
         ))}

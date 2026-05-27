@@ -4,14 +4,14 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { PLANS } from "../../../../lib/constants";
 import { useApp } from "../../../../context/AppContext";
+import { supabase } from "../../../../lib/supabase";
 import { toast } from "../../../../components/shared";
 
-// 카카오페이/네이버페이 정기결제 통합용 체크아웃 페이지
-// 트렌디 미니멀 디자인 — 카드 기반 섹션, 진행 단계, 약관 3종, 사업자 정보
+// 정기결제 체크아웃 — 카카오페이 정기결제 (2026-05-27 PG 심사 통과 · CID CT75680604)
+// 흐름: /api/billing/kakao/ready → next_redirect → 카카오 인증 → success → approve → sid 발급
 
 const PG_OPTIONS = [
-  { id: "kakao", label: "카카오페이", icon: "💛", desc: "카카오톡 간편결제 · 정기결제 자동 갱신", color: "#fee500", textColor: "#3c1e1e", available: false },
-  { id: "naver", label: "네이버페이", icon: "💚", desc: "네이버 간편결제 · 정기결제 자동 갱신", color: "#03c75a", textColor: "#fff", available: false },
+  { id: "kakao", label: "카카오페이 정기결제", icon: "💛", desc: "카카오톡 간편결제 · 매월 자동 갱신 · 언제든 해지", color: "#fee500", textColor: "#3c1e1e" },
 ];
 
 export default function CheckoutPage() {
@@ -20,6 +20,7 @@ export default function CheckoutPage() {
   const { user, userPlan } = useApp();
   const [billingCycle, setBillingCycle] = useState("monthly");
   const [selectedPg, setSelectedPg] = useState("kakao");
+  const [waitlistSaved, setWaitlistSaved] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [agreedRefund, setAgreedRefund] = useState(false);
   const [agreedThirdParty, setAgreedThirdParty] = useState(false);
@@ -61,23 +62,52 @@ export default function CheckoutPage() {
 
   const allAgreed = agreed && agreedRefund && agreedThirdParty;
 
+  // 카카오페이 정기결제 (2026-05-27 PG 심사 통과 · CID CT75680604)
+  // 흐름: /api/billing/kakao/ready → next_redirect_url 로 이동 → 카카오 인증 → success 페이지 → approve
   const handlePay = async () => {
     if (!allAgreed) { toast("필수 약관 3가지에 모두 동의해주세요", "error"); return; }
-    if (!customerName.trim()) { toast("결제자 이름을 입력해주세요", "error"); return; }
+    if (!customerName.trim()) { toast("이름을 입력해주세요", "error"); return; }
     if (!customerPhone.trim()) { toast("연락처를 입력해주세요", "error"); return; }
+    if (!user?.id) { toast("로그인이 필요합니다", "error"); return; }
 
     setSubmitting(true);
     try {
-      if (selectedPg === "kakao") {
-        toast("💛 카카오페이 비즈 심사 진행 중입니다. 승인 즉시 활성화됩니다.", "info");
-        return;
+      // Supabase access token 으로 본인 인증 (API 라우트가 검증)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) { toast("세션이 만료되었습니다. 다시 로그인해주세요.", "error"); return; }
+
+      const res = await fetch("/api/billing/kakao/ready", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ planId, cycle: billingCycle, customerName, customerPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        // 환경변수 미설정 등으로 라우트가 실패하면 사전등록으로 폴백
+        if (/KAKAOPAY_SECRET_KEY/.test(data.error || "")) {
+          await supabase.from("billing_waitlist").upsert({
+            user_id: user.id, email: user.email || null,
+            customer_name: customerName, customer_phone: customerPhone,
+            plan: planId, cycle: billingCycle, pg: selectedPg, status: "waiting",
+          }, { onConflict: "user_id" });
+          setWaitlistSaved(true);
+          toast("💛 PG 키 설정 전이라 사전 등록으로 처리했습니다. 곧 안내드리겠습니다.", "info");
+          return;
+        }
+        throw new Error(data.error || "결제 준비 실패");
       }
-      if (selectedPg === "naver") {
-        toast("💚 네이버페이 비즈 심사 진행 중입니다. 승인 즉시 활성화됩니다.", "info");
-        return;
-      }
+
+      // 모바일/PC 구분해 카카오페이 결제창으로 이동
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const redirect = isMobile
+        ? (data.next_redirect_mobile_url || data.next_redirect_pc_url)
+        : (data.next_redirect_pc_url || data.next_redirect_mobile_url);
+      if (!redirect) throw new Error("결제 페이지 URL이 없습니다");
+      window.location.href = redirect;
+      // 페이지 이동되므로 이후 코드는 실행 안 됨
     } catch (e) {
-      toast("결제 중 오류: " + (e?.message || "알 수 없는 오류"), "error");
+      toast("결제 진행 실패: " + (e?.message || ""), "error");
     } finally {
       setSubmitting(false);
     }
@@ -86,6 +116,15 @@ export default function CheckoutPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#fafaf7", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px 60px" }}>
+
+        {/* 카카오페이 정기결제 정식 활성화 안내 */}
+        <div style={{ marginBottom: 16, padding: "14px 16px", background: "rgba(254,229,0,0.18)", border: "1px solid rgba(60,30,30,0.18)", borderRadius: 12, fontSize: 12, color: "#3c1e1e", lineHeight: 1.7 }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 800 }}>💛 카카오페이 정기결제로 안전하게 결제됩니다</p>
+          <p style={{ margin: "4px 0 0", color: "#5a3a3a", fontWeight: 500 }}>
+            아래 정보를 확인하고 <b>구독 시작하기</b>를 누르면 카카오페이 인증 화면으로 이동합니다. 카드 등록 후 매월 자동 결제됩니다.
+            문의: <a href="mailto:inquiry@mclean21.com" style={{ color: "#1a2744", textDecoration: "underline", fontWeight: 700 }}>inquiry@mclean21.com</a>
+          </p>
+        </div>
 
         {/* 브레드크럼 */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#9ca3af", marginBottom: 20 }}>
@@ -183,7 +222,7 @@ export default function CheckoutPage() {
                 [필수] 정기결제 자동 갱신 및 환불 정책에 동의합니다
               </CheckboxLabel>
               <CheckboxLabel checked={agreedThirdParty} onChange={setAgreedThirdParty}>
-                [필수] 결제정보(이름·연락처·결제수단)를 PG사(카카오페이/네이버페이)에 제공함에 동의합니다
+                [필수] 결제정보(이름·연락처·결제수단)를 PG사(카카오페이)에 제공함에 동의합니다
               </CheckboxLabel>
             </div>
 
@@ -194,7 +233,7 @@ export default function CheckoutPage() {
                 <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600 }}>· 언제든 가능</span>
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "#4b5563", lineHeight: 1.7 }}>
-                <p style={{ margin: 0 }}><b style={{ color: "#0f172a" }}>1.</b> 로그인 → 설정 → 결제 관리 → "구독 해지"</p>
+                <p style={{ margin: 0 }}><b style={{ color: "#0f172a" }}>1.</b> 로그인 → 설정 → 결제 관리 → &ldquo;구독 해지&rdquo;</p>
                 <p style={{ margin: 0 }}><b style={{ color: "#0f172a" }}>2.</b> inquiry@mclean21.com 이메일 요청</p>
                 <p style={{ margin: 0 }}><b style={{ color: "#0f172a" }}>3.</b> 고객센터 02-334-2211 (평일 10:00~18:00)</p>
                 <p style={{ margin: "6px 0 0", fontSize: 11, color: "#9ca3af" }}>해지 시 다음 결제일부터 자동 갱신 중단 · 현재 기간 종료일까지 서비스 유지</p>
@@ -202,24 +241,32 @@ export default function CheckoutPage() {
             </div>
           </Card>
 
-          {/* 결제하기 */}
+          {/* 사전 등록 (PG 심사 중) / 등록 완료 안내 */}
           <div style={{ marginTop: 8 }}>
-            <button onClick={handlePay} disabled={submitting || !allAgreed}
-              style={{
-                width: "100%", padding: "20px", borderRadius: 16,
-                background: submitting || !allAgreed
-                  ? "#d1d5db"
-                  : "linear-gradient(135deg, #1a2744 0%, #5b4fcf 100%)",
-                color: "#fff", fontSize: 16, fontWeight: 800, border: "none",
-                cursor: submitting || !allAgreed ? "not-allowed" : "pointer",
-                boxShadow: allAgreed ? "0 12px 40px rgba(91,79,207,0.35), 0 4px 12px rgba(26,39,68,0.15)" : "none",
-                transition: "all .2s ease",
-                letterSpacing: "-0.3px",
-              }}
-              onMouseEnter={e => { if (allAgreed) e.currentTarget.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}>
-              {submitting ? "처리 중..." : `₩${totalAmount.toLocaleString()} 결제하기`}
-            </button>
+            {waitlistSaved ? (
+              <div style={{ padding: "22px 20px", borderRadius: 16, background: "rgba(15,165,115,0.08)", border: "1px solid rgba(15,165,115,0.3)", textAlign: "center" }}>
+                <p style={{ fontSize: 24, marginBottom: 8 }}>✅</p>
+                <p style={{ fontSize: 15, fontWeight: 800, color: "#0fa573", marginBottom: 4 }}>사전 등록이 완료되었습니다</p>
+                <p style={{ fontSize: 12, color: "#4a5568", lineHeight: 1.7 }}>카카오페이 정기결제 심사 통과 즉시 <b>{user?.email || "등록 이메일"}</b>로 안내드리겠습니다.</p>
+              </div>
+            ) : (
+              <button onClick={handlePay} disabled={submitting || !allAgreed}
+                style={{
+                  width: "100%", padding: "20px", borderRadius: 16, minHeight: 56,
+                  background: submitting || !allAgreed
+                    ? "#d1d5db"
+                    : "linear-gradient(135deg, #1a2744 0%, #5b4fcf 100%)",
+                  color: "#fff", fontSize: 15, fontWeight: 800, border: "none",
+                  cursor: submitting || !allAgreed ? "not-allowed" : "pointer",
+                  boxShadow: allAgreed ? "0 12px 40px rgba(91,79,207,0.35), 0 4px 12px rgba(26,39,68,0.15)" : "none",
+                  transition: "all .2s ease",
+                  letterSpacing: "-0.3px",
+                }}
+                onMouseEnter={e => { if (allAgreed) e.currentTarget.style.transform = "translateY(-1px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}>
+                {submitting ? "카카오페이로 이동 중..." : `💛 카카오페이로 ₩${totalAmount.toLocaleString()} 결제하기`}
+              </button>
+            )}
 
             {/* 트러스트 배지 (3개로 정제) */}
             <div style={{ marginTop: 14, display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
@@ -229,7 +276,7 @@ export default function CheckoutPage() {
             </div>
 
             <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-              모든 결제는 PG사(카카오페이·네이버페이)에서 직접 처리되며,<br />
+              정식 결제는 카카오페이에서 직접 처리되며,<br />
               (주)맥클린은 카드번호·계좌번호 등 결제 정보를 저장하지 않습니다
             </p>
           </div>
@@ -376,13 +423,9 @@ function PgRadio({ pg, active, onClick }) {
         <p style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: 0 }}>{pg.label}</p>
         <p style={{ fontSize: 11, color: "#6b7280", margin: "2px 0 0", lineHeight: 1.5 }}>{pg.desc}</p>
       </div>
-      {!pg.available && (
-        <span style={{
-          fontSize: 10, fontWeight: 800, color: "#c9920a",
-          background: "rgba(232,150,10,0.1)", padding: "4px 10px",
-          borderRadius: 20, flexShrink: 0,
-        }}>
-          심사중
+      {pg.status && (
+        <span style={{ fontSize: 10, fontWeight: 800, color: "#c9920a", background: "rgba(232,150,10,0.12)", padding: "4px 10px", borderRadius: 20, flexShrink: 0 }}>
+          {pg.status}
         </span>
       )}
     </div>

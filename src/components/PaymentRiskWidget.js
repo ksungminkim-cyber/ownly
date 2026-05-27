@@ -18,22 +18,37 @@ export default function PaymentRiskWidget({ tenants = [], payments = [], onNavig
   const critical = scored.filter(x => x.risk.level === "critical").length;
   const high = scored.filter(x => x.risk.level === "high").length;
 
+  // 위험 비율을 도넛으로 시각화 (전체 활성 세입자 대비)
+  const totalActive = tenants.filter(t => t.status !== "공실").length;
+  const riskPct = totalActive > 0 ? Math.round(((critical * 2 + high) / (totalActive * 2)) * 100) : 0;
+  const radius = 22;
+  const circ = 2 * Math.PI * radius;
+  const dashLen = Math.min(1, riskPct / 100) * circ;
+  const ringColor = critical > 0 ? "#e8445a" : "#e8960a";
+
   return (
-    <div style={{ background: "#fff", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 14, marginBottom: 14, overflow: "hidden" }}>
-      <div onClick={() => setExpanded(e => !e)}
-        style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", cursor: "pointer" }}>
-        <div style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(232,68,90,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🔮</div>
+    <div className="surface-card" style={{ borderColor: "rgba(232,68,90,0.2)", marginBottom: 14, overflow: "hidden", padding: 0 }}>
+      <div onClick={() => setExpanded(e => !e)} role="button" tabIndex={0}
+        style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", cursor: "pointer" }}>
+        {/* 위험 비율 도넛 */}
+        <svg width="58" height="58" viewBox="0 0 58 58" style={{ flexShrink: 0, filter: `drop-shadow(0 4px 10px ${ringColor}55)` }} aria-label={`위험 ${riskPct}%`}>
+          <circle cx="29" cy="29" r={radius} fill="none" stroke="var(--surface3)" strokeWidth="5" />
+          <circle cx="29" cy="29" r={radius} fill="none" stroke={ringColor} strokeWidth="5" strokeLinecap="round"
+            strokeDasharray={`${dashLen} ${circ}`} transform="rotate(-90 29 29)"
+            style={{ transition: "stroke-dasharray 0.6s var(--ease)" }} />
+          <text x="29" y="33" textAnchor="middle" fontSize="13" fontWeight="900" fill={ringColor} fontFamily="inherit">{riskPct}%</text>
+        </svg>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#1a2744", marginBottom: 2 }}>
-            이번 달 미납 주의 세입자 {scored.length}명
+          <p style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>
+            이번 달 미납 주의 세입자 <span className="num">{scored.length}</span>명
           </p>
-          <p style={{ fontSize: 11, color: "#8a8a9a" }}>
-            {critical > 0 && <><b style={{ color: "#e8445a" }}>고위험 {critical}명</b>{high > 0 && " · "}</>}
-            {high > 0 && <>주의 {high}명</>}
-            {" "}· 최근 6개월 패턴 기반 AI 예측
-          </p>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {critical > 0 && <span className="chip chip-danger" style={{ fontSize: 10 }}>🚨 고위험 {critical}</span>}
+            {high > 0 && <span className="chip chip-warn" style={{ fontSize: 10 }}>⚠ 주의 {high}</span>}
+            <span className="chip" style={{ fontSize: 10 }}>최근 6개월 패턴</span>
+          </div>
         </div>
-        <span style={{ fontSize: 12, color: "#8a8a9a", flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform .2s var(--ease)" }}>▾</span>
       </div>
 
       {expanded && (

@@ -31,31 +31,34 @@ export default function BlogPage() {
           {POSTS.map(post => (
             <article key={post.slug}
               onClick={() => router.push("/blog/" + post.slug)}
-              style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, padding: "22px", cursor: "pointer", transition: "all .2s" }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 8px 32px rgba(26,39,68,0.1)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
+              className="surface-card interactive"
+              role="button" tabIndex={0}
+              style={{ padding: "22px" }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: post.tagColor, background: post.tagColor + "15", padding: "3px 9px", borderRadius: 20 }}>{post.tag}</span>
-                <span style={{ fontSize: 11, color: "#a0a0b0" }}>{post.readTime} 읽기</span>
+                <span className="chip" style={{ color: post.tagColor, background: post.tagColor + "15", borderColor: post.tagColor + "33", fontSize: 10 }}>{post.tag}</span>
+                <span style={{ fontSize: 11, color: "var(--text-faint)" }}>{post.readTime} 읽기</span>
               </div>
-              <h2 style={{ fontSize: 15, fontWeight: 800, color: "#1a2744", lineHeight: 1.4, marginBottom: 10 }}>{post.title}</h2>
-              <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.7, marginBottom: 16 }}>{post.desc}</p>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", lineHeight: 1.4, marginBottom: 10, letterSpacing: "-0.2px" }}>{post.title}</h2>
+              <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>{post.desc}</p>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#a0a0b0" }}>{post.date}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#1a2744" }}>읽기 →</span>
+                <span style={{ fontSize: 11, color: "var(--text-faint)" }}>{post.date}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>읽기 →</span>
               </div>
             </article>
           ))}
         </div>
 
         {/* CTA */}
-        <div style={{ marginTop: 64, background: "linear-gradient(135deg,#1a2744,#2d4270)", borderRadius: 20, padding: "36px", textAlign: "center" }}>
-          <p style={{ fontSize: 20, fontWeight: 900, color: "#fff", marginBottom: 8 }}>임대 관리, 더 스마트하게</p>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 24 }}>온리로 수금·계약·세금·내용증명을 한 번에 관리하세요. 무료로 시작할 수 있어요.</p>
-          <button onClick={() => router.push("/login")} style={{ padding: "13px 32px", borderRadius: 12, background: "#fff", color: "#1a2744", fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer" }}>
-            무료로 시작하기 →
-          </button>
+        <div style={{ marginTop: 64, background: "var(--grad-primary)", borderRadius: "var(--radius-xl)", padding: "40px 28px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+          <div aria-hidden style={{ position: "absolute", top: -60, right: -40, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,108,255,0.4), transparent 70%)" }} />
+          <div style={{ position: "relative" }}>
+            <p style={{ fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 8, letterSpacing: "-0.4px" }}>임대 관리, 더 스마트하게</p>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", marginBottom: 24, lineHeight: 1.7 }}>온리로 수금·계약·세금·내용증명을 한 번에 관리하세요.<br/>무료 플랜으로 영구 시작 가능합니다.</p>
+            <button onClick={() => router.push("/login")} className="btn btn-lg" style={{ background: "#fff", color: "var(--text)", boxShadow: "var(--elev-3)" }}>
+              무료로 시작하기 →
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -128,7 +128,7 @@ function LeaseHistoryTab({ tenants, contracts }) {
       {/* 주소 필터 */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
         {addrs.map(addr => (
-          <button key={addr} onClick={() => setSelectedAddr(addr)} style={{ padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${selectedAddr === addr ? "#1a2744" : "#ebe9e3"}`, background: selectedAddr === addr ? "#1a2744" : "transparent", color: selectedAddr === addr ? "#fff" : "#8a8a9a", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <button key={addr} onClick={() => setSelectedAddr(addr)} className={`chip ${selectedAddr === addr ? "is-active" : ""}`} style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
             {addr === "전체" ? "전체" : addr.length > 16 ? addr.slice(0, 16) + "..." : addr}
           </button>
         ))}

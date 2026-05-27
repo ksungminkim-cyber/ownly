@@ -2,6 +2,13 @@
 "use client";
 import { useState, useCallback } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import PlanGate from "../../../../components/PlanGate";
+
+// 공실 위험 지수 (Pro 플랜 전용)
+// 주거: 국토부 실거래 월별 거래량으로 산출 (실시간 API)
+// 상업용: 한국부동산원 분기별 공시값 스냅샷 (KAB_DATA_AS_OF 기준)
+// ⚠️ 정직성 노트: 상업용은 KAB API 직접 연동 전 단계라 분기 단위 스냅샷을 사용합니다.
+const KAB_DATA_AS_OF = "2024년 4분기 R-ONE 공시값";
 
 const LAWD_MAP = {
   "서울 강남구": "11680", "서울 서초구": "11650", "서울 송파구": "11710",
@@ -116,6 +123,10 @@ function getRiskStyle(risk) {
 }
 
 export default function VacancyRiskPage() {
+  return <PlanGate feature="vacancyLoss"><VacancyRiskContent /></PlanGate>;
+}
+
+function VacancyRiskContent() {
   const [region, setRegion] = useState("서울 강남구");
   const [propType, setPropType] = useState("주거");
   const [loading, setLoading] = useState(false);
@@ -136,8 +147,9 @@ export default function VacancyRiskPage() {
       const riskScore = Math.max(0, Math.min(100, baseScore));
       const riskLabel = riskScore >= 70 ? "위험" : riskScore >= 50 ? "주의" : riskScore >= 30 ? "보통" : "안전";
       const riskStyle = getRiskStyle(riskLabel);
-      const trendBase = Array.from({ length: 8 }, (_, i) => Math.max(0, kabVacancy.rate + (Math.random() - 0.5) * 1.5 - (7 - i) * 0.1));
-      const vacancyTrend = TREND_LABELS.map((label, i) => ({ label, rate: Math.round(trendBase[i] * 10) / 10 }));
+      // 상업용 분기별 트렌드는 KAB(R-ONE) 공시 시계열 직접 연동 전이라 표시하지 않습니다.
+      // 무작위 생성된 값을 보여주는 대신 비워두고 안내 텍스트로 대체합니다.
+      const vacancyTrend = [];
       setData({
         monthlyData: [], riskScore, riskLabel, riskStyle,
         recent3avg: 0, prev3avg: 0, trendChange: "0.0",
@@ -238,11 +250,11 @@ export default function VacancyRiskPage() {
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>데이터 출처</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>
               {data.isResidential ? (<>
-                공실률: <strong>한국부동산원 주택 임대동향</strong> (참고치, <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE 최신값 확인</a>)<br/>
-                거래량 추이: <strong>국토교통부 실거래가 공개시스템</strong> — {region} 아파트 임대 실거래 12개월 ({data.totalTx.toLocaleString()}건)
+                공실률 기준값: <strong>{KAB_DATA_AS_OF}</strong> · 출처 <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE</a> — 최신값과 다를 수 있으니 R-ONE에서 직접 확인해 주세요.<br/>
+                거래량 추이: <strong>국토교통부 실거래가 공개시스템</strong> — {region} 아파트 임대 실거래 12개월 ({data.totalTx.toLocaleString()}건, 실시간 API)
               </>) : (<>
-                공실률: <strong>한국부동산원 상업용부동산 임대동향조사 ({propType})</strong> (참고치, <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE 최신값 확인</a>)<br/>
-                <span style={{ fontSize: 10, color: "#e8960a" }}>※ 상업용은 실거래 거래량 데이터가 제공되지 않아 공실률·추세만 표시됩니다.</span>
+                공실률 기준값: <strong>{KAB_DATA_AS_OF}</strong> · <strong>{propType}</strong> 임대동향조사 — 출처 <a href="https://www.r-one.co.kr" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>R-ONE</a><br/>
+                <span style={{ fontSize: 10, color: "#e8960a" }}>※ 상업용은 분기 단위 스냅샷이며 분기별 시계열 차트는 R-ONE 직접 연동 전 단계라 표시하지 않습니다. 최신값은 R-ONE에서 확인해 주세요.</span>
               </>)}
             </p>
           </div>

@@ -101,8 +101,8 @@ export function SearchOverlay({ open, onClose }) {
 
   if (!open) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(10,10,20,0.55)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "12vh", backdropFilter: "blur(4px)" }} onClick={onClose}>
-      <div style={{ width: "min(560px, 94vw)", background: C.surface, borderRadius: 18, boxShadow: "0 24px 80px rgba(26,39,68,0.22)", overflow: "hidden", animation: "search-in .15s ease" }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(10,10,20,0.6)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "12vh", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={onClose}>
+      <div className="surface-card" style={{ width: "min(560px, 94vw)", boxShadow: "0 32px 80px rgba(26,39,68,0.3), 0 12px 32px rgba(91,79,207,0.15)", overflow: "hidden", animation: "search-in .2s var(--ease)" }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: `1px solid ${C.border}` }}>
           <span style={{ fontSize: 18, flexShrink: 0 }}>🔍</span>
           <input ref={inputRef} value={query} onChange={e => { setQuery(e.target.value); setCursor(0); }} onKeyDown={handleKey} placeholder="세입자 이름, 주소, 메뉴 검색..." style={{ flex: 1, border: "none", outline: "none", fontSize: 16, color: C.navy, background: "transparent", fontFamily: "inherit" }} />
@@ -152,7 +152,7 @@ export function SearchOverlay({ open, onClose }) {
                             <p style={{ fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{highlight(item.sub, query)}</p>
                           </div>
                           {type === "tenant" && item.status && (
-                            <span style={{ fontSize: 10, fontWeight: 700, flexShrink: 0, color: item.statusColor, background: item.statusColor + "18", padding: "2px 8px", borderRadius: 20 }}>{item.status}</span>
+                            <span className="chip" style={{ flexShrink: 0, color: item.statusColor, background: item.statusColor + "18", borderColor: item.statusColor + "33", fontSize: 10 }}>{item.status}</span>
                           )}
                         </div>
                       );

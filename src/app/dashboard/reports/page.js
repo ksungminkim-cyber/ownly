@@ -71,14 +71,14 @@ function PropertyCompareTab() {
       {/* 전체 요약 */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12 }}>
         {[
-          { label:"보유 물건", value:`${propertyStats.length}개`, color:C.navy, bg:"rgba(26,39,68,0.06)" },
-          { label:"연 임대 수입 합계", value:`${totalAnnual.toLocaleString()}만원`, color:C.emerald, bg:"rgba(15,165,115,0.08)" },
-          { label:"평균 수익률", value:avgYield ? `${avgYield}%` : "—", color:C.indigo, bg:"rgba(59,91,219,0.08)" },
-          { label:"공실 물건", value:`${vacantCount}개`, color:vacantCount > 0 ? C.rose : C.emerald, bg:vacantCount > 0 ? "rgba(232,68,90,0.08)" : "rgba(15,165,115,0.08)" },
+          { label:"보유 물건", value:`${propertyStats.length}개`, color:C.navy },
+          { label:"연 임대 수입 합계", value:`${totalAnnual.toLocaleString()}만원`, color:C.emerald },
+          { label:"평균 수익률", value:avgYield ? `${avgYield}%` : "—", color:C.indigo },
+          { label:"공실 물건", value:`${vacantCount}개`, color:vacantCount > 0 ? C.rose : C.emerald },
         ].map(k => (
-          <div key={k.label} style={{ background:k.bg, borderRadius:14, padding:"16px 18px" }}>
-            <p style={{ fontSize:10, color:C.muted, fontWeight:700, textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 }}>{k.label}</p>
-            <p style={{ fontSize:22, fontWeight:900, color:k.color }}>{k.value}</p>
+          <div key={k.label} className="stat">
+            <p className="stat-label">{k.label}</p>
+            <p className="num stat-value" style={{ color:k.color }}>{k.value}</p>
           </div>
         ))}
       </div>
@@ -91,7 +91,7 @@ function PropertyCompareTab() {
           { k:"income", l:"수입 순" },
           { k:"vacancy", l:"공실 우선" },
         ].map(s => (
-          <button key={s.k} onClick={() => setSortBy(s.k)} style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600, cursor:"pointer", border:`1px solid ${sortBy===s.k ? C.navy : C.border}`, background:sortBy===s.k ? C.navy : "transparent", color:sortBy===s.k ? "#fff" : C.muted }}>{s.l}</button>
+          <button key={s.k} onClick={() => setSortBy(s.k)} className={`chip ${sortBy===s.k ? "is-active" : ""}`} style={{ padding:"5px 12px", fontSize:12 }}>{s.l}</button>
         ))}
       </div>
 

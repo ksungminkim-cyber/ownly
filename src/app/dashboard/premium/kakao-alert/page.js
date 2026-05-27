@@ -168,8 +168,8 @@ ${name}님, 안녕하세요.
 
 // ✅ 전용 PreviewModal — body portal로 직접 렌더링, 잘림 없음
 function PreviewModal({ open, onClose, tenant, tab, onSend, isSent, isSending }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  // SSR-safe portal mount 가드 — lazy initializer 사용으로 effect 내 동기 setState 회피
+  const [mounted] = useState(() => typeof window !== "undefined");
   if (!open || !mounted || !tenant) return null;
 
   const preview = getPreviewMsg(tenant, tab);
@@ -249,6 +249,10 @@ export default function KakaoAlertPage() {
   const [sending, setSending] = useState({});
   const [error, setError] = useState({});
   const [previewModal, setPreviewModal] = useState(null);
+  const [selected, setSelected] = useState(new Set()); // 일괄 발송 대상
+  const [bulkSending, setBulkSending] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   const now   = new Date();
   const year  = now.getFullYear();
@@ -297,6 +301,56 @@ export default function KakaoAlertPage() {
 
   const list = getList();
 
+  // 탭 전환 시 선택 초기화
+  useEffect(() => { setSelected(new Set()); }, [tab]);
+
+  // 발송 이력 페치 (최근 20건)
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      setLogsLoading(true);
+      try {
+        const { supabase } = await import("../../../../lib/supabase");
+        const { data } = await supabase
+          .from("notification_logs")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (!cancelled) setLogs(data || []);
+      } catch { /* RLS 또는 테이블 미존재 시 조용히 무시 */ }
+      finally { if (!cancelled) setLogsLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, sent]);
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    const eligible = list.filter(t => t.phone && !sent[`${tab}_${t.id}`]);
+    if (selected.size === eligible.length) setSelected(new Set());
+    else setSelected(new Set(eligible.map(t => t.id)));
+  };
+  const bulkSend = async () => {
+    const targets = list.filter(t => selected.has(t.id) && t.phone && !sent[`${tab}_${t.id}`]);
+    if (targets.length === 0) return;
+    setBulkSending(true);
+    for (const t of targets) {
+      await send(t, tab);
+    }
+    setSelected(new Set());
+    setBulkSending(false);
+  };
+
+  const eligibleCount = list.filter(t => t.phone && !sent[`${tab}_${t.id}`]).length;
+  const selectedCount = list.filter(t => selected.has(t.id)).length;
+
   return (
     <div className="page-in page-padding" style={{ maxWidth: 720, fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
       <button onClick={() => router.back()} style={{ background: "none", border: "none", color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 14, padding: 0 }}>
@@ -327,6 +381,21 @@ export default function KakaoAlertPage() {
       </div>
 
       <div style={{ background: C.surface, border: "1px solid var(--border)", borderRadius: 20, padding: 20, marginBottom: 20, boxShadow: "0 2px 12px rgba(26,39,68,0.06)" }}>
+        {/* 일괄 발송 헤더 */}
+        {list.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0 14px", borderBottom: "1px solid var(--border)", marginBottom: 14, gap: 10, flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", userSelect: "none" }}>
+              <input type="checkbox" className="custom-check" checked={eligibleCount > 0 && selectedCount === eligibleCount} onChange={toggleSelectAll} aria-label="전체 선택" />
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>전체 선택</span>
+              <span style={{ fontSize: 11, color: C.muted }}>({selectedCount} / {eligibleCount}명)</span>
+            </label>
+            <button onClick={bulkSend} disabled={selectedCount === 0 || bulkSending}
+              className="btn"
+              style={{ background: selectedCount === 0 ? "#e5e7eb" : KAKAO, color: selectedCount === 0 ? "#9ca3af" : "#1a1a1a", cursor: selectedCount === 0 || bulkSending ? "not-allowed" : "pointer" }}>
+              {bulkSending ? "발송 중..." : `💬 선택 ${selectedCount}명에게 일괄 발송`}
+            </button>
+          </div>
+        )}
         {list.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0" }}>
             <p style={{ fontSize: 36, marginBottom: 12 }}>{tab === "unpaid" ? "🎉" : "✅"}</p>
@@ -352,8 +421,19 @@ export default function KakaoAlertPage() {
 
               return (
                 <div key={t.id} style={{ border: `1px solid ${isSent ? C.emerald + "40" : "var(--border)"}`, borderRadius: 16, padding: 18, background: isSent ? "rgba(15,165,115,0.04)" : C.faint }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 8 }}>
-                    <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0, flex: 1 }}>
+                      {t.phone && !isSent && (
+                        <input
+                          type="checkbox"
+                          className="custom-check"
+                          checked={selected.has(t.id)}
+                          onChange={() => toggleSelect(t.id)}
+                          aria-label={`${t.name} 선택`}
+                          style={{ marginTop: 4, flexShrink: 0 }}
+                        />
+                      )}
+                      <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
                         <p style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>{t.name}</p>
                         {hasMgt && <span style={{ fontSize: 10, fontWeight: 700, color: "#5b4fcf", background: "rgba(91,79,207,0.1)", padding: "2px 6px", borderRadius: 5 }}>관리비포함</span>}
@@ -362,6 +442,7 @@ export default function KakaoAlertPage() {
                       </div>
                       <p style={{ fontSize: 12, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.sub} · {t.addr}</p>
                       {t.phone && <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{t.phone}</p>}
+                      </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <p style={{ fontSize: 17, fontWeight: 900, color: tab === "expiring" ? C.amber : tab === "upcoming" ? C.navy : C.rose }}>
@@ -394,11 +475,47 @@ export default function KakaoAlertPage() {
         )}
       </div>
 
-      <div style={{ background: "rgba(254,229,0,0.08)", border: `1px solid ${KAKAO}40`, borderRadius: 14, padding: "14px 18px" }}>
+      <div style={{ background: "rgba(254,229,0,0.08)", border: `1px solid ${KAKAO}40`, borderRadius: 14, padding: "14px 18px", marginBottom: 20 }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: "#b8a000", marginBottom: 4 }}>💡 솔라피 알림톡 연동</p>
         <p style={{ fontSize: 12, color: C.muted, lineHeight: 1.7 }}>
           알림톡 발송 실패 시 SMS로 대체 발송됩니다. 납부일 설정은 물건 관리 → 수정에서 할 수 있습니다.
         </p>
+      </div>
+
+      {/* 최근 발송 이력 — notification_logs */}
+      <div className="surface-card" style={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div>
+            <p className="section-eyebrow">RECENT</p>
+            <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", margin: "4px 0 0" }}>최근 발송 이력</p>
+          </div>
+          <span style={{ fontSize: 11, color: C.muted }}>{logsLoading ? "불러오는 중…" : `${logs.length}건`}</span>
+        </div>
+        {logs.length === 0 && !logsLoading && (
+          <p style={{ fontSize: 12, color: C.muted, padding: "16px 0", textAlign: "center" }}>아직 발송 이력이 없습니다.</p>
+        )}
+        {logs.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {logs.map(log => {
+              const status = log.status || (log.success ? "sent" : "pending");
+              const badgeChip = status === "sent" || status === "success" ? "chip chip-success"
+                              : status === "failed" || status === "error" ? "chip chip-danger"
+                              : "chip";
+              const typeLabel = log.type === "expiry" ? "📅 계약 만료" : log.type === "unpaid" ? "⚠️ 미납·납부 예정" : (log.type || "알림");
+              const when = log.created_at ? new Date(log.created_at).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+              return (
+                <div key={log.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface2)", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, minWidth: 0 }}>
+                    <span className={badgeChip} style={{ fontSize: 10 }}>{status}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{typeLabel}</span>
+                    {log.tenant_name && <span style={{ fontSize: 12, color: C.muted }}>· {log.tenant_name}</span>}
+                  </div>
+                  <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>{when}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <PreviewModal

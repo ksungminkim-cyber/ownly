@@ -2,7 +2,13 @@
 "use client";
 import { useState, useCallback } from "react";
 import { useApp } from "../../../../context/AppContext";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import PlanGate from "../../../../components/PlanGate";
+
+// 매물 가치 추정 (Pro 플랜 전용)
+// 수익환원법(R-ONE 임대수익률) + KB 시세 + 국토부 매매 실거래 평균을 함께 비교합니다.
+// 임대수익률·KB 평균은 스냅샷이므로 기준 시점을 표기합니다.
+const MARKET_DATA_AS_OF = "2024년 4분기 R-ONE · KB Liiv ON 공시값";
 
 const LAWD_MAP = {
   "서울 강남구": "11680", "서울 서초구": "11650", "서울 송파구": "11710",
@@ -44,6 +50,10 @@ function getLastNMonths(n) {
 }
 
 export default function ValuationPage() {
+  return <PlanGate feature="vacancyLoss"><ValuationContent /></PlanGate>;
+}
+
+function ValuationContent() {
   const { tenants } = useApp();
   const [region, setRegion] = useState("서울 강남구");
   const [area, setArea] = useState("");
@@ -245,10 +255,11 @@ export default function ValuationPage() {
               <strong>① 평당가 기준법:</strong> {result.isRealtime ? (
                 <><strong style={{ color: "#0fa573" }}>🟢 MOLIT 실거래 실시간 계산</strong> ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원, 실거래 {result.realtimeSampleSize?.trade || 0}건)</>
               ) : (
-                <>KB부동산 평균 시세 ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원) · <a href="https://onland.kbstar.com" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>KB Liiv ON에서 최신값 확인</a></>
+                <>KB부동산 평균 시세 ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원, {MARKET_DATA_AS_OF}) · <a href="https://onland.kbstar.com" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>KB Liiv ON 최신값 확인</a></>
               )}<br/>
-              <strong>수익환원법:</strong> 한국부동산원 {result.region} 임대수익률 {result.kabYield}% 기준 역산<br/>
-              <strong>임대시세법:</strong> 국토부 실거래 최근 6개월 유사면적 임대 {result.similarCount}건 → 수익률 역산
+              <strong>수익환원법:</strong> R-ONE {result.region} 임대수익률 {result.kabYield}% 기준 역산 ({MARKET_DATA_AS_OF})<br/>
+              <strong>임대시세법:</strong> 국토부 실거래 최근 6개월 유사면적 임대 {result.similarCount}건 → 수익률 역산 (실시간)<br/>
+              <span style={{ color: "#e8960a", fontSize: 10 }}>⚠️ 참고용 추정치이며 실제 매매가는 단지·동·층·향·노후도에 따라 달라집니다. 감정평가는 공인된 감정평가법인 상담을 권장합니다.</span>
             </p>
           </div>
         </div>

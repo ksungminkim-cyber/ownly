@@ -108,30 +108,34 @@ export default function RepairRequestPage() {
 
   return (
     <div style={{minHeight:"100vh",background:"#f5f4f0",fontFamily:"'Pretendard','DM Sans',sans-serif",paddingBottom:40}}>
-      <div style={{background:"#1a2744",padding:"20px 20px 24px"}}>
-        <div style={{maxWidth:480,margin:"0 auto"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-            <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(145deg,#2d4270,#4f46e5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"var(--grad-primary)",padding:"28px 20px 28px",position:"relative",overflow:"hidden"}}>
+        <div aria-hidden style={{position:"absolute",top:-60,right:-40,width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle, rgba(124,108,255,0.35), transparent 70%)",pointerEvents:"none"}} />
+        <div style={{maxWidth:480,margin:"0 auto",position:"relative"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <div style={{width:38,height:38,borderRadius:11,background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(8px)"}}>
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.95"/></svg>
             </div>
             <span style={{fontSize:16,fontWeight:800,color:"#fff"}}>온리</span>
           </div>
-          <h1 style={{fontSize:20,fontWeight:900,color:"#fff",marginBottom:4}}>🔨 수리 요청</h1>
-          <p style={{fontSize:13,color:"rgba(255,255,255,0.6)"}}>{tenant?.address || ""} · {tenant?.name || ""}</p>
+          <h1 style={{fontSize:22,fontWeight:900,color:"#fff",marginBottom:6,letterSpacing:"-0.4px"}}>🔨 수리 요청</h1>
+          <p style={{fontSize:13,color:"rgba(255,255,255,0.75)"}}>{tenant?.address || ""} · {tenant?.name || ""}</p>
         </div>
       </div>
 
       <div style={{maxWidth:480,margin:"0 auto",padding:"24px 20px"}}>
-        <div style={{background:"#fff",borderRadius:16,padding:"20px",marginBottom:14,border:"1px solid #ebe9e3"}}>
-          <p style={{fontSize:12,fontWeight:800,color:"#8a8a9a",letterSpacing:"1px",textTransform:"uppercase",marginBottom:14}}>수리 분야</p>
+        <div className="surface-card" style={{padding:"22px",marginBottom:14}}>
+          <p style={{fontSize:12,fontWeight:800,color:"var(--text-muted)",letterSpacing:"1px",textTransform:"uppercase",marginBottom:14}}>수리 분야</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
             {CATS.map(c => (
-              <button key={c} onClick={() => setCat(c)}
-                style={{padding:"10px 4px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",textAlign:"center",
-                  border:`1.5px solid ${cat===c?"#1a2744":"#ebe9e3"}`,
-                  background:cat===c?"#1a2744":"transparent",
-                  color:cat===c?"#fff":"#4a5568"}}>
-                <div style={{fontSize:18,marginBottom:3}}>{ICONS[c]}</div>
+              <button key={c} onClick={() => setCat(c)} aria-pressed={cat===c}
+                style={{padding:"12px 4px",borderRadius:12,fontSize:12,fontWeight:700,cursor:"pointer",textAlign:"center",
+                  border:`1.5px solid ${cat===c?"var(--accent)":"var(--border)"}`,
+                  background:cat===c?"var(--accent-light)":"transparent",
+                  color:cat===c?"var(--accent)":"var(--text-muted)",
+                  transition:"all var(--t-fast) var(--ease)",
+                  transform:cat===c?"translateY(-2px)":"translateY(0)",
+                  boxShadow:cat===c?"var(--elev-2)":"none"}}>
+                <div style={{fontSize:20,marginBottom:4}}>{ICONS[c]}</div>
                 {c}
               </button>
             ))}

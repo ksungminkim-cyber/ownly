@@ -154,12 +154,12 @@
           );
         })()}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <button onClick={prevMonth} style={{ width: 34, height: 34, borderRadius: 9, background: "#ffffff", border: "1px solid #ebe9e3", color: "#1a2744", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+          <button onClick={prevMonth} className="btn btn-ghost btn-sm" aria-label="이전 달" style={{ width: 36, padding: 0, fontSize: 18 }}>‹</button>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <span style={{ fontSize: 20, fontWeight: 800, color: "#1a2744" }}>{year}년 {MONTH_KO[month]}</span>
-            <button onClick={goToday} style={{ padding: "4px 12px", borderRadius: 8, background: C.indigo + "20", border: `1px solid ${C.indigo}40`, color: "#1a2744", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>오늘</button>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "var(--text)" }}>{year}년 {MONTH_KO[month]}</span>
+            <button onClick={goToday} className="btn btn-soft btn-sm">오늘</button>
           </div>
-          <button onClick={nextMonth} style={{ width: 34, height: 34, borderRadius: 9, background: "#ffffff", border: "1px solid #ebe9e3", color: "#1a2744", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+          <button onClick={nextMonth} className="btn btn-ghost btn-sm" aria-label="다음 달" style={{ width: 36, padding: 0, fontSize: 18 }}>›</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 4 }}>
           {DAY_KO.map((d, i) => (
