@@ -80,60 +80,55 @@ end $$;
 
 -- ──────────────────────────────────────────────────────────
 -- 커뮤니티 테이블 (공개 select + 본인만 작성/수정/삭제)
+-- 컬럼명이 author_id 또는 user_id 둘 다 가능하므로 자동 감지
 -- ──────────────────────────────────────────────────────────
 do $$
+declare
+  t text;
+  short text;
+  owner_col text;
+  ctables text[][] := array[
+    ['community_posts',         'posts'],
+    ['community_comments',      'comments'],
+    ['community_likes',         'likes'],
+    ['community_comment_likes', 'comment_likes']
+  ];
+  pair text[];
 begin
-  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'community_posts') then
-    alter table public.community_posts enable row level security;
+  foreach pair slice 1 in array ctables loop
+    t := pair[1];
+    short := pair[2];
 
-    drop policy if exists "posts_select_public" on public.community_posts;
-    drop policy if exists "posts_insert_own" on public.community_posts;
-    drop policy if exists "posts_update_own" on public.community_posts;
-    drop policy if exists "posts_delete_own" on public.community_posts;
+    if not exists (select 1 from information_schema.tables where table_schema='public' and table_name=t) then
+      continue;
+    end if;
 
-    create policy "posts_select_public" on public.community_posts for select using (true);
-    create policy "posts_insert_own" on public.community_posts for insert with check (auth.uid() = author_id);
-    create policy "posts_update_own" on public.community_posts for update using (auth.uid() = author_id);
-    create policy "posts_delete_own" on public.community_posts for delete using (auth.uid() = author_id);
-  end if;
+    -- 소유자 컬럼: author_id 우선, 없으면 user_id, 둘 다 없으면 스킵
+    select column_name into owner_col
+    from information_schema.columns
+    where table_schema='public' and table_name=t and column_name in ('author_id','user_id')
+    order by case column_name when 'author_id' then 0 else 1 end
+    limit 1;
 
-  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'community_comments') then
-    alter table public.community_comments enable row level security;
+    execute format('alter table public.%I enable row level security', t);
 
-    drop policy if exists "comments_select_public" on public.community_comments;
-    drop policy if exists "comments_insert_own" on public.community_comments;
-    drop policy if exists "comments_update_own" on public.community_comments;
-    drop policy if exists "comments_delete_own" on public.community_comments;
+    execute format('drop policy if exists "%I_select_public" on public.%I', short, t);
+    execute format('drop policy if exists "%I_insert_own"    on public.%I', short, t);
+    execute format('drop policy if exists "%I_update_own"    on public.%I', short, t);
+    execute format('drop policy if exists "%I_delete_own"    on public.%I', short, t);
 
-    create policy "comments_select_public" on public.community_comments for select using (true);
-    create policy "comments_insert_own" on public.community_comments for insert with check (auth.uid() = author_id);
-    create policy "comments_update_own" on public.community_comments for update using (auth.uid() = author_id);
-    create policy "comments_delete_own" on public.community_comments for delete using (auth.uid() = author_id);
-  end if;
+    -- 공개 select (커뮤니티 게시물은 누구나 조회)
+    execute format('create policy "%I_select_public" on public.%I for select using (true)', short, t);
 
-  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'community_likes') then
-    alter table public.community_likes enable row level security;
+    if owner_col is not null then
+      execute format('create policy "%I_insert_own" on public.%I for insert with check (auth.uid() = %I)', short, t, owner_col);
+      execute format('create policy "%I_update_own" on public.%I for update using (auth.uid() = %I)', short, t, owner_col);
+      execute format('create policy "%I_delete_own" on public.%I for delete using (auth.uid() = %I)', short, t, owner_col);
+    end if;
+    -- 소유자 컬럼이 없는 likes 류는 select 만 가능 (insert/delete 는 app 측 RPC 로 처리 가정)
 
-    drop policy if exists "likes_select_public" on public.community_likes;
-    drop policy if exists "likes_insert_own" on public.community_likes;
-    drop policy if exists "likes_delete_own" on public.community_likes;
-
-    create policy "likes_select_public" on public.community_likes for select using (true);
-    create policy "likes_insert_own" on public.community_likes for insert with check (auth.uid() = user_id);
-    create policy "likes_delete_own" on public.community_likes for delete using (auth.uid() = user_id);
-  end if;
-
-  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'community_comment_likes') then
-    alter table public.community_comment_likes enable row level security;
-
-    drop policy if exists "comment_likes_select_public" on public.community_comment_likes;
-    drop policy if exists "comment_likes_insert_own" on public.community_comment_likes;
-    drop policy if exists "comment_likes_delete_own" on public.community_comment_likes;
-
-    create policy "comment_likes_select_public" on public.community_comment_likes for select using (true);
-    create policy "comment_likes_insert_own" on public.community_comment_likes for insert with check (auth.uid() = user_id);
-    create policy "comment_likes_delete_own" on public.community_comment_likes for delete using (auth.uid() = user_id);
-  end if;
+    owner_col := null;
+  end loop;
 end $$;
 
 -- ──────────────────────────────────────────────────────────
