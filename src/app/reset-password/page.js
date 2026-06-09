@@ -3,12 +3,7 @@ import { useState, useEffect } from "react";
 import { Spinner } from "../../components/shared";
 import { C } from "../../lib/constants";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from "../../lib/supabase";  // ⚠️ global 클라이언트 사용 (PKCE 일관성)
 
 export default function ResetPasswordPage() {
   const router = useRouter();

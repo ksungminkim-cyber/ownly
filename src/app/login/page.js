@@ -3,13 +3,8 @@ import { useState } from "react";
 import React from "react";
 import { Spinner, AuthInput } from "../../components/shared";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../../lib/supabase";  // ⚠️ 반드시 global 클라이언트 사용 (PKCE code_verifier 공유)
 import { generateNickname } from "../../lib/nickname";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 export default function AuthPage() {
   const router = useRouter();
@@ -90,14 +85,23 @@ export default function AuthPage() {
 
   const socialLogin = async (provider) => {
     setSocialLoading(provider);
+    setErrors({});
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          // ⚠️ skipBrowserRedirect: false (기본값) — supabase-js 가 자동 리다이렉트
+        },
       });
       if (error) throw error;
+      // 자동 리다이렉트가 동작하지 않은 경우의 안전망 (브라우저 팝업 차단·확장프로그램 간섭 등)
+      if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (e) {
-      setErrors({ submit: e.message });
+      console.error("[socialLogin]", provider, e);
+      setErrors({ submit: `${provider} 로그인 실패: ${e?.message || "알 수 없는 오류"}` });
       setSocialLoading(null);
     }
   };
