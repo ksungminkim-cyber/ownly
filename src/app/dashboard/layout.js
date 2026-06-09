@@ -6,20 +6,35 @@ function DashboardShell({ children }) {
   const { loading, user } = useApp();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  // 한 번 인증되면 영구 true — user 가 일시적으로 null 로 바뀌어도 튕기지 않음
+  const [authPassed, setAuthPassed] = useState(false);
+
+  // 인증 성공 기록 — user 가 truthy 가 된 순간 한 번만
+  useEffect(() => {
+    if (user && !authPassed) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 명시 의도: monotonic latch
+      setAuthPassed(true);
+    }
+  }, [user, authPassed]);
+
+  const authChecked = !loading && (!!user || authPassed);
   const handleLogout = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
-  // 🔒 비로그인 유저는 로그인 페이지로 리디렉트 (세션 확인 끝난 후에만)
+  // 🔒 비로그인 유저는 로그인 페이지로 리디렉트
+  // - loading 중이면 대기
+  // - user 있거나 이미 한 번 통과한 적 있으면 통과
+  // - user 없는데 grace 끝나도 여전히 null 이면 redirect (1.2s)
+  //   → 소셜 로그인 직후 onAuthStateChange("SIGNED_IN") 이 user 설정하기까지의 race 방지
+  //   → magiclink refresh 일시 실패로 인한 user→null 도 튕김 방지
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        const next = encodeURIComponent(pathname || "/dashboard");
-        router.replace(`/login?next=${next}`);
-      } else {
-        setAuthChecked(true);
-      }
-    }
-  }, [loading, user, pathname, router]);
+    if (loading) return;
+    if (user || authPassed) return;
+    const timer = setTimeout(() => {
+      const next = encodeURIComponent(pathname || "/dashboard");
+      router.replace(`/login?next=${next}`);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [loading, user, authPassed, pathname, router]);
 
   // 비로그인 상태에서 리디렉트 트리거되기 전에 셸을 렌더하지 않으면 깜빡임 UX 발생
   // → 셸은 항상 렌더하고, main 영역만 로더 처리해서 즉시 레이아웃 노출
