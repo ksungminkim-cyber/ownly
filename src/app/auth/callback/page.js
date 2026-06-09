@@ -31,10 +31,22 @@ export default function AuthCallbackPage() {
           }
         } catch {}
 
-        // 2) hash 방식 (implicit) 의 경우 잠시 대기 (Supabase 가 hash 를 파싱하도록)
-        if (typeof window !== "undefined" && window.location.hash?.includes("access_token")) {
-          await new Promise(r => setTimeout(r, 400));
-        }
+        // 2) Implicit/Magiclink: #access_token= 가 있으면 명시적으로 setSession
+        //    (flowType:"pkce" 일 때 detectSessionInUrl 이 hash 를 처리하지 않으므로 직접 처리)
+        //    네이버 OAuth → magiclink → /auth/callback#access_token=... 흐름이 여기로 옴
+        try {
+          const hash = typeof window !== "undefined" ? window.location.hash : "";
+          if (hash && hash.includes("access_token")) {
+            const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+            const access_token = params.get("access_token");
+            const refresh_token = params.get("refresh_token");
+            if (access_token && refresh_token) {
+              await supabase.auth.setSession({ access_token, refresh_token }).catch(() => {});
+              // hash 정리 (브라우저 주소창에서 토큰 노출 방지)
+              try { window.history.replaceState(null, "", window.location.pathname); } catch {}
+            }
+          }
+        } catch {}
 
         // 3) 세션 확인
         const { data, error } = await supabase.auth.getSession();
