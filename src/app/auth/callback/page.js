@@ -1,88 +1,100 @@
 // src/app/auth/callback/page.js
 // 소셜 로그인(구글/카카오/네이버) 포함 모든 인증 콜백
-// 닉네임 없는 최초 가입자에게 자동으로 닉네임 생성해서 저장
+// - PKCE 흐름의 ?code= 명시적 exchange (detectSessionInUrl race condition 회피)
+// - 닉네임/초대코드 처리는 fire-and-forget — 네비게이션 블록 금지
+// - router.push 대신 window.location.href 로 강제 풀 네비게이션 (Next 16 클라이언트 라우터 silent fail 회피)
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { generateNickname } from "../../../lib/nickname";
 
 export default function AuthCallbackPage() {
-  const router = useRouter();
   const [status, setStatus] = useState("인증 처리 중...");
 
   useEffect(() => {
+    let cancelled = false;
+
+    const go = (path, delay = 200) => {
+      if (cancelled) return;
+      setTimeout(() => { window.location.href = path; }, delay);
+    };
+
     const handleCallback = async () => {
       try {
+        // 1) PKCE: ?code= 가 있으면 명시적으로 교환 시도
+        //    (detectSessionInUrl: true 가 이미 처리했을 수도 있으므로 실패는 무시)
+        try {
+          const url = new URL(window.location.href);
+          const code = url.searchParams.get("code");
+          if (code) {
+            await supabase.auth.exchangeCodeForSession(code).catch(() => {});
+          }
+        } catch {}
+
+        // 2) hash 방식 (implicit) 의 경우 잠시 대기 (Supabase 가 hash 를 파싱하도록)
+        if (typeof window !== "undefined" && window.location.hash?.includes("access_token")) {
+          await new Promise(r => setTimeout(r, 400));
+        }
+
+        // 3) 세션 확인
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
-
         const session = data?.session;
 
-        if (session) {
-          // ✅ 닉네임 없으면 자동 생성해서 저장 (소셜 로그인 포함)
-          const user = session.user;
-          const hasNickname = !!user?.user_metadata?.nickname;
-
-          if (!hasNickname) {
-            const autoNickname = generateNickname();
-            await supabase.auth.updateUser({
-              data: { nickname: autoNickname },
-            });
-          }
-
-          // 초대 코드 있으면 적용 (양쪽 +30일)
-          try {
-            const code = localStorage.getItem("ownly_invite_code");
-            if (code) {
-              const res = await fetch("/api/invite/apply", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
-                body: JSON.stringify({ code }),
-              });
-              const d = await res.json();
-              if (d.ok) {
-                setStatus(`🎁 초대 보상 ${d.rewardDays}일 무료 체험 적립!`);
-                localStorage.removeItem("ownly_invite_code");
-              } else {
-                localStorage.removeItem("ownly_invite_code");
-              }
-            }
-          } catch {}
-
-          setStatus("✅ 인증 완료! 대시보드로 이동합니다...");
-          setTimeout(() => router.push("/dashboard"), 1200);
-        } else {
-          // hash에서 직접 처리 (매직링크 등)
-          const hash = window.location.hash;
-          if (hash && hash.includes("access_token")) {
-            // hash 방식 세션 재시도
-            await new Promise(r => setTimeout(r, 500));
-            const { data: data2 } = await supabase.auth.getSession();
-            const session2 = data2?.session;
-
-            if (session2) {
-              const user2 = session2.user;
-              if (!user2?.user_metadata?.nickname) {
-                await supabase.auth.updateUser({ data: { nickname: generateNickname() } });
-              }
-            }
-
-            setStatus("✅ 인증 완료! 대시보드로 이동합니다...");
-            setTimeout(() => router.push("/dashboard"), 800);
-          } else {
-            setStatus("로그인 페이지로 이동합니다...");
-            setTimeout(() => router.push("/login"), 1500);
-          }
+        if (!session) {
+          if (cancelled) return;
+          setStatus("로그인 페이지로 이동합니다...");
+          go("/login", 800);
+          return;
         }
-      } catch (e) {
+
+        // 4) 닉네임 자동 생성 — fire and forget (블록 X)
+        const user = session.user;
+        if (user && !user?.user_metadata?.nickname) {
+          supabase.auth
+            .updateUser({ data: { nickname: generateNickname() } })
+            .catch(() => {});
+        }
+
+        // 5) 초대 코드 — fire and forget
+        try {
+          const inviteCode = typeof window !== "undefined" ? localStorage.getItem("ownly_invite_code") : null;
+          if (inviteCode && session.access_token) {
+            fetch("/api/invite/apply", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ code: inviteCode }),
+            })
+              .then(r => r.json())
+              .then(d => {
+                try {
+                  if (d?.ok) {
+                    localStorage.removeItem("ownly_invite_code");
+                  } else {
+                    localStorage.removeItem("ownly_invite_code");
+                  }
+                } catch {}
+              })
+              .catch(() => {});
+          }
+        } catch {}
+
+        if (cancelled) return;
+        setStatus("✅ 인증 완료! 대시보드로 이동합니다...");
+        go("/dashboard", 300);
+      } catch {
+        if (cancelled) return;
         setStatus("인증 중 오류가 발생했습니다. 다시 로그인해주세요.");
-        setTimeout(() => router.push("/login"), 2000);
+        go("/login", 1500);
       }
     };
 
     handleCallback();
-  }, [router]);
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",

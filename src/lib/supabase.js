@@ -15,17 +15,18 @@ export const supabase = createClient(
 );
 
 // ⚠️ Invalid Refresh Token 자동 처리
-// localStorage 에 만료/손상된 토큰이 남아있는 경우 Supabase 가 AuthApiError 를 던지는데,
-// 이를 감지해서 자동으로 stale 세션을 정리합니다 (다음 페이지 진입 시 비로그인 상태로 시작).
+// localStorage 에 만료/손상된 토큰이 남아있는 경우만 정리합니다.
+// (이전에는 모든 AuthApiError 를 잡아 OAuth 콜백 중에도 signOut 되는 부작용이 있었음)
 if (typeof window !== "undefined") {
   const handler = (event) => {
     const reason = event?.reason;
-    const msg = String(reason?.message || reason || "");
-    if (
-      reason?.name === "AuthApiError" ||
-      /Invalid Refresh Token|Refresh Token Not Found|refresh_token_not_found/i.test(msg)
-    ) {
-      console.warn("[supabase] stale auth token 감지 — 자동 정리합니다");
+    const msg = String(reason?.message || reason?.error_description || reason || "");
+    const code = String(reason?.code || reason?.error || "");
+    const isRefreshIssue =
+      /Invalid Refresh Token|Refresh Token Not Found|refresh_token_not_found|refresh token/i.test(msg) ||
+      /refresh_token_not_found|invalid_refresh_token/i.test(code);
+    if (isRefreshIssue) {
+      console.warn("[supabase] stale refresh token 감지 — 자동 정리합니다");
       try {
         supabase.auth.signOut().catch(() => {});
         // Supabase가 localStorage에 저장한 토큰 강제 제거
@@ -35,7 +36,6 @@ if (typeof window !== "undefined") {
           window.localStorage.removeItem(`sb-${projectRef}-auth-token`);
         }
       } catch {}
-      // 에러를 콘솔에 그대로 띄우지 않도록 swallow
       event.preventDefault?.();
     }
   };
