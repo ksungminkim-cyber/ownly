@@ -44,6 +44,9 @@ export default function AuthCallbackPage() {
               await supabase.auth.setSession({ access_token, refresh_token }).catch(() => {});
               // hash 정리 (브라우저 주소창에서 토큰 노출 방지)
               try { window.history.replaceState(null, "", window.location.pathname); } catch {}
+              // ⚠️ 즉시 한 번 refresh 시도 — magiclink 의 일회용 refresh_token 을 사용하면서
+              // 새 longer-lived refresh_token 으로 교체. 실패해도 무시 (12초 grace 내에 처리됨)
+              await supabase.auth.refreshSession().catch(() => {});
             }
           }
         } catch {}
