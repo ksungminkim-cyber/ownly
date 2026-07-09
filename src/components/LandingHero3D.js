@@ -50,7 +50,18 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
           .hero3d-grid { grid-template-columns: 1fr; gap: 44px; text-align: center; }
           .hero3d-left { display: flex; flex-direction: column; align-items: center; }
           .hero3d-chips { justify-content: center; }
-          .hero3d-mock-wrap { max-width: 480px; margin: 0 auto; }
+          .hero3d-mock-wrap { max-width: 460px; margin: 0 auto; }
+        }
+        /* 떠다니는 카드 기본(데스크톱) 위치 */
+        .hf-card { position: absolute; z-index: 3; }
+        .hf-1 { top: -38px; right: -8px; }
+        .hf-2 { bottom: 158px; left: -26px; }
+        .hf-3 { bottom: -20px; right: 22px; }
+        /* 모바일: 화면 밖으로 삐져나가지 않도록 안쪽으로 정렬 */
+        @media (max-width: 520px) {
+          .hf-1 { top: -22px; right: 2px; }
+          .hf-2 { bottom: 150px; left: 2px; }
+          .hf-3 { bottom: -14px; right: 6px; }
         }
         @keyframes hero-draw { from { stroke-dashoffset: 480; } to { stroke-dashoffset: 0; } }
         @keyframes hero-fill-in { from { opacity: 0; } to { opacity: 1; } }
@@ -181,7 +192,7 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
             </div>
 
             {/* ── 떠다니는 카드 1: 입금 알림 (우상단) ── */}
-            <motion.div style={{ x: f1x, y: f1y, position: "absolute", top: -38, right: -8, zIndex: 3 }}>
+            <motion.div className="hf-card hf-1" style={{ x: f1x, y: f1y }}>
               <div className="hero-float-a" style={{ background: "#fff", border: "1px solid #e6f5ef", borderRadius: 14, padding: "10px 14px", boxShadow: "0 14px 38px rgba(15,165,115,0.22)", display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(15,165,115,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>💰</div>
                 <div>
@@ -192,7 +203,7 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
             </motion.div>
 
             {/* ── 떠다니는 카드 2: 계약 만료 알림 (좌하단) ── */}
-            <motion.div style={{ x: f2x, y: f2y, position: "absolute", bottom: 158, left: -26, zIndex: 3 }}>
+            <motion.div className="hf-card hf-2" style={{ x: f2x, y: f2y }}>
               <div className="hero-float-b" style={{ background: "#fff", border: "1px solid #fdf0dc", borderRadius: 14, padding: "10px 14px", boxShadow: "0 14px 38px rgba(232,150,10,0.2)", display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(232,150,10,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📅</div>
                 <div>
@@ -203,7 +214,7 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
             </motion.div>
 
             {/* ── 떠다니는 카드 3: 카카오 알림톡 (우하단) ── */}
-            <motion.div style={{ x: f3x, y: f3y, position: "absolute", bottom: -20, right: 22, zIndex: 3 }}>
+            <motion.div className="hf-card hf-3" style={{ x: f3x, y: f3y }}>
               <div className="hero-float-a" style={{ animationDelay: "-2.5s", background: "#fff", border: "1px solid #f4f1e4", borderRadius: 14, padding: "9px 13px", boxShadow: "0 14px 38px rgba(26,39,68,0.16)", display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 15 }}>💬</span>
                 <p style={{ fontSize: 10.5, fontWeight: 700, color: "#1a2744", margin: 0 }}>미납 알림톡 자동 발송 <span className="pulse-dot" style={{ display: "inline-block", marginLeft: 4, verticalAlign: "middle" }} /></p>

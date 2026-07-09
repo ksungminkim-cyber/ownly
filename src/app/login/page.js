@@ -242,7 +242,7 @@ export default function AuthPage() {
             <AuthInput label="이메일" type="email" value={form.email} onChange={set("email")} placeholder="you@example.com" error={errors.email} />
             {tab === "signup" && form.email.includes("@") && (
               <p style={{ fontSize:11, color:"#8a8a9a", marginTop:-8, paddingLeft:2, lineHeight:1.5 }}>
-                📬 가입 후 인증 메일이 발송됩니다. <b>스팸함</b>도 확인해주세요.
+                📬 가입 후 <b>온리(noreply@ownly.kr)</b>에서 인증 메일이 발송됩니다. 보통 1분 내 도착합니다.
               </p>
             )}
             {tab === "signup" && (
@@ -274,11 +274,11 @@ export default function AuthPage() {
                 <p style={{ fontSize:12, color:"#1a6b4a", lineHeight:1.7 }}>
                   <b>{form.email}</b>로 인증 링크를 보냈습니다.<br/>링크를 클릭하면 자동으로 로그인됩니다.
                 </p>
-                <div style={{ background:"#fff8e6", border:"1px solid #f59e0b40", borderRadius:10, padding:"10px 12px", display:"flex", gap:8 }}>
-                  <span style={{ fontSize:16, flexShrink:0 }}>⚠️</span>
-                  <p style={{ fontSize:11, color:"#78350f", lineHeight:1.6 }}>
-                    메일이 스팸함으로 분류될 수 있습니다.<br/>
-                    발신자 <b>noreply@mail.supabase.io</b>를 안전 발신자로 등록해주세요.
+                <div style={{ background:"#f5f7ff", border:"1px solid #c7d2fe", borderRadius:10, padding:"10px 12px", display:"flex", gap:8 }}>
+                  <span style={{ fontSize:16, flexShrink:0 }}>💡</span>
+                  <p style={{ fontSize:11, color:"#3730a3", lineHeight:1.6 }}>
+                    메일이 보이지 않으면 <b>프로모션·스팸함</b>도 확인해주세요.<br/>
+                    발신자는 <b>noreply@ownly.kr</b> 입니다.
                   </p>
                 </div>
                 <button onClick={() => { setMsg(""); setTab("login"); }}

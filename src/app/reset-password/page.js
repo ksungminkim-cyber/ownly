@@ -14,11 +14,20 @@ export default function ResetPasswordPage() {
   const [done, setDone]     = useState(false);
   const [ready, setReady]   = useState(false);
 
-  // Supabase가 URL 해시에서 세션을 자동으로 복원
+  // Supabase가 URL(코드/해시)에서 복구 세션을 자동 복원.
+  // PKCE 흐름에선 PASSWORD_RECOVERY 이벤트가 리스너 등록 전에 발화해 놓칠 수 있으므로,
+  // 세션 존재 여부를 직접 확인하는 fallback을 함께 둡니다.
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+    let cancelled = false;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) setReady(true);
     });
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (data?.session) setReady(true);
+    })();
+    return () => { cancelled = true; subscription.unsubscribe(); };
   }, []);
 
   const handleReset = async () => {
