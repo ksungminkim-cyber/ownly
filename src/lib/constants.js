@@ -17,7 +17,7 @@ export const PLANS = {
     limits: {
       properties: 3,   // ✅ 2 → 3
       tenants: 5,       // ✅ 3 → 5
-      reports: false, tax: false, certified: false, vacancy: false,
+      reports: false, tax: false, certified: 1, vacancy: false,
       export: false, roi: false, vacancyLoss: false, leaseCheck: false,
       mapSearch: false, aiPricing: 0, kakaoAlert: false, globalReports: false,
     },
@@ -27,8 +27,8 @@ export const PLANS = {
       { t: "수금 현황 관리", ok: true },
       { t: "계약서 기본 관리", ok: true },
       { t: "캘린더", ok: true },
+      { t: "내용증명 월 1건", ok: true },
       { t: "리포트 / 세금 관리", ok: false },
-      { t: "내용증명", ok: false },
       { t: "PDF 내보내기", ok: false },
       { t: "프리미엄 기능 전체", ok: false },
     ],
