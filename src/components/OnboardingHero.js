@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "../context/AppContext";
 import { toast } from "./shared";
 import { seedSampleData, removeSampleData, isSampleTenant } from "../lib/sampleData";
+import { track } from "../lib/track";
 
 const COLORS = ["#6366f1", "#0fa573", "#e8960a", "#0d9488", "#5b4fcf"];
 
@@ -55,6 +56,7 @@ export default function OnboardingHero() {
     setSeeding(true);
     try {
       await seedSampleData({ addTenant, upsertPayment });
+      track("sample_seeded");
       toast("✨ 샘플 물건 2개와 6개월 납부 이력을 채웠어요 — 자유롭게 둘러보세요!");
     } catch (e) {
       toast("샘플 데이터 생성 실패: " + (e?.message || "알 수 없는 오류"), "error");
@@ -130,6 +132,7 @@ export function SampleBanner() {
     setRemoving(true);
     try {
       await removeSampleData({ tenants, refreshData });
+      track("sample_removed");
       toast("🧹 샘플 데이터를 모두 삭제했어요 — 이제 내 물건을 등록해보세요!");
     } catch (e) {
       toast("삭제 실패: " + (e?.message || "알 수 없는 오류"), "error");

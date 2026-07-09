@@ -14,6 +14,7 @@ const ALLOWED = new Set([
   "20260520_certified_mail_status.sql",
   "20260520_vacancy_action_steps.sql",
   "20260527_kakaopay_subscription.sql",
+  "20260709_events_tracking.sql",
 ]);
 
 export async function GET(req, { params }) {

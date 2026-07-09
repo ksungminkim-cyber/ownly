@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { generateNickname } from "../../../lib/nickname";
+import { track } from "../../../lib/track";
 
 export default function AuthCallbackPage() {
   const [status, setStatus] = useState("인증 처리 중...");
@@ -98,6 +99,7 @@ export default function AuthCallbackPage() {
         } catch {}
 
         if (cancelled) return;
+        track("login", { method: "callback" }); // 소셜 로그인·이메일 인증 완료
         setStatus("✅ 인증 완료! 대시보드로 이동합니다...");
         go("/dashboard", 300);
       } catch {

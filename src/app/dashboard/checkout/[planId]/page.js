@@ -6,6 +6,7 @@ import { PLANS } from "../../../../lib/constants";
 import { useApp } from "../../../../context/AppContext";
 import { supabase } from "../../../../lib/supabase";
 import { toast } from "../../../../components/shared";
+import { track } from "../../../../lib/track";
 
 // 정기결제 체크아웃 — 카카오페이 정기결제 (2026-05-27 PG 심사 통과 · CID CT75680604)
 // 흐름: /api/billing/kakao/ready → next_redirect → 카카오 인증 → success → approve → sid 발급
@@ -36,6 +37,11 @@ export default function CheckoutPage() {
     if (user?.user_metadata?.phone) setCustomerPhone(user.user_metadata.phone);
     else if (user?.email) setCustomerName(user.email.split("@")[0]);
   }, [user]);
+
+  // 퍼널 계측 — 결제 페이지 진입
+  useEffect(() => {
+    if (planId) track("checkout_view", { plan: planId });
+  }, [planId]);
 
   if (!plan || plan.id === "free") {
     return (
@@ -70,6 +76,7 @@ export default function CheckoutPage() {
     if (!customerPhone.trim()) { toast("연락처를 입력해주세요", "error"); return; }
     if (!user?.id) { toast("로그인이 필요합니다", "error"); return; }
 
+    track("pay_click", { plan: planId, cycle: billingCycle });
     setSubmitting(true);
     try {
       // Supabase access token 으로 본인 인증 (API 라우트가 검증)

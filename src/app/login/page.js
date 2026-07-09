@@ -5,6 +5,7 @@ import { Spinner, AuthInput } from "../../components/shared";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";  // ⚠️ 반드시 global 클라이언트 사용 (PKCE code_verifier 공유)
 import { generateNickname } from "../../lib/nickname";
+import { track } from "../../lib/track";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -54,6 +55,7 @@ export default function AuthPage() {
       if (tab === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.pw });
         if (error) throw error;
+        track("login", { method: "password" });
         // next 파라미터 있으면 원래 가려던 페이지로 복귀
         const nextParam = new URLSearchParams(window.location.search).get("next");
         const dest = nextParam && nextParam.startsWith("/") ? nextParam : "/dashboard";
