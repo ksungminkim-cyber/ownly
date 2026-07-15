@@ -224,3 +224,75 @@ export async function POST(req) {
     return Response.json({ error: e.message }, { status: 500 });
   }
 }
+
+// ── 주간 리텐션 다이제스트 크론 ──────────────────────────────────
+// GET /api/notify  (헤더 x-cron-token 또는 ?token= 로 인증)
+// 전체 유저를 순회하며 "미납 있으면 미납, 없으면 만료 임박" 이메일을 1통 발송.
+// - 발송 대상: 실제 이메일 보유 + newsletter_subscribers.weekly_digest !== false
+// - 중복 방지: last_sent_at 이 5일 이내면 skip (하루 여러 번 돌아도 안전)
+// - 조치할 게 없으면(미납·만료 0) 발송하지 않음 (빈 메일 스팸 금지)
+// 권장 주기: 주 1회 (Vercel Cron 또는 외부 스케줄러)
+// Vercel Cron 은 자동으로 Authorization: Bearer $CRON_SECRET 를 주입하므로 CRON_SECRET 우선 지원
+const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || process.env.BILLING_RENEWAL_TOKEN || "";
+const DEDUP_DAYS = 5;
+
+export async function GET(req) {
+  const authHeader = req.headers.get("authorization") || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = bearer || req.headers.get("x-cron-token") || new URL(req.url).searchParams.get("token");
+  if (!CRON_TOKEN || token !== CRON_TOKEN) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const summary = { processed: 0, sent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0 };
+  const dedupCutoff = new Date(Date.now() - DEDUP_DAYS * 86400000);
+
+  try {
+    let page = 1;
+    const perPage = 200;
+    for (;;) {
+      const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+      if (error) throw error;
+      const users = data?.users || [];
+      if (users.length === 0) break;
+
+      for (const u of users) {
+        summary.processed++;
+        const email = u.email;
+        if (!email) continue;
+        try {
+          const { data: sub } = await supabase.from("newsletter_subscribers").select("weekly_digest,last_sent_at").eq("user_id", u.id).maybeSingle();
+          if (sub && sub.weekly_digest === false) { summary.skippedOptOut++; continue; }
+          if (sub?.last_sent_at && new Date(sub.last_sent_at) > dedupCutoff) { summary.skippedRecent++; continue; }
+
+          const { data: tenants } = await supabase.from("tenants").select("*").eq("user_id", u.id);
+          if (!tenants || tenants.length === 0) { summary.skippedNothing++; continue; }
+          const { data: payments } = await supabase.from("payments").select("*").in("tenant_id", tenants.map(t => t.id));
+
+          // 미납 우선(돈이 먼저) → 없으면 만료 임박
+          let result = await sendUnpaidNotice(u.id, email, tenants, payments || []);
+          let sentType = "unpaid";
+          if (result?.sent === false) {
+            result = await sendExpiringNotice(u.id, email, tenants);
+            sentType = "expiring";
+          }
+          if (result?.sent === false || result?.skipped) { summary.skippedNothing++; continue; }
+
+          summary.sent++;
+          await supabase.from("newsletter_subscribers").upsert({ user_id: u.id, email, last_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+          await supabase.from("notification_logs").insert({ user_id: u.id, type: sentType, channel: "email", status: "sent" });
+        } catch (e) {
+          summary.errors++;
+          console.error("cron-digest user error:", u.id, e?.message);
+        }
+      }
+
+      if (users.length < perPage) break;
+      page++;
+    }
+    return Response.json({ success: true, summary });
+  } catch (e) {
+    console.error("cron-digest error:", e);
+    return Response.json({ error: e.message, summary }, { status: 500 });
+  }
+}

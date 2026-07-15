@@ -4,6 +4,10 @@
     {
       "path": "/api/billing/kakao/subscription",
       "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/notify",
+      "schedule": "0 0 * * 1"
     }
   ]
 }
