@@ -69,13 +69,29 @@ export default function OnboardingHero() {
   const inputStyle = { width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
 
   return (
-    <div className="card-in" style={{ background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(91,79,207,0.05))", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "24px 22px", marginBottom: 20 }}>
-      <div style={{ marginBottom: 18 }}>
+    <div className="card-in" style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(91,79,207,0.05))", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "24px 22px", marginBottom: 20 }}>
+      {/* 살아 움직이는 오로라 배경 — 첫 화면 생동감 */}
+      <div aria-hidden="true" className="onb-aurora" />
+      <div style={{ position: "relative", zIndex: 1, marginBottom: 18 }}>
         <p style={{ fontSize: 18, fontWeight: 900, color: "var(--text)", marginBottom: 4 }}>환영합니다 👋 1분 안에 시작해보세요</p>
         <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>물건을 등록하는 순간 수금 추적·계약 만료 알림·세금 추정이 자동으로 시작됩니다.</p>
       </div>
 
-      <style>{`.onb-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; } @media(max-width:720px){ .onb-grid { grid-template-columns:1fr; } }`}</style>
+      <style>{`
+        .onb-aurora { position:absolute; inset:-40% -10%; z-index:0; pointer-events:none;
+          background:
+            radial-gradient(closest-side, rgba(124,108,255,0.20), transparent 70%) 15% 20% / 55% 55% no-repeat,
+            radial-gradient(closest-side, rgba(56,189,248,0.16), transparent 70%) 85% 10% / 50% 50% no-repeat,
+            radial-gradient(closest-side, rgba(249,168,212,0.14), transparent 70%) 70% 90% / 55% 55% no-repeat;
+          filter: blur(8px); animation: onb-aurora 16s ease-in-out infinite; }
+        @keyframes onb-aurora {
+          0%,100% { transform: translate3d(0,0,0) scale(1); }
+          33% { transform: translate3d(2%,-3%,0) scale(1.06); }
+          66% { transform: translate3d(-2%,2%,0) scale(0.97); }
+        }
+        @media (prefers-reduced-motion: reduce) { .onb-aurora { animation: none; } }
+        .onb-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; position:relative; z-index:1; } @media(max-width:720px){ .onb-grid { grid-template-columns:1fr; } }
+      `}</style>
       <div className="onb-grid">
         {/* ① 30초 퀵 등록 */}
         <div className="surface-card" style={{ padding: "18px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
