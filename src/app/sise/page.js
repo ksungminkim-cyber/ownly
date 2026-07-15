@@ -114,7 +114,7 @@ export default function SiseIndexPage() {
           <p style={{ fontSize: 22, fontWeight: 900, marginBottom: 10 }}>내 물건이 시세에 맞는지 궁금하다면</p>
           <p style={{ fontSize: 14, opacity: 0.85, marginBottom: 20, lineHeight: 1.6 }}>
             실거래 데이터 + AI 분석으로 내 물건 적정 임대료를 즉시 확인하세요.<br />
-            무료 가입 → 첫 30일 프로 플랜 체험
+            무료 가입 · 물건 3개까지 수금·계약·만료 알림 영구 무료
           </p>
           <Link href="/login?mode=signup" style={{ display: "inline-block", padding: "13px 32px", background: "#fff", color: "#1a2744", borderRadius: 11, fontSize: 14, fontWeight: 800, textDecoration: "none" }}>
             무료로 시작하기 →
