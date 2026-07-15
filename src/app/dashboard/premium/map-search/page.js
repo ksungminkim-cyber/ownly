@@ -174,7 +174,7 @@ function propertyTypeGuess(t) {
 }
 
 export default function MapSearchPage() {
-  return <PlanGate feature="map_search" requiredPlan="pro"><MapSearchContent /></PlanGate>;
+  return <PlanGate feature="mapSearch"><MapSearchContent /></PlanGate>;
 }
 
 function MapSearchContent() {

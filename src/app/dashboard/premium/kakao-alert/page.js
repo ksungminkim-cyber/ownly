@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import PlanGate from "../../../../components/PlanGate";
 import { useApp } from "../../../../context/AppContext";
 import { daysLeft } from "../../../../lib/constants";
 
@@ -241,7 +242,8 @@ function PreviewModal({ open, onClose, tenant, tab, onSend, isSent, isSending })
   );
 }
 
-export default function KakaoAlertPage() {
+export default function KakaoAlertPage() { return <PlanGate feature="kakaoAlert"><KakaoAlertContent /></PlanGate>; }
+function KakaoAlertContent() {
   const router = useRouter();
   const { tenants, payments, user } = useApp();
   const [tab, setTab] = useState("unpaid");
@@ -287,9 +289,12 @@ export default function KakaoAlertPage() {
     setError(e => ({ ...e, [key]: null }));
     try {
       const dl = daysLeft(t.end_date || t.end || "");
+      const { supabase } = await import("../../../../lib/supabase");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
       const res = await fetch("/api/kakao/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
         body: JSON.stringify({ tab: tabKey || tab, tenant: { ...t, daysLeft: dl, daysUntilPay: (t.pay_day || 5) - today }, userId: user?.id }),
       });
       const data = await res.json();

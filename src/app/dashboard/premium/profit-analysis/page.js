@@ -21,7 +21,7 @@ function FieldInput({ label, name, placeholder, unit = "만원", icon, value, on
 }
 
 export default function ProfitAnalysisPage() {
-  return <PlanGate feature="profit_analysis" requiredPlan="pro"><ProfitAnalysisContent /></PlanGate>;
+  return <PlanGate feature="profitAnalysis"><ProfitAnalysisContent /></PlanGate>;
 }
 
 function ProfitAnalysisContent() {

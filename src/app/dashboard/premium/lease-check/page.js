@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import PlanGate from "../../../../components/PlanGate";
 
 const C = {
   navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a",
@@ -105,7 +106,8 @@ const SECTIONS = [
   },
 ];
 
-export default function LeaseCheckPage() {
+export default function LeaseCheckPage() { return <PlanGate feature="leaseCheck"><LeaseCheckContent /></PlanGate>; }
+function LeaseCheckContent() {
   const router = useRouter();
   const [answers, setAnswers] = useState({});
   const [openSections, setOpenSections] = useState({ renewal: true, cap: false, convert: false, dispute: false });

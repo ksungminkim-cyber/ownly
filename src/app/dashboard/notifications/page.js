@@ -45,9 +45,11 @@ export default function NotificationsPage() {
     try {
       const dl = daysLeft(tenant.end_date || tenant.end || "");
       const today = new Date().getDate();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
       const res = await fetch("/api/kakao/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
         body: JSON.stringify({ tab, tenant: { ...tenant, daysLeft: dl, daysUntilPay: (tenant.pay_day || 5) - today }, userId: user?.id }),
       });
       const data = await res.json();

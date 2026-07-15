@@ -124,14 +124,33 @@ async function logSend({ userId, tenant, type, templateKey, variables, status, e
   }
 }
 
+// 인증 + 플랜 검증 — 알림톡은 실비(Solapi)가 발생하므로 반드시 서버에서 확인
+async function verifyProUser(req) {
+  if (!supabaseAdmin) return { error: "서버 설정 오류", status: 500 };
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return { error: "로그인이 필요합니다", status: 401 };
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data?.user) return { error: "인증에 실패했습니다. 다시 로그인해주세요.", status: 401 };
+  const user = data.user;
+  const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan,status,current_period_end").eq("user_id", user.id).single();
+  const isActive = sub && (sub.status === "active" || sub.status === "trial") && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+  if (!isActive || sub.plan !== "pro") return { error: "카카오 알림톡은 프로 플랜 전용 기능입니다", status: 403 };
+  return { user };
+}
+
 export async function POST(req) {
+  const auth = await verifyProUser(req);
+  if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
+
   let body;
   try {
     body = await req.json();
   } catch {
     return Response.json({ error: "invalid json" }, { status: 400 });
   }
-  const { tab, tenant, userId } = body || {};
+  const { tab, tenant } = body || {};
+  const userId = auth.user.id; // 클라이언트가 보낸 userId 대신 검증된 값 사용
 
   if (!tenant?.phone) {
     return Response.json({ error: "\uc804\ud654\ubc88\ud638 \uc5c6\uc74c" }, { status: 400 });
