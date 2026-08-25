@@ -149,6 +149,10 @@ export default function TenantPortalPage() {
                 </div>
               )}
 
+              <button onClick={() => router.push(`/portal/${tenantId}/receipt`)} className="btn btn-soft" style={{ width: "100%", marginBottom: 12 }}>
+                🧾 납부확인서 발급 — 연말정산 월세 세액공제용
+              </button>
+
               <div className="surface-card" style={{ overflow: "hidden", padding: 0 }}>
                 {history.length === 0 ? (
                   <div style={{ padding: 40, textAlign: "center" }}>
@@ -217,8 +221,11 @@ export default function TenantPortalPage() {
           </>
         )}
 
-        <div style={{ marginTop: 24, textAlign: "center", fontSize: 11, color: "#a0a0b0", lineHeight: 1.6 }}>
-          온리(Ownly) 임대 자산 관리 플랫폼 · <a href="https://www.ownly.kr" style={{ color: "#5b4fcf", fontWeight: 700, textDecoration: "none" }}>ownly.kr</a>
+        <div style={{ marginTop: 24, background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "18px 18px 16px", textAlign: "center" }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "#1a2744", marginBottom: 4 }}>🏠 이 계약은 온리(Ownly)로 관리되고 있습니다</p>
+          <p style={{ fontSize: 11, color: "#8a8a9a", lineHeight: 1.7, marginBottom: 12 }}>납부 이력·수리 요청·계약 정보가 한곳에 기록됩니다.<br/>혹시 임대 중인 부동산이 있으시다면 무료로 시작해보세요.</p>
+          <a href="/login?mode=signup" style={{ display: "inline-block", padding: "9px 20px", borderRadius: 10, background: "#1a2744", color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>임대인용 온리 무료 시작 →</a>
+          <p style={{ fontSize: 10, color: "#c0c0cc", marginTop: 10 }}><a href="https://www.ownly.kr" style={{ color: "#a0a0b0", textDecoration: "none" }}>ownly.kr</a></p>
         </div>
       </div>
     </div>

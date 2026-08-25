@@ -16,11 +16,22 @@ export async function GET(req, { params }) {
   // 1) 세입자 정보 (공개 가능 필드만)
   const { data: tenant, error: tErr } = await admin
     .from("tenants")
-    .select("id, name, address, p_type, sub_type, rent, deposit, maintenance, contract_end, start_date, pay_day, status, business_name")
+    .select("id, user_id, name, address, p_type, sub_type, rent, deposit, maintenance, contract_end, start_date, pay_day, status, business_name")
     .eq("id", tenantId)
     .single();
 
   if (tErr || !tenant) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+  // 1-1) 임대인 정보 — 납부확인서(월세 세액공제 증빙)에 필요한 최소 필드만
+  let landlord = null;
+  try {
+    const { data: owner } = await admin.auth.admin.getUserById(tenant.user_id);
+    const meta = owner?.user?.user_metadata || {};
+    landlord = {
+      name: meta.landlord_name || meta.full_name || null,
+      businessNo: meta.business_no || null,
+    };
+  } catch { landlord = null; }
 
   // 2) 최근 12개월 납부 내역
   const now = new Date();
@@ -58,6 +69,7 @@ export async function GET(req, { params }) {
       status: tenant.status,
       biz: tenant.business_name,
     },
+    landlord,
     payments: payments || [],
     repairs: repairs || [],
   });

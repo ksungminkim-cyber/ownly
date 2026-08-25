@@ -52,15 +52,21 @@ function baseHtml(title, body) {
 
 // ── 미납 알림 ─────────────────────────────────────────────────────
 async function sendUnpaidNotice(userId, userEmail, tenants, payments) {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
+  // KST 기준 날짜 (Vercel 런타임은 UTC)
+  const kst = new Date(Date.now() + 9 * 3600000);
+  const month = kst.getUTCMonth() + 1;
+  const year = kst.getUTCFullYear();
+  const today = kst.getUTCDate();
 
   const unpaidTenants = tenants.filter(t => {
+    if (t.status === "퇴거" || t.status === "공실") return false;
+    if (!(Number(t.rent) > 0)) return false; // 전세 등 월세 없는 계약 제외
+    const payDay = Number(t.pay_day ?? t.payment_day ?? 5);
+    if (today <= payDay) return false; // 아직 납부일 전
     const paid = payments.find(p =>
       p.tenant_id === t.id && p.month === month && p.year === year && p.status === "paid"
     );
-    return !paid && t.status !== "퇴거";
+    return !paid;
   });
 
   if (unpaidTenants.length === 0) return { sent: false, reason: "no_unpaid" };
@@ -225,16 +231,18 @@ export async function POST(req) {
   }
 }
 
-// ── 주간 리텐션 다이제스트 크론 ──────────────────────────────────
+// ── 리텐션 알림 크론 (매일 09:00 KST) ────────────────────────────
 // GET /api/notify  (헤더 x-cron-token 또는 ?token= 로 인증)
-// 전체 유저를 순회하며 "미납 있으면 미납, 없으면 만료 임박" 이메일을 1통 발송.
+// 매일: 납부일이 지났는데 미납인 세입자가 있으면 임대인에게 미납 알림 1통
+//   - 중복 방지: notification_logs 의 최근 unpaid 발송이 3일 이내면 skip
+// 월요일: 미납 메일이 없던 유저에게 만료 임박 다이제스트 1통
+//   - 중복 방지: newsletter_subscribers.last_sent_at 5일
 // - 발송 대상: 실제 이메일 보유 + newsletter_subscribers.weekly_digest !== false
-// - 중복 방지: last_sent_at 이 5일 이내면 skip (하루 여러 번 돌아도 안전)
-// - 조치할 게 없으면(미납·만료 0) 발송하지 않음 (빈 메일 스팸 금지)
-// 권장 주기: 주 1회 (Vercel Cron 또는 외부 스케줄러)
+// - 조치할 게 없으면 발송하지 않음 (빈 메일 스팸 금지)
 // Vercel Cron 은 자동으로 Authorization: Bearer $CRON_SECRET 를 주입하므로 CRON_SECRET 우선 지원
 const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || process.env.BILLING_RENEWAL_TOKEN || "";
-const DEDUP_DAYS = 5;
+const DEDUP_DAYS = 5;         // 만료 다이제스트
+const UNPAID_DEDUP_DAYS = 3;  // 미납 알림
 
 export async function GET(req) {
   // Vercel Cron 은 CRON_SECRET 미설정 시 Authorization 헤더를 주입하지 않으므로
@@ -248,8 +256,10 @@ export async function GET(req) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const summary = { processed: 0, sent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0 };
+  const summary = { processed: 0, unpaidSent: 0, digestSent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0 };
   const dedupCutoff = new Date(Date.now() - DEDUP_DAYS * 86400000);
+  const unpaidCutoff = new Date(Date.now() - UNPAID_DEDUP_DAYS * 86400000);
+  const isMonday = new Date(Date.now() + 9 * 3600000).getUTCDay() === 1; // KST 기준
 
   try {
     let page = 1;
@@ -267,27 +277,45 @@ export async function GET(req) {
         try {
           const { data: sub } = await supabase.from("newsletter_subscribers").select("weekly_digest,last_sent_at").eq("user_id", u.id).maybeSingle();
           if (sub && sub.weekly_digest === false) { summary.skippedOptOut++; continue; }
-          if (sub?.last_sent_at && new Date(sub.last_sent_at) > dedupCutoff) { summary.skippedRecent++; continue; }
 
           const { data: tenants } = await supabase.from("tenants").select("*").eq("user_id", u.id);
           if (!tenants || tenants.length === 0) { summary.skippedNothing++; continue; }
           const { data: payments } = await supabase.from("payments").select("*").in("tenant_id", tenants.map(t => t.id));
 
-          // 미납 우선(돈이 먼저) → 없으면 만료 임박
-          let result = await sendUnpaidNotice(u.id, email, tenants, payments || []);
-          let sentType = "unpaid";
-          if (result?.sent === false) {
-            result = await sendExpiringNotice(u.id, email, tenants);
-            sentType = "expiring";
+          // ① 미납 알림 — 매일 체크, notification_logs 기준 3일 중복 방지
+          let unpaidSentNow = false;
+          const { data: lastUnpaid } = await supabase.from("notification_logs")
+            .select("sent_at").eq("user_id", u.id).eq("type", "unpaid").eq("channel", "email")
+            .order("sent_at", { ascending: false }).limit(1);
+          if (lastUnpaid?.[0]?.sent_at && new Date(lastUnpaid[0].sent_at) > unpaidCutoff) {
+            summary.skippedRecent++;
+          } else {
+            const result = await sendUnpaidNotice(u.id, email, tenants, payments || []);
+            if (!(result?.sent === false || result?.skipped)) {
+              summary.unpaidSent++;
+              unpaidSentNow = true;
+              await supabase.from("notification_logs").insert({ user_id: u.id, type: "unpaid", channel: "email", status: "sent" });
+            }
           }
-          if (result?.sent === false || result?.skipped) { summary.skippedNothing++; continue; }
 
-          summary.sent++;
-          await supabase.from("newsletter_subscribers").upsert({ user_id: u.id, email, last_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
-          await supabase.from("notification_logs").insert({ user_id: u.id, type: sentType, channel: "email", status: "sent" });
+          // ② 만료 임박 다이제스트 — 월요일만, 같은 날 미납 메일과 중복 금지
+          if (isMonday && !unpaidSentNow) {
+            if (sub?.last_sent_at && new Date(sub.last_sent_at) > dedupCutoff) {
+              summary.skippedRecent++;
+            } else {
+              const result = await sendExpiringNotice(u.id, email, tenants);
+              if (result?.sent === false || result?.skipped) {
+                summary.skippedNothing++;
+              } else {
+                summary.digestSent++;
+                await supabase.from("newsletter_subscribers").upsert({ user_id: u.id, email, last_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+                await supabase.from("notification_logs").insert({ user_id: u.id, type: "expiring", channel: "email", status: "sent" });
+              }
+            }
+          }
         } catch (e) {
           summary.errors++;
-          console.error("cron-digest user error:", u.id, e?.message);
+          console.error("cron-notify user error:", u.id, e?.message);
         }
       }
 
