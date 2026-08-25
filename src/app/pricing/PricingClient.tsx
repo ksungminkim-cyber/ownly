@@ -20,8 +20,8 @@ const PLANS = [
       { text: "수금 현황 관리", included: true },
       { text: "계약서 기본 관리", included: true },
       { text: "캘린더", included: true },
+      { text: "내용증명 월 1건", included: true },
       { text: "리포트 / 세금 관리", included: false },
-      { text: "내용증명", included: false },
       { text: "PDF 내보내기", included: false },
       { text: "프리미엄 기능 전체", included: false },
     ],
@@ -33,7 +33,7 @@ const PLANS = [
     badgeColor: "#6366f1",
     monthlyPrice: 19900,
     yearlyPrice: Math.round(19900 * 0.8),
-    description: "다수 물건을 체계적으로 관리하는 임대인",
+    description: "다수 물건을 체계적으로 관리하는 임대인 · 가입 시 14일 무료 체험",
     cta: "구독 시작하기",
     ctaHref: "/dashboard/pricing",
     ctaStyle: "primary" as const,
@@ -76,6 +76,10 @@ const PLANS = [
 
 const FAQ = [
   {
+    q: "무료 체험이 있나요?",
+    a: "네. 가입 즉시 플러스 플랜 14일 무료 체험이 자동 적용됩니다. 카드 등록 없이 시작되며, 체험 종료 후 결제 없이 자동으로 무료 플랜으로 전환됩니다.",
+  },
+  {
     q: "무료 플랜은 정말 영구 무료인가요?",
     a: "네. 물건 3개·세입자 5명 이하라면 기간 제한 없이 영구 무료로 사용하실 수 있습니다. 신용카드 등록도 필요 없습니다.",
   },
@@ -93,7 +97,7 @@ const FAQ = [
   },
   {
     q: "카카오톡 알림은 어떻게 작동하나요?",
-    a: "프로 플랜에서 미납·납부예정·계약만료 알림을 카카오 알림톡으로 임대인 본인에게 발송합니다. 별도 설정 없이 자동으로 발송됩니다.",
+    a: "프로 플랜의 카카오 수금 알림 화면에서 대상 세입자를 선택하면 미납·납부 안내가 카카오 알림톡으로 세입자에게 발송됩니다.",
   },
 ];
 
@@ -180,7 +184,7 @@ export default function PricingClient() {
             marginBottom: "36px",
           }}
         >
-          모든 플랜은 언제든지 변경·취소 가능합니다
+          가입하면 플러스 14일 무료 체험이 자동 적용됩니다 · 카드 등록 불필요
         </p>
 
         {/* 월간/연간 토글 */}

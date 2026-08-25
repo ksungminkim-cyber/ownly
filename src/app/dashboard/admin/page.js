@@ -472,7 +472,7 @@ function AdminContent({ currentUser }) {
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
                 <thead>
                   <tr style={{ background: "#f8f7f4", borderBottom: "2px solid #ebe9e3" }}>
-                    {["유저", "가입", "이메일", "전화", "가입일", "마지막 접속", "보유", "플랜", "상태", "만료일", "액션"].map(h => (
+                    {["유저", "가입", "이메일", "전화", "가입일", "마지막 접속", "보유", "플랜", "구독 상태", "만료일", "액션"].map(h => (
                       <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".5px", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -529,8 +529,9 @@ function AdminContent({ currentUser }) {
                           <span style={{ fontSize: 11, fontWeight: 800, color: pm.color, background: pm.bg, padding: "3px 9px", borderRadius: 20 }}>{pm.label}</span>
                         </td>
                         <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: sm.color, background: sm.bg, padding: "3px 9px", borderRadius: 20 }}>{sm.label}</span>
-                          {!u.has_subscription && <span style={{ fontSize: 9, color: "#c0c0cc", marginLeft: 4 }}>(없음)</span>}
+                          {u.has_subscription
+                            ? <span style={{ fontSize: 11, fontWeight: 700, color: sm.color, background: sm.bg, padding: "3px 9px", borderRadius: 20 }}>{sm.label}</span>
+                            : <span style={{ fontSize: 11, color: "#c0c0cc" }}>—</span>}
                         </td>
                         <td style={{ padding: "10px 14px", fontSize: 11, color: u.current_period_end ? "#e8445a" : "#0fa573", whiteSpace: "nowrap" }}>
                           {u.current_period_end ? new Date(u.current_period_end).toLocaleDateString("ko-KR") : "무제한"}

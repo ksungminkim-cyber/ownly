@@ -260,8 +260,32 @@ JSON 형식으로만 응답 (마크다운·코드블록·주석 금지):
 - JSON 객체만 반환`;
 }
 
+// 간이 레이트리밋 — 비로그인 호출(/diagnose)로 Groq·MOLIT 비용이 무제한 노출되는 것 방지.
+// 서버리스 인스턴스별 메모리 기준이라 완전하지 않지만 대량 남용은 차단됨.
+const RATE_LIMIT = 10;                  // IP당 허용 횟수
+const RATE_WINDOW_MS = 60 * 60 * 1000; // 1시간
+const rateMap = new Map();
+function isRateLimited(ip) {
+  const now = Date.now();
+  if (rateMap.size > 5000) {
+    for (const [k, v] of rateMap) if (now - v.start > RATE_WINDOW_MS) rateMap.delete(k);
+  }
+  const rec = rateMap.get(ip);
+  if (!rec || now - rec.start > RATE_WINDOW_MS) {
+    rateMap.set(ip, { start: now, count: 1 });
+    return false;
+  }
+  rec.count += 1;
+  return rec.count > RATE_LIMIT;
+}
+
 export async function POST(req) {
   try {
+    const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
+    if (isRateLimited(ip)) {
+      return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
+    }
+
     const { address, propertyType = "주거", lawdCd, myRent, areaPyeong } = await req.json();
     if (!address) return Response.json({ error: "주소를 입력해주세요." }, { status: 400 });
 

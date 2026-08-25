@@ -205,62 +205,6 @@ function BrowserNotificationSettings() {
   );
 }
 
-function NotificationSettings() {
-  const NOTI_KEY = "ownly_noti_settings";
-  const defaults = { monthlyReport: true, expiryAlert: true, unpaidAlert: true, depositReturn: true };
-  const [settings, setSettings] = useState(defaults);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(NOTI_KEY);
-      if (saved) setSettings({ ...defaults, ...JSON.parse(saved) });
-    } catch {}
-  }, []);
-
-  const toggle = (key) => {
-    const next = { ...settings, [key]: !settings[key] };
-    setSettings(next);
-    localStorage.setItem(NOTI_KEY, JSON.stringify(next));
-    toast(next[key] ? "알림이 켜졌습니다" : "알림이 꺼졌습니다");
-  };
-
-  const items = [
-    { key: "monthlyReport", icon: "📊", label: "월말 수금 리포트 이메일", sub: "매월 28일 · 수금 현황 요약 메일 발송" },
-    { key: "expiryAlert", icon: "📅", label: "계약 만료 알림", sub: "만료 90일 · 60일 · 30일 전 알림" },
-    { key: "unpaidAlert", icon: "💰", label: "미납 알림", sub: "납부일 경과 시 카카오/문자 알림" },
-    { key: "depositReturn", icon: "💜", label: "보증금 반환 예정 알림", sub: "만료 14일 전 보증금 반환 준비 알림" },
-  ];
-
-  return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
-      <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 16 }}>🔔 알림 설정</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {items.map(({ key, icon, label, sub }) => (
-          <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{label}</p>
-                <p style={{ fontSize: 11, color: "#8a8a9a", margin: "2px 0 0" }}>{sub}</p>
-              </div>
-            </div>
-            {/* 토글 스위치 */}
-            <div
-              onClick={() => toggle(key)}
-              style={{ width: 44, height: 24, borderRadius: 12, background: settings[key] ? "#1a2744" : "#d1d5db", cursor: "pointer", position: "relative", transition: "background .2s", flexShrink: 0 }}
-            >
-              <div style={{ position: "absolute", top: 3, left: settings[key] ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left .2s" }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <p style={{ fontSize: 11, color: "#b0b0be", marginTop: 14, lineHeight: 1.6 }}>
-        ※ 카카오/문자 알림은 카카오 알림톡 설정이 완료된 경우에만 발송됩니다.
-      </p>
-    </div>
-  );
-}
-
 import { exportTenants, exportPayments, exportContracts, exportLedger, exportAll } from "../../../lib/csvExport";
 
 export default function SettingsPage() {
@@ -478,7 +422,6 @@ export default function SettingsPage() {
 
       {/* ✅ ① 알림 설정 */}
       <ReferralSection />
-      <NotificationSettings />
       <BrowserNotificationSettings />
       <NewsletterSubscription user={user} />
 

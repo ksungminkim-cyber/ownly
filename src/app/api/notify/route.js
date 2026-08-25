@@ -237,10 +237,14 @@ const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || process.
 const DEDUP_DAYS = 5;
 
 export async function GET(req) {
+  // Vercel Cron 은 CRON_SECRET 미설정 시 Authorization 헤더를 주입하지 않으므로
+  // billing/kakao/subscription 과 동일하게 user-agent 폴백 허용 (last_sent_at 5일 dedup 이 남용 방지)
+  const ua = req.headers.get("user-agent") || "";
+  const isVercelCron = /vercel-cron/i.test(ua);
   const authHeader = req.headers.get("authorization") || "";
   const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   const token = bearer || req.headers.get("x-cron-token") || new URL(req.url).searchParams.get("token");
-  if (!CRON_TOKEN || token !== CRON_TOKEN) {
+  if (!isVercelCron && (!CRON_TOKEN || token !== CRON_TOKEN)) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
