@@ -84,21 +84,54 @@ export default function SiteFooter({ hasFixedBar = false }) {
           </nav>
         </div>
 
-        {/* 패밀리 서비스 — 임대인 라이프사이클 크로스 링크 */}
-        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 14px", marginBottom: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", whiteSpace: "nowrap" }}>패밀리 서비스</span>
-          <a href="https://beyond.mclean21.com" target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 12, color: "#8a8a9a", textDecoration: "none", whiteSpace: "nowrap" }}
-            onMouseEnter={e => e.currentTarget.style.color = "#1a2744"}
-            onMouseLeave={e => e.currentTarget.style.color = "#8a8a9a"}>
-            낙찰너머 — 경매 상가, 낙찰받으면 얼마 벌리나
-          </a>
-          <a href="https://chaeum.mclean21.com" target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 12, color: "#8a8a9a", textDecoration: "none", whiteSpace: "nowrap" }}
-            onMouseEnter={e => e.currentTarget.style.color = "#1a2744"}
-            onMouseLeave={e => e.currentTarget.style.color = "#8a8a9a"}>
-            채움 — 공실에 다음 가게를 제안
-          </a>
+        {/* 패밀리 서비스 — 임대인 라이프사이클 크로스 링크 (카드형) */}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px 12px", marginBottom: 14 }}>
+          <span style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", whiteSpace: "nowrap", marginRight: 2 }}>
+            함께 쓰는<br />임대인 도구
+          </span>
+          {[
+            {
+              href: "https://beyond.mclean21.com",
+              name: "낙찰너머",
+              desc: "경매 상가, 낙찰받으면 얼마 벌리나",
+              accent: "#B97B24",
+              mark: (
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                  <rect x="1" y="3.5" width="11" height="11" fill="#1B2F45" />
+                  <rect x="6.5" y="8" width="10" height="2.4" fill="#B97B24" />
+                </svg>
+              ),
+            },
+            {
+              href: "https://chaeum.mclean21.com",
+              name: "채움",
+              desc: "공실에 다음 가게를 제안",
+              accent: "#14634B",
+              mark: (
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                  <rect x="2" y="2" width="14" height="14" fill="none" stroke="#14634B" strokeWidth="1.6" strokeDasharray="3.2 2.2" />
+                  <rect x="2.8" y="9" width="12.4" height="6.2" fill="#14634B" />
+                </svg>
+              ),
+            },
+          ].map(s => (
+            <a key={s.name} href={s.href} target="_blank" rel="noopener noreferrer"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 10,
+                background: "#fff", border: "1px solid #e2e0d8", borderRadius: 10,
+                padding: "9px 14px", textDecoration: "none",
+                transition: "border-color .2s ease, box-shadow .2s ease, transform .15s ease",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = s.accent; e.currentTarget.style.boxShadow = "0 6px 16px rgba(26,39,68,0.10)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e0d8"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}>
+              {s.mark}
+              <span style={{ lineHeight: 1.35 }}>
+                <b style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: "#1a2744" }}>{s.name}</b>
+                <span style={{ fontSize: 11, color: "#8a8a9a" }}>{s.desc}</span>
+              </span>
+              <span aria-hidden="true" style={{ fontSize: 12, color: s.accent, fontWeight: 700, marginLeft: 2 }}>↗</span>
+            </a>
+          ))}
         </div>
 
         {/* 구분선 */}
