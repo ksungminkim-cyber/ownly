@@ -105,7 +105,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
             {
               href: "https://chaeum.mclean21.com",
               name: "채움",
-              desc: "공실에 다음 가게를 제안",
+              desc: "공실 상가, 어떤 가게로 채울까",
               accent: "#14634B",
               mark: (
                 <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
