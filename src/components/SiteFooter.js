@@ -84,6 +84,23 @@ export default function SiteFooter({ hasFixedBar = false }) {
           </nav>
         </div>
 
+        {/* 패밀리 서비스 — 임대인 라이프사이클 크로스 링크 */}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 14px", marginBottom: 12 }}>
+          <span style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", whiteSpace: "nowrap" }}>패밀리 서비스</span>
+          <a href="https://beyond.mclean21.com" target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 12, color: "#8a8a9a", textDecoration: "none", whiteSpace: "nowrap" }}
+            onMouseEnter={e => e.currentTarget.style.color = "#1a2744"}
+            onMouseLeave={e => e.currentTarget.style.color = "#8a8a9a"}>
+            낙찰너머 — 경매 상가, 낙찰받으면 얼마 벌리나
+          </a>
+          <a href="https://chaeum.mclean21.com" target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 12, color: "#8a8a9a", textDecoration: "none", whiteSpace: "nowrap" }}
+            onMouseEnter={e => e.currentTarget.style.color = "#1a2744"}
+            onMouseLeave={e => e.currentTarget.style.color = "#8a8a9a"}>
+            채움 — 공실에 다음 가게를 제안
+          </a>
+        </div>
+
         {/* 구분선 */}
         <div style={{ height: 1, background: "#e2e0d8", marginBottom: 12 }} />
 
