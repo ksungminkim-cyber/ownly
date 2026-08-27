@@ -1,39 +1,102 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../context/AppContext";
 import { toast } from "./shared";
 import { seedSampleData, removeSampleData, isSampleTenant } from "../lib/sampleData";
 import { track } from "../lib/track";
+import { isRegulatedAddr } from "../lib/policies";
 
 const COLORS = ["#6366f1", "#0fa573", "#e8960a", "#0d9488", "#5b4fcf"];
 
 /**
- * 신규 가입자 첫 화면 — 빈 대시보드 대신 두 가지 시작 경로 제공:
- * ① 30초 퀵 등록 (이 자리에서 바로 첫 물건 저장)
- * ② 샘플 데이터 체험 (클릭 한 번으로 채워진 대시보드 구경)
+ * 신규 가입자 첫 화면 — "주소 → 즉시 가치" 흐름:
+ * ① 주소 한 칸 입력 → 주변 시세(국토부 실거래)·규제지역 여부를 그 자리에서 표시
+ * ② 마음에 들면 월세만 추가로 입력해 물건으로 저장
+ * 입력 1개당 보상 1개 — 등록 전에 등록의 이유를 먼저 보여준다.
  */
 export default function OnboardingHero() {
   const router = useRouter();
   const { addTenant, upsertPayment } = useApp();
-  const [quick, setQuick] = useState({ addr: "", rent: "", name: "" });
+
+  const [addr, setAddr] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDrop, setShowDrop] = useState(false);
+  const timerRef = useRef(null);
+
+  const [checking, setChecking] = useState(false);
+  const [checked, setChecked] = useState(null); // { market, sigunguName, regulated, failed }
+  const [rent, setRent] = useState("");
+  const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
 
-  const saveQuick = async () => {
-    if (!quick.addr.trim()) { toast("주소를 입력해주세요", "error"); return; }
-    if (!quick.rent || Number(quick.rent) <= 0) { toast("월세를 입력해주세요", "error"); return; }
+  // ── 주소 자동완성 (도로명주소 공개 API) ──
+  const searchJuso = async (q) => {
+    if (q.length < 3) { setSuggestions([]); setShowDrop(false); return; }
+    try {
+      const jusoKey = process.env.NEXT_PUBLIC_JUSO_API_KEY || "devU01TX0FVVEgyMDI1MDMxNzE0MjI1NjExNTI5MDc=";
+      const url = `https://business.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=6&keyword=${encodeURIComponent(q)}&confmKey=${jusoKey}&resultType=json`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const results = data?.results?.juso || [];
+      setSuggestions(results);
+      setShowDrop(results.length > 0);
+    } catch { setSuggestions([]); setShowDrop(false); }
+  };
+
+  const onAddrChange = (e) => {
+    const v = e.target.value;
+    setAddr(v);
+    setChecked(null);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => searchJuso(v), 350);
+  };
+
+  // ── ① 주소 → 시세·정책 즉시 확인 ──
+  const checkAddress = async (addrOverride) => {
+    const target = (addrOverride ?? addr).trim();
+    if (target.length < 2) { toast("주소를 입력해주세요", "error"); return; }
+    setShowDrop(false);
+    setChecking(true);
+    track("onboard_addr_check");
+    let market = null, sigunguName = null, failed = false;
+    try {
+      const geoRes = await fetch("/api/geocode", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: target }),
+      });
+      const geo = await geoRes.json();
+      if (geo?.sigunguCode) {
+        sigunguName = geo.sigunguName || null;
+        const mRes = await fetch("/api/market/sigungu", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lawdCd: geo.sigunguCode }),
+        });
+        const m = await mRes.json();
+        if (!m.error && !m.empty) market = m;
+      } else {
+        failed = true;
+      }
+    } catch { failed = true; }
+    setChecked({ market, sigunguName, regulated: isRegulatedAddr(target), failed });
+    setChecking(false);
+  };
+
+  // ── ② 물건 저장 ──
+  const saveProperty = async () => {
+    if (!rent || Number(rent) <= 0) { toast("월세를 입력해주세요 (전세는 상세 입력에서)", "error"); return; }
     setSaving(true);
     try {
       const today = new Date();
       const nextYear = new Date(); nextYear.setFullYear(today.getFullYear() + 1);
       await addTenant({
-        name: quick.name.trim() || "미등록",
+        name: name.trim() || "미등록",
         phone: "",
         pType: "주거", sub: "아파트",
-        addr: quick.addr.trim(),
+        addr: addr.trim(),
         dep: 0,
-        rent: Number(quick.rent),
+        rent: Number(rent),
         start_date: today.toISOString().slice(0, 10),
         end_date: nextYear.toISOString().slice(0, 10),
         status: "정상",
@@ -42,8 +105,7 @@ export default function OnboardingHero() {
         maintenance: 0, pay_day: 5,
         biz: null, contacts: [], area_pyeong: null, building_id: null,
       });
-      toast(`🎉 첫 물건 등록 완료! 연간 예상 수입 ${(Number(quick.rent) * 12).toLocaleString()}만원`);
-      setQuick({ addr: "", rent: "", name: "" });
+      toast("🎉 등록 완료! 이제 미납·계약 만료·정책 변화를 온리가 대신 지켜봅니다");
     } catch (e) {
       toast("저장 실패: " + (e?.message || "알 수 없는 오류"), "error");
       console.error("[onboardingQuickAdd]", e);
@@ -66,71 +128,104 @@ export default function OnboardingHero() {
     }
   };
 
-  const inputStyle = { width: "100%", padding: "11px 13px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
+  const inputStyle = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13.5, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
+  const m = checked?.market;
 
   return (
-    <div className="card-in" style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(91,79,207,0.05))", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "24px 22px", marginBottom: 20 }}>
-      {/* 살아 움직이는 오로라 배경 — 첫 화면 생동감 */}
-      <div aria-hidden="true" className="onb-aurora" />
-      <div style={{ position: "relative", zIndex: 1, marginBottom: 18 }}>
-        <p style={{ fontSize: 18, fontWeight: 900, color: "var(--text)", marginBottom: 4 }}>환영합니다 👋 1분 안에 시작해보세요</p>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>물건을 등록하는 순간 수금 추적·계약 만료 알림·세금 추정이 자동으로 시작됩니다.</p>
+    <div className="card-in" style={{ position: "relative", overflow: "visible", background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(91,79,207,0.05))", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "26px 22px", marginBottom: 20 }}>
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontSize: 19, fontWeight: 900, color: "var(--text)", marginBottom: 5 }}>주소만 입력하세요 — 나머지는 온리가 지켜봅니다</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
+          주변 실거래 시세와 규제지역 여부를 바로 보여드리고, 등록하면 미납·계약 만료·부동산 대책 영향을 대신 챙겨드립니다.
+        </p>
       </div>
 
-      <style>{`
-        .onb-aurora { position:absolute; inset:-40% -10%; z-index:0; pointer-events:none;
-          background:
-            radial-gradient(closest-side, rgba(124,108,255,0.20), transparent 70%) 15% 20% / 55% 55% no-repeat,
-            radial-gradient(closest-side, rgba(56,189,248,0.16), transparent 70%) 85% 10% / 50% 50% no-repeat,
-            radial-gradient(closest-side, rgba(249,168,212,0.14), transparent 70%) 70% 90% / 55% 55% no-repeat;
-          filter: blur(8px); animation: onb-aurora 16s ease-in-out infinite; }
-        @keyframes onb-aurora {
-          0%,100% { transform: translate3d(0,0,0) scale(1); }
-          33% { transform: translate3d(2%,-3%,0) scale(1.06); }
-          66% { transform: translate3d(-2%,2%,0) scale(0.97); }
-        }
-        @media (prefers-reduced-motion: reduce) { .onb-aurora { animation: none; } }
-        .onb-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; position:relative; z-index:1; } @media(max-width:720px){ .onb-grid { grid-template-columns:1fr; } }
-      `}</style>
-      <div className="onb-grid">
-        {/* ① 30초 퀵 등록 */}
-        <div className="surface-card" style={{ padding: "18px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 20 }}>⚡</span>
-            <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>30초 만에 첫 물건 등록</p>
-          </div>
-          <input value={quick.addr} onChange={(e) => setQuick(q => ({ ...q, addr: e.target.value }))} placeholder="물건 주소 (예: 행복아파트 304호) *" style={inputStyle} />
-          <div style={{ display: "flex", gap: 8 }}>
-            <input value={quick.rent} onChange={(e) => setQuick(q => ({ ...q, rent: e.target.value.replace(/[^0-9]/g, "") }))} placeholder="월세 (만원) *" inputMode="numeric" style={inputStyle} />
-            <input value={quick.name} onChange={(e) => setQuick(q => ({ ...q, name: e.target.value }))} placeholder="세입자 이름 (선택)" style={inputStyle} />
-          </div>
-          <button onClick={saveQuick} disabled={saving} className="btn btn-fill" style={{ width: "100%", opacity: saving ? 0.7 : 1 }}>
-            {saving ? "저장 중..." : "등록하고 시작하기 →"}
-          </button>
-          <button onClick={() => router.push("/dashboard/properties")} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 11.5, cursor: "pointer", textDecoration: "underline", padding: 0 }}>
-            보증금·계약기간까지 상세 입력하기
-          </button>
+      {/* ① 주소 입력 */}
+      <div style={{ position: "relative", display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 260px", position: "relative" }}>
+          <input value={addr} onChange={onAddrChange}
+            onKeyDown={(e) => { if (e.key === "Enter") checkAddress(); if (e.key === "Escape") setShowDrop(false); }}
+            onFocus={() => suggestions.length > 0 && setShowDrop(true)}
+            placeholder="물건 주소 (예: 서울 마포구 합정동 123)" autoComplete="off"
+            style={{ ...inputStyle, padding: "13px 14px", fontSize: 14 }} />
+          {showDrop && suggestions.length > 0 && (
+            <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 200, background: "#fff", border: "1.5px solid rgba(26,39,68,0.15)", borderRadius: 12, boxShadow: "0 8px 32px rgba(26,39,68,0.15)", overflow: "hidden" }}>
+              {suggestions.map((juso, i) => (
+                <div key={i} onMouseDown={() => { setAddr(juso.roadAddr); setSuggestions([]); setShowDrop(false); checkAddress(juso.roadAddr); }}
+                  style={{ padding: "11px 14px", cursor: "pointer", borderBottom: i < suggestions.length - 1 ? "1px solid var(--border)" : "none" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(26,39,68,0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                  <p style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)", margin: 0 }}>📌 {juso.roadAddr}</p>
+                  <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: "2px 0 0" }}>{juso.jibunAddr}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+        <button onClick={() => checkAddress()} disabled={checking} className="btn btn-fill" style={{ flexShrink: 0, opacity: checking ? 0.7 : 1 }}>
+          {checking ? "확인 중..." : "시세·정책 바로 보기 →"}
+        </button>
+      </div>
 
-        {/* ② 샘플 데이터 체험 */}
-        <div className="surface-card" style={{ padding: "18px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 20 }}>👀</span>
-            <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>먼저 둘러보고 싶다면</p>
+      {/* ② 즉시 가치: 시세 + 정책 */}
+      {checked && (
+        <div className="card-in" style={{ marginTop: 14 }}>
+          <div style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px" }}>
+            {m ? (
+              <>
+                <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10 }}>
+                  📊 {checked.sigunguName || "이 지역"} 최근 3개월 실거래 (국토부)
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 12 }}>
+                  {[
+                    ["월세 중위", `${m.rent.medianMonthly}만원`],
+                    ["보증금 중위", `${Number(m.rent.medianDeposit || 0).toLocaleString()}만원`],
+                    ["거래 건수", `${m.total.rentTx}건`],
+                    ["평당 월세", `${m.rent.avgRentPerPy}만원`],
+                  ].map(([l, v]) => (
+                    <div key={l} style={{ background: "var(--surface2)", borderRadius: 10, padding: "10px 12px" }}>
+                      <p style={{ fontSize: 10.5, color: "var(--text-muted)", fontWeight: 700, marginBottom: 3 }}>{l}</p>
+                      <p className="num" style={{ fontSize: 16, fontWeight: 900, color: "var(--text)", margin: 0 }}>{v}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
+                {checked.failed
+                  ? "주소에서 지역을 인식하지 못했습니다 — 시·군·구가 들어간 주소로 다시 시도해보세요. 그래도 등록은 바로 가능합니다."
+                  : "이 지역의 최근 3개월 실거래 데이터가 부족합니다. 등록해두시면 시세·정책 변화가 잡히는 대로 알려드립니다."}
+              </p>
+            )}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+              {checked.regulated
+                ? <span className="chip chip-danger">🏛️ 규제지역 해당 — 토지거래허가·조정대상지역</span>
+                : <span className="chip chip-success">🏛️ 규제지역 아님 (주소 기준 추정)</span>}
+              <span className="chip chip-info">등록하면 8·3 세제 등 관련 정책을 매물별로 매칭해드려요</span>
+            </div>
+
+            {/* ③ 저장 */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
+              <input value={rent} onChange={(e) => setRent(e.target.value.replace(/[^0-9]/g, ""))} placeholder="월세 (만원) *" inputMode="numeric" style={{ ...inputStyle, flex: "1 1 110px", width: "auto" }} />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="세입자 이름 (선택)" style={{ ...inputStyle, flex: "1 1 130px", width: "auto" }} />
+              <button onClick={saveProperty} disabled={saving} className="btn btn-fill" style={{ flexShrink: 0, opacity: saving ? 0.7 : 1 }}>
+                {saving ? "저장 중..." : "이 주소로 물건 등록 →"}
+              </button>
+            </div>
+            <button onClick={() => router.push("/dashboard/properties")} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 11.5, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 10 }}>
+              보증금·계약기간·전세까지 상세 입력하기
+            </button>
           </div>
-          <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.7, flex: 1 }}>
-            예시 물건 2개와 6개월 납부 이력이 채워진 대시보드를 바로 구경해보세요.
-            수입 차트·미납 알림·만료 임박 배너가 실제로 어떻게 동작하는지 볼 수 있어요.
-          </p>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <span className="chip chip-success">🏠 정상 납부 아파트</span>
-            <span className="chip chip-danger">🏪 미납 상가</span>
-          </div>
-          <button onClick={trySample} disabled={seeding} className="btn btn-soft" style={{ width: "100%", opacity: seeding ? 0.7 : 1 }}>
-            {seeding ? "샘플 채우는 중..." : "샘플 데이터로 둘러보기"}
-          </button>
-          <p style={{ fontSize: 11, color: "var(--text-faint)", textAlign: "center", margin: 0 }}>클릭 한 번으로 언제든 전체 삭제됩니다</p>
         </div>
+      )}
+
+      {/* 샘플 체험 — 보조 경로 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>아직 입력 없이 둘러보고 싶다면</p>
+        <button onClick={trySample} disabled={seeding} className="btn btn-ghost btn-sm" style={{ opacity: seeding ? 0.7 : 1 }}>
+          {seeding ? "샘플 채우는 중..." : "👀 샘플 데이터로 구경하기"}
+        </button>
+        <span style={{ fontSize: 10.5, color: "var(--text-faint)" }}>클릭 한 번으로 언제든 전체 삭제됩니다</span>
       </div>
     </div>
   );

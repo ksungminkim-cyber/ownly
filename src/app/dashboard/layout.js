@@ -1,4 +1,4 @@
-"use client"; import { useState, useEffect } from "react"; import { useRouter, usePathname } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast } from "../../components/shared"; import OnboardingModal from "../../components/OnboardingModal"; import { SearchOverlay } from "../../components/GlobalSearch"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; import SiteFooter from "../../components/SiteFooter";
+"use client"; import { useState, useEffect } from "react"; import { useRouter, usePathname } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast } from "../../components/shared"; import { SearchOverlay } from "../../components/GlobalSearch"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; import SiteFooter from "../../components/SiteFooter";
 
 function DashboardShell({ children }) {
   const router = useRouter();
@@ -67,7 +67,6 @@ function DashboardShell({ children }) {
 export default function DashboardLayout({ children }) {
   return (
     <AppProvider>
-      <OnboardingModal />
       <DashboardShell>{children}</DashboardShell>
     </AppProvider>
   );
