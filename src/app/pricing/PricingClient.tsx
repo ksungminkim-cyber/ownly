@@ -33,9 +33,9 @@ const PLANS = [
     badgeColor: "#6366f1",
     monthlyPrice: 19900,
     yearlyPrice: Math.round(19900 * 0.8),
-    description: "다수 물건을 체계적으로 관리하는 임대인 · 가입 시 14일 무료 체험",
-    cta: "구독 시작하기",
-    ctaHref: "/dashboard/pricing",
+    description: "다수 물건을 체계적으로 관리하는 임대인",
+    cta: "지금은 무료로 사용 →",
+    ctaHref: "/dashboard",
     ctaStyle: "primary" as const,
     features: [
       { text: "물건 최대 15개", included: true },
@@ -57,8 +57,8 @@ const PLANS = [
     monthlyPrice: 32900,
     yearlyPrice: Math.round(32900 * 0.8),
     description: "건물 전체·법인 규모의 전문 임대인",
-    cta: "구독 시작하기",
-    ctaHref: "/dashboard/pricing",
+    cta: "지금은 무료로 사용 →",
+    ctaHref: "/dashboard",
     ctaStyle: "dark" as const,
     features: [
       { text: "물건·세입자 무제한", included: true },
@@ -76,8 +76,8 @@ const PLANS = [
 
 const FAQ = [
   {
-    q: "무료 체험이 있나요?",
-    a: "네. 가입 즉시 플러스 플랜 14일 무료 체험이 자동 적용됩니다. 카드 등록 없이 시작되며, 체험 종료 후 결제 없이 자동으로 무료 플랜으로 전환됩니다.",
+    q: "정말 전부 무료인가요?",
+    a: "네. 정식 출시 전 얼리 액세스 기간에는 프로 플랜 기능 전체를 무료로 사용할 수 있습니다. 실비가 발생하는 카카오 알림톡(월 30건)과 AI 분석(월 30회)만 넉넉한 한도가 있습니다. 유료 전환 시 최소 30일 전에 안내드리며, 얼리 액세스 가입자에게는 별도 혜택을 드릴 예정입니다.",
   },
   {
     q: "무료 플랜은 정말 영구 무료인가요?",
@@ -184,8 +184,28 @@ export default function PricingClient() {
             marginBottom: "36px",
           }}
         >
-          가입하면 플러스 14일 무료 체험이 자동 적용됩니다 · 카드 등록 불필요
+          🎉 정식 출시 전까지 모든 기능이 무료입니다 · 카드 등록 불필요
         </p>
+
+        {/* 얼리 액세스 안내 배너 */}
+        <div
+          style={{
+            maxWidth: "560px",
+            margin: "0 auto 28px",
+            background: "#ecfdf5",
+            border: "1.5px solid #6ee7b7",
+            borderRadius: "14px",
+            padding: "14px 18px",
+            fontSize: "13px",
+            color: "#065f46",
+            lineHeight: 1.7,
+            textAlign: "left",
+          }}
+        >
+          <b>얼리 액세스 무료 기간 안내</b> — 지금 가입하면 아래 유료 플랜의 기능 전체를
+          결제 없이 사용할 수 있습니다. 표시된 요금은 정식 출시 후 적용 예정이며,
+          유료 전환 시 최소 30일 전에 이메일로 안내드립니다.
+        </div>
 
         {/* 월간/연간 토글 */}
         <div

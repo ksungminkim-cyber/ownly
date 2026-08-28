@@ -4,6 +4,12 @@ export const INTENT_MAP = { "갱신의향 있음": { c: "#0fa573", bg: "rgba(15,
 export const PAY_MAP = { paid: { label: "납부완료", c: "#0fa573", bg: "rgba(15,165,115,0.1)" }, unpaid: { label: "미납", c: "#e8445a", bg: "rgba(232,68,90,0.1)" }, late: { label: "연체", c: "#e8960a", bg: "rgba(232,150,10,0.1)" }, };
 export const COLORS = ["#1a2744", "#e8960a", "#e8445a", "#1e7fcb", "#5b4fcf", "#0fa573", "#2d4270"];
 
+// ─── 얼리 액세스 전면 무료 스위치 ─────────────────────────────────
+// true인 동안 모든 유저를 pro로 취급 (클라이언트 게이트 + 카카오 서버 게이트 공통).
+// 정식 유료 전환 시 false로 바꾸면 기존 플랜 게이트가 그대로 복원됩니다.
+// 실비 가드레일: AI 분석 월 30회(아래 pro.aiPricing), 알림톡 월 30건(api/kakao/send)
+export const EARLY_ACCESS_FREE = true;
+
 // ─── 구독 플랜 정의 ───────────────────────────────────────────────
 export const PLANS = {
   free: {
@@ -76,14 +82,14 @@ export const PLANS = {
     limits: {
       properties: Infinity, tenants: Infinity, reports: true, tax: true, certified: Infinity,
       vacancy: true, export: true, roi: true, vacancyLoss: true, leaseCheck: true,
-      mapSearch: true, aiPricing: Infinity, kakaoAlert: true, globalReports: true, profitAnalysis: true,
+      mapSearch: true, aiPricing: 30, kakaoAlert: true, globalReports: true, profitAnalysis: true,
     },
     features: [
       { t: "물건·세입자 무제한", ok: true },
       { t: "플러스 전체 기능", ok: true },
       { t: "내용증명 무제한", ok: true },
       { t: "🗺️ 주변 매물 조회", ok: true },
-      { t: "🤖 AI 분석 무제한", ok: true },
+      { t: "🤖 AI 분석 월 30회", ok: true },
       { t: "📱 카카오톡 수금 알림", ok: true },
       { t: "멀티 빌딩 관리 (예정)", ok: true },
       { t: "전담 1:1 이메일 지원", ok: true },

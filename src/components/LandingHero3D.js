@@ -104,7 +104,7 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
             <button onClick={onLogin} className="btn btn-ghost btn-lg">{user ? "로그아웃" : "로그인"}</button>
           </motion.div>
           <motion.span {...fadeUp(0.24)} style={{ fontSize: 12, color: "#a0a0b0", marginBottom: 22 }}>
-            가입 즉시 플러스 14일 무료 체험 · 신용카드 불필요 · 언제든 취소 가능
+            🎉 정식 출시 전까지 모든 기능 무료 · 신용카드 불필요
           </motion.span>
 
           <motion.div {...fadeUp(0.28)} className="hero3d-chips" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

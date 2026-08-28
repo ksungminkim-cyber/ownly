@@ -1,6 +1,9 @@
 // src/app/api/kakao/send/route.js
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { EARLY_ACCESS_FREE } from "../../../../lib/constants";
+
+const FREE_KAKAO_MONTHLY_LIMIT = 30; // 무료 기간 유저당 월 알림톡 한도 (Solapi 실비 보호)
 
 const SOLAPI_API_KEY    = process.env.SOLAPI_API_KEY;
 const SOLAPI_API_SECRET = process.env.SOLAPI_API_SECRET;
@@ -133,6 +136,21 @@ async function verifyProUser(req) {
   const { data, error } = await supabaseAdmin.auth.getUser(token);
   if (error || !data?.user) return { error: "인증에 실패했습니다. 다시 로그인해주세요.", status: 401 };
   const user = data.user;
+
+  // 얼리 액세스 전면 무료: 플랜 검증 대신 월 발송 한도로 실비 보호
+  if (EARLY_ACCESS_FREE) {
+    const monthStart = new Date();
+    monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const { count } = await supabaseAdmin.from("notification_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id).eq("channel", "kakao").eq("status", "sent")
+      .gte("sent_at", monthStart.toISOString());
+    if ((count || 0) >= FREE_KAKAO_MONTHLY_LIMIT) {
+      return { error: `무료 기간 알림톡은 월 ${FREE_KAKAO_MONTHLY_LIMIT}건까지 발송할 수 있습니다 (이번 달 ${count}건 사용)`, status: 429 };
+    }
+    return { user };
+  }
+
   const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan,status,current_period_end").eq("user_id", user.id).single();
   const isActive = sub && (sub.status === "active" || sub.status === "trial") && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
   if (!isActive || sub.plan !== "pro") return { error: "카카오 알림톡은 프로 플랜 전용 기능입니다", status: 403 };

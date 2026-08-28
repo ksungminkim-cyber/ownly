@@ -1,12 +1,14 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useApp } from "../context/AppContext";
+import { EARLY_ACCESS_FREE } from "../lib/constants";
 
 // 무료 체험 D-N 배너 — trial 상태 유저에게만 노출
 export default function TrialBanner() {
   const router = useRouter();
   const { subscription } = useApp();
 
+  if (EARLY_ACCESS_FREE) return null; // 전면 무료 기간엔 체험 카운트다운 없음
   if (!subscription || subscription.status !== "trial") return null;
   if (!subscription.current_period_end) return null;
 

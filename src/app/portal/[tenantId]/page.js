@@ -133,8 +133,29 @@ export default function TenantPortalPage() {
         {tab === "payments" && (() => {
           const paidCount = history.filter(h => h.p?.status === "paid").length;
           const rate = history.length > 0 ? Math.round((paidCount / history.length) * 100) : 0;
+          const nowD = new Date();
+          const curMonthPay = payments.find(p => p.year === nowD.getFullYear() && p.month === nowD.getMonth() + 1);
+          const curPaid = curMonthPay?.status === "paid";
+          const totalDue = (t.rent || 0) + (t.maintenance || 0);
           return (
             <>
+              {/* 이번 달 청구서 — 임대인이 링크만 공유해도 고지서 역할 */}
+              {totalDue > 0 && (
+                <div className="surface-card" style={{ padding: "16px 18px", marginBottom: 12, background: curPaid ? "rgba(15,165,115,0.05)" : "#fff", border: `1.5px solid ${curPaid ? "rgba(15,165,115,0.3)" : "var(--border)"}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <div>
+                      <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 4 }}>🧾 {nowD.getMonth() + 1}월 청구서</p>
+                      <p className="num" style={{ fontSize: 22, fontWeight: 900, color: "var(--text)", margin: 0 }}>{totalDue.toLocaleString()}만원</p>
+                      <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "3px 0 0" }}>
+                        월세 {(t.rent || 0).toLocaleString()}만원{(t.maintenance || 0) > 0 && ` + 관리비 ${t.maintenance.toLocaleString()}만원`} · 납부일 매월 {t.pay_day}일
+                      </p>
+                    </div>
+                    <span className={`chip ${curPaid ? "chip-success" : "chip-warn"}`} style={{ fontSize: 12 }}>
+                      {curPaid ? "✓ 납부 완료" : "납부 대기"}
+                    </span>
+                  </div>
+                </div>
+              )}
               {/* 납부 요약 카드 */}
               {history.length > 0 && (
                 <div className="surface-card" style={{ padding: "16px 18px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>

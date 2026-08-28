@@ -4,6 +4,7 @@
 // 미납 발생 즉시, 만료 D-90/60/30, 월초 수금 체크리스트
 
 import { createClient } from "@supabase/supabase-js";
+import { matchPolicies } from "../../../lib/policies";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -206,6 +207,121 @@ async function sendMonthlyChecklist(userId, userEmail, tenants) {
   });
 }
 
+// ── 월간 자산 리포트 (매월 1일) ──────────────────────────────────
+// 자리톡류 수금 앱이 주지 못하는 "자산 관리실" 리포트:
+// 수금 요약 + 지역 실거래 시세 비교 + 정책 매칭 + 만료 임박
+const SITE_BASE = process.env.SITE_URL || "https://www.ownly.kr";
+
+async function fetchRegionStats(addr) {
+  try {
+    const geoRes = await fetch(`${SITE_BASE}/api/geocode`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: addr }),
+    });
+    const geo = await geoRes.json();
+    if (!geo?.sigunguCode) return null;
+    const mRes = await fetch(`${SITE_BASE}/api/market/sigungu`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lawdCd: geo.sigunguCode }),
+    });
+    const m = await mRes.json();
+    if (m.error || m.empty) return null;
+    return { name: geo.sigunguName || "내 지역", code: geo.sigunguCode, median: m.rent.medianMonthly, tx: m.total.rentTx };
+  } catch { return null; }
+}
+
+async function sendMonthlyReport(userId, userEmail, tenants, payments) {
+  if (tenants.length === 0) return { sent: false, reason: "no_tenants" };
+  const kst = new Date(Date.now() + 9 * 3600000);
+  const month = kst.getUTCMonth() + 1;
+  const year = kst.getUTCFullYear();
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+
+  const active = tenants.filter(t => t.status !== "퇴거" && t.status !== "공실");
+  const totalRent = active.reduce((s, t) => s + (Number(t.rent) || 0), 0);
+  const prevPaid = payments.filter(p => p.year === prevYear && p.month === prevMonth && p.status === "paid");
+  const prevPaidSum = prevPaid.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const expiring = tenants.filter(t => {
+    const end = t.contract_end || t.end_date;
+    if (!end) return false;
+    const days = Math.ceil((new Date(end) - new Date()) / 86400000);
+    return days > 0 && days <= 90;
+  }).length;
+
+  // 지역 시세 — 유니크 시군구 최대 2곳 (실패해도 리포트는 발송)
+  const seenCodes = new Set();
+  const regions = [];
+  for (const t of active) {
+    if (regions.length >= 2) break;
+    const addr = t.address || t.addr;
+    if (!addr) continue;
+    const stats = await fetchRegionStats(addr);
+    if (stats && !seenCodes.has(stats.code)) { seenCodes.add(stats.code); regions.push(stats); }
+  }
+
+  // 정책 매칭 상위 3건 (lib/policies — 서버에서도 동작)
+  const policyMatches = matchPolicies(tenants.map(t => ({ ...t, addr: t.address || t.addr }))).slice(0, 3);
+
+  const regionRows = regions.map(r => `
+    <tr style="border-bottom:1px solid #f0efe9;">
+      <td style="padding:9px 12px;font-size:12.5px;color:#1a2744;font-weight:600;">${r.name}</td>
+      <td style="padding:9px 12px;font-size:12.5px;color:#1a2744;font-weight:700;">월세 중위 ${r.median}만원</td>
+      <td style="padding:9px 12px;font-size:12px;color:#8a8a9a;">최근 3개월 ${r.tx.toLocaleString()}건</td>
+    </tr>`).join("");
+
+  const policyRows = policyMatches.map(mch => `
+    <li style="margin-bottom:6px;font-size:12.5px;color:#1a2744;line-height:1.6;">
+      <b>[${mch.policyTag}]</b> ${mch.item.headline}
+      <span style="color:#8a8a9a;">— 매물 ${mch.properties.length}건 관련</span>
+    </li>`).join("");
+
+  const body = `
+    <p style="font-size:14px;color:#1a2744;font-weight:600;margin:0 0 14px;">
+      ${month}월 자산 현황 요약입니다.
+    </p>
+    <table style="width:100%;border-collapse:collapse;background:#faf9f6;border-radius:10px;overflow:hidden;margin-bottom:16px;">
+      <tbody>
+        <tr style="border-bottom:1px solid #f0efe9;">
+          <td style="padding:10px 12px;font-size:12px;color:#8a8a9a;font-weight:700;">운영 물건</td>
+          <td style="padding:10px 12px;font-size:13px;color:#1a2744;font-weight:800;">${active.length}개 (전체 ${tenants.length}개)</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0efe9;">
+          <td style="padding:10px 12px;font-size:12px;color:#8a8a9a;font-weight:700;">월 임대료 합계</td>
+          <td style="padding:10px 12px;font-size:13px;color:#0fa573;font-weight:800;">${totalRent.toLocaleString()}만원</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0efe9;">
+          <td style="padding:10px 12px;font-size:12px;color:#8a8a9a;font-weight:700;">지난달 수납</td>
+          <td style="padding:10px 12px;font-size:13px;color:#1a2744;font-weight:800;">${prevPaid.length}건 · ${prevPaidSum.toLocaleString()}만원</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px;font-size:12px;color:#8a8a9a;font-weight:700;">계약 만료 임박</td>
+          <td style="padding:10px 12px;font-size:13px;color:${expiring > 0 ? "#e8960a" : "#0fa573"};font-weight:800;">${expiring > 0 ? `${expiring}건 (90일 이내)` : "없음"}</td>
+        </tr>
+      </tbody>
+    </table>
+    ${regionRows ? `
+    <p style="font-size:13px;color:#1a2744;font-weight:800;margin:0 0 8px;">📊 내 지역 실거래 시세 (국토부)</p>
+    <table style="width:100%;border-collapse:collapse;background:#faf9f6;border-radius:10px;overflow:hidden;margin-bottom:16px;">
+      <tbody>${regionRows}</tbody>
+    </table>` : ""}
+    ${policyRows ? `
+    <p style="font-size:13px;color:#1a2744;font-weight:800;margin:0 0 8px;">🏛️ 내 매물 관련 정책 체크</p>
+    <ul style="margin:0 0 6px;padding-left:18px;">${policyRows}</ul>
+    <p style="font-size:11px;color:#8a8a9a;margin:0 0 16px;">
+      상세 내용과 원문은 <a href="${SITE_BASE}/policy" style="color:#5b4fcf;">정책 브리핑</a>에서 확인하세요.
+    </p>` : ""}
+    <p style="font-size:11px;color:#a0a0b0;line-height:1.7;">
+      ※ 시세는 최근 3개월 실거래 기준 참고 지표이며, 정책 해당 여부는 세대 주택 수 등 개별 조건에 따라 다릅니다.
+    </p>`;
+
+  return sendEmail({
+    to: userEmail,
+    subject: `[온리] ${month}월 자산 리포트 — 물건 ${active.length}개 · 월 ${totalRent.toLocaleString()}만원`,
+    html: baseHtml(`📋 ${month}월 자산 리포트`, body),
+  });
+}
+
 // ── 메인 핸들러 ──────────────────────────────────────────────────
 export async function POST(req) {
   try {
@@ -256,10 +372,13 @@ export async function GET(req) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const summary = { processed: 0, unpaidSent: 0, digestSent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0 };
+  const summary = { processed: 0, unpaidSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0 };
   const dedupCutoff = new Date(Date.now() - DEDUP_DAYS * 86400000);
   const unpaidCutoff = new Date(Date.now() - UNPAID_DEDUP_DAYS * 86400000);
-  const isMonday = new Date(Date.now() + 9 * 3600000).getUTCDay() === 1; // KST 기준
+  const kstNow = new Date(Date.now() + 9 * 3600000);
+  const isMonday = kstNow.getUTCDay() === 1; // KST 기준
+  const isFirstOfMonth = kstNow.getUTCDate() === 1;
+  const monthlyCutoff = new Date(Date.now() - 25 * 86400000); // 월간 리포트 중복 방지
 
   try {
     let page = 1;
@@ -298,8 +417,22 @@ export async function GET(req) {
             }
           }
 
-          // ② 만료 임박 다이제스트 — 월요일만, 같은 날 미납 메일과 중복 금지
-          if (isMonday && !unpaidSentNow) {
+          // ②-a 월간 자산 리포트 — 매월 1일 (notification_logs 25일 중복 방지)
+          if (isFirstOfMonth) {
+            const { data: lastMonthly } = await supabase.from("notification_logs")
+              .select("sent_at").eq("user_id", u.id).eq("type", "monthly").eq("channel", "email")
+              .order("sent_at", { ascending: false }).limit(1);
+            if (!(lastMonthly?.[0]?.sent_at && new Date(lastMonthly[0].sent_at) > monthlyCutoff)) {
+              const result = await sendMonthlyReport(u.id, email, tenants, payments || []);
+              if (!(result?.sent === false || result?.skipped)) {
+                summary.monthlySent++;
+                await supabase.from("notification_logs").insert({ user_id: u.id, type: "monthly", channel: "email", status: "sent" });
+              }
+            }
+          }
+
+          // ② 만료 임박 다이제스트 — 월요일만, 같은 날 미납 메일·월간 리포트와 중복 금지
+          if (isMonday && !isFirstOfMonth && !unpaidSentNow) {
             if (sub?.last_sent_at && new Date(sub.last_sent_at) > dedupCutoff) {
               summary.skippedRecent++;
             } else {

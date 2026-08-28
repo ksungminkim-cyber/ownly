@@ -61,6 +61,8 @@ export default function SiteFooter({ hasFixedBar = false }) {
               { label: "계약서 생성기", href: "/tools/contract" },
               { label: "내용증명 생성기", href: "/tools/certified" },
               { label: "보유세 계산기", href: "/tools/tax" },
+              { label: "월세 환급", href: "/tools/refund" },
+              { label: "상가 환산보증금", href: "/tools/commercial" },
               { label: "정책 브리핑", href: "/policy" },
               { label: "커뮤니티", href: communityHref },
               { label: "임대인 가이드", href: "/blog" },
