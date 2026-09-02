@@ -184,7 +184,7 @@ export default function PricingClient() {
             marginBottom: "36px",
           }}
         >
-          🎉 정식 출시 전까지 모든 기능이 무료입니다 · 카드 등록 불필요
+          정식 출시 전까지 모든 기능이 무료입니다 · 카드 등록 불필요
         </p>
 
         {/* 얼리 액세스 안내 배너 */}

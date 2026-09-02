@@ -103,17 +103,13 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
             <button onClick={onStart} className="btn btn-fill btn-lg">{user ? "내 대시보드로" : "무료로 시작하기 →"}</button>
             <button onClick={onLogin} className="btn btn-ghost btn-lg">{user ? "로그아웃" : "로그인"}</button>
           </motion.div>
-          <motion.span {...fadeUp(0.24)} style={{ fontSize: 12, color: "#a0a0b0", marginBottom: 22 }}>
-            🎉 정식 출시 전까지 모든 기능 무료 · 신용카드 불필요
+          <motion.span {...fadeUp(0.24)} style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 22 }}>
+            정식 출시 전까지 모든 기능 무료 · 신용카드 불필요
           </motion.span>
 
           <motion.div {...fadeUp(0.28)} className="hero3d-chips" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[
-              { icon: "🏛", label: "국토부 실거래가 연동" },
-              { icon: "🔒", label: "Supabase Auth · SSL 암호화" },
-              { icon: "📱", label: "PWA · 모바일 설치 지원" },
-            ].map(({ icon, label }) => (
-              <span key={label} className="chip"><span>{icon}</span>{label}</span>
+            {["국토부 실거래가 연동", "은행 수준 암호화 보안", "휴대폰·PC 어디서나"].map((label) => (
+              <span key={label} className="chip">{label}</span>
             ))}
           </motion.div>
         </div>
