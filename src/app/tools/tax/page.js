@@ -73,8 +73,8 @@ export default function HoldingTaxToolPage() {
             1주택 · 다주택 · 부부공동명의 조건을 바꿔가며 비교해보세요.
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <span className="chip">🧮 {HOLDING_TAX_BASIS_YEAR} 세법 기준</span>
-            <span className="chip">🆓 로그인 불필요</span>
+            <span className="chip">{HOLDING_TAX_BASIS_YEAR} 세법 기준</span>
+            <span className="chip">로그인 불필요</span>
           </div>
         </div>
 

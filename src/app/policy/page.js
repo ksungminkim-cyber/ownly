@@ -79,10 +79,10 @@ export default function PolicyPage() {
                         <div style={{ padding: "0 22px 16px" }}>
                           <p style={{ fontSize: 13, color: "#4a4a6a", lineHeight: 1.8, marginBottom: 10 }}>{item.plain}</p>
                           <div style={{ background: "var(--surface2)", borderRadius: 10, padding: "10px 14px", marginBottom: 8 }}>
-                            <p style={{ fontSize: 12.5, color: "var(--text)", lineHeight: 1.7, margin: 0 }}>💡 <b>임대인 영향</b> — {item.impact}</p>
+                            <p style={{ fontSize: 12.5, color: "var(--text)", lineHeight: 1.7, margin: 0 }}><b>임대인 영향</b> — {item.impact}</p>
                           </div>
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)" }}>⏱ 적용: {item.effectiveFrom}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)" }}>적용: {item.effectiveFrom}</span>
                             {item.checkNote && <span style={{ fontSize: 11, color: "#8a6d1a" }}>⚠️ {item.checkNote}</span>}
                           </div>
                         </div>
@@ -104,7 +104,7 @@ export default function PolicyPage() {
       {/* 규제지역 목록 */}
       <section style={{ maxWidth: 760, margin: "0 auto", padding: "8px 20px 20px" }}>
         <div className="surface-card" style={{ padding: "20px 22px" }}>
-          <p style={{ fontSize: 12, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10 }}>📍 현재 규제지역 (조정대상지역·투기과열지구·토지거래허가구역)</p>
+          <p style={{ fontSize: 12, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10 }}>현재 규제지역 (조정대상지역·투기과열지구·토지거래허가구역)</p>
           <p style={{ fontSize: 13, color: "#4a4a6a", lineHeight: 1.9, margin: 0 }}>
             <b>서울</b> 25개 자치구 전역 · <b>경기 15곳</b> — 과천시, 광명시, 성남시 분당구·수정구·중원구, 수원시 영통구·장안구·팔달구, 안양시 동안구, 용인시 수지구·기흥구, 의왕시, 하남시, 화성시 동탄, 구리시
           </p>
@@ -120,7 +120,7 @@ export default function PolicyPage() {
           <p style={{ fontSize: 19, fontWeight: 900, color: "#fff", marginBottom: 8 }}>내 매물은 어디에 해당될까요?</p>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", lineHeight: 1.8, marginBottom: 20 }}>
             매물 주소·유형을 등록하면 위 항목 중 겹치는 것만 골라 대시보드에 표시해 드립니다.<br />
-            가입 즉시 플러스 14일 무료 체험 · 카드 등록 불필요
+            지금은 모든 기능 무료 · 카드 등록 불필요
           </p>
           <Link href="/login?mode=signup" className="btn btn-lg" style={{ background: "#fff", color: "#1a2744", fontWeight: 800 }}>
             무료로 내 매물 등록하기 →

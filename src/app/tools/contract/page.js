@@ -88,16 +88,16 @@ export default function ContractToolPage() {
             표준 조항과 임대인 필수 특약사항이 자동으로 포함됩니다.
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <span className="chip">📋 표준 조항 자동 포함</span>
-            <span className="chip">✍️ 추천 특약 원클릭</span>
-            <span className="chip">🆓 로그인 불필요</span>
+            <span className="chip">표준 조항 자동 포함</span>
+            <span className="chip">추천 특약 원클릭</span>
+            <span className="chip">로그인 불필요</span>
           </div>
         </div>
 
         <div className="ct-grid">
           {/* ── 왼쪽: 작성 폼 ── */}
           <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 18, padding: "22px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
-            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: 0 }}>🏠 임대 목적물</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: 0 }}>임대 목적물</p>
             <Field label="소재지" placeholder="서울시 ○○구 ○○로 45, 302호" value={form.propertyAddr} onChange={set("propertyAddr")} />
             <div>
               <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", marginBottom: 8 }}>유형</p>
@@ -110,7 +110,7 @@ export default function ContractToolPage() {
             <Field label="전용면적 (평)" hint="선택" inputMode="numeric" placeholder="24" value={form.areaPyeong} onChange={set("areaPyeong")} />
 
             <div style={{ height: 1, background: "#f0efe9" }} />
-            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: 0 }}>💰 계약 조건</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: 0 }}>계약 조건</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Field label="보증금 (만원)" inputMode="numeric" placeholder="5000" value={form.deposit} onChange={set("deposit")} />
               <Field label="계약금 (만원)" hint="선택" inputMode="numeric" placeholder="500" value={form.downPayment} onChange={set("downPayment")} />
@@ -126,19 +126,19 @@ export default function ContractToolPage() {
             </div>
 
             <div style={{ height: 1, background: "#f0efe9" }} />
-            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: 0 }}>👤 임대인</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: 0 }}>임대인</p>
             <Field label="성명" placeholder="홍길동" value={form.landlordName} onChange={set("landlordName")} />
             <Field label="주소" placeholder="서울시 ○○구 ○○로 123" value={form.landlordAddr} onChange={set("landlordAddr")} />
             <Field label="연락처" placeholder="010-0000-0000" value={form.landlordPhone} onChange={set("landlordPhone")} />
 
-            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: "4px 0 0" }}>👥 임차인</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: "4px 0 0" }}>임차인</p>
             <Field label="성명" placeholder="김철수" value={form.tenantName} onChange={set("tenantName")} />
             <Field label="주소" placeholder="현 거주지 주소" value={form.tenantAddr} onChange={set("tenantAddr")} />
             <Field label="연락처" placeholder="010-0000-0000" value={form.tenantPhone} onChange={set("tenantPhone")} />
 
             <div style={{ height: 1, background: "#f0efe9" }} />
             <div>
-              <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 8 }}>✍️ 특약사항 <span style={{ fontWeight: 500, fontSize: 11, color: "#b0b0c0" }}>클릭해서 추가/제거</span></p>
+              <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 8 }}>특약사항 <span style={{ fontWeight: 500, fontSize: 11, color: "#b0b0c0" }}>클릭해서 추가/제거</span></p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
                 {PRESET_TERMS.map((t) => (
                   <button key={t.key} onClick={() => toggleTerm(t.key)} className={`chip ${selectedTerms.includes(t.key) ? "is-active" : ""}`} style={{ cursor: "pointer" }}>

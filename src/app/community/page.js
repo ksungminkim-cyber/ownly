@@ -134,7 +134,7 @@ export default async function PublicCommunityPage() {
           <Link href="/login?mode=signup" style={{ display: "inline-block", padding: "13px 32px", borderRadius: 12, background: "#fff", color: "#1a2744", fontSize: 15, fontWeight: 800, textDecoration: "none" }}>
             무료로 시작하기 →
           </Link>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 12 }}>신용카드 불필요 · 14일 무료 체험</p>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 12 }}>신용카드 불필요 · 지금은 모든 기능 무료</p>
         </div>
       </div>
     </div>

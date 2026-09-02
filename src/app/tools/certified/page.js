@@ -80,9 +80,9 @@ export default function CertifiedToolPage() {
             법적 근거가 포함된 임대인용 내용증명을 회원가입 없이 바로 작성해 보세요.
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <span className="chip">⚖️ 사유별 법적 근거 자동 표기</span>
-            <span className="chip">📮 우체국 발송 가이드</span>
-            <span className="chip">🆓 로그인 불필요</span>
+            <span className="chip">사유별 법적 근거 자동 표기</span>
+            <span className="chip">우체국 발송 가이드</span>
+            <span className="chip">로그인 불필요</span>
           </div>
         </div>
 
@@ -98,12 +98,12 @@ export default function CertifiedToolPage() {
                   </button>
                 ))}
               </div>
-              <p style={{ fontSize: 11, color: "#5b4fcf", fontWeight: 600, marginTop: 8 }}>⚖️ 적용 법령: {tmpl.legalBasis}</p>
+              <p style={{ fontSize: 11, color: "#5b4fcf", fontWeight: 600, marginTop: 8 }}>적용 법령: {tmpl.legalBasis}</p>
             </div>
 
             <div style={{ height: 1, background: "#f0efe9" }} />
 
-            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: 0 }}>👤 발신인 (임대인)</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: 0 }}>발신인 (임대인)</p>
             <Field label="이름" placeholder="홍길동" value={form.senderName} onChange={set("senderName")} />
             <Field label="주소" placeholder="서울시 ○○구 ○○로 123" value={form.senderAddr} onChange={set("senderAddr")} />
 
@@ -111,7 +111,7 @@ export default function CertifiedToolPage() {
             <Field label="이름" placeholder="김철수" value={form.receiverName} onChange={set("receiverName")} />
             <Field label="주소" placeholder="서울시 ○○구 ○○로 45, 302호" value={form.receiverAddr} onChange={set("receiverAddr")} />
 
-            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: "4px 0 0" }}>🏠 임대 목적물·계약</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, margin: "4px 0 0" }}>임대 목적물·계약</p>
             <Field label="물건 주소" placeholder="서울시 ○○구 ○○로 45, 302호" value={form.propertyAddr} onChange={set("propertyAddr")} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Field label="계약 시작일" type="date" value={form.contractStart} onChange={set("contractStart")} />

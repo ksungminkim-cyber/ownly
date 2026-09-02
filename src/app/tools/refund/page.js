@@ -54,14 +54,14 @@ export default function RentRefundPage() {
             조건 확인부터 예상 환급액 계산, 신청 방법까지 무료로 정리했습니다.
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <span className="chip">🧮 {BASIS} 세법 기준</span>
-            <span className="chip">🆓 로그인 불필요</span>
+            <span className="chip">{BASIS} 세법 기준</span>
+            <span className="chip">로그인 불필요</span>
           </div>
         </div>
 
         {/* 계산기 */}
         <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 18, padding: "22px 20px", marginBottom: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 12 }}>💰 예상 환급액 계산</p>
+          <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 12 }}>예상 환급액 계산</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             <Field label="월세 (만원)" inputMode="numeric" placeholder="60" value={monthlyRent} onChange={(e) => setMonthlyRent(e.target.value.replace(/[^0-9]/g, ""))} />
             <Field label="연간 총급여 (만원)" inputMode="numeric" placeholder="4500" value={salary} onChange={(e) => setSalary(e.target.value.replace(/[^0-9]/g, ""))} />
@@ -86,7 +86,7 @@ export default function RentRefundPage() {
 
         {/* 조건 체크리스트 */}
         <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 18, padding: "22px 20px", marginBottom: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 12 }}>✅ 공제 조건 (모두 충족해야 합니다)</p>
+          <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 12 }}>공제 조건 (모두 충족해야 합니다)</p>
           {[
             ["무주택 세대주 (또는 세대주가 공제받지 않는 세대원)", "12월 31일 기준 세대 전원 무주택"],
             ["총급여 8,000만원 이하 (종합소득 7,000만원 이하)", "5,500만원 이하는 공제율 17%, 초과~8,000만원은 15%"],
@@ -117,7 +117,7 @@ export default function RentRefundPage() {
 
         {/* 신청 방법 */}
         <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 18, padding: "22px 20px", marginBottom: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 12 }}>📝 신청 방법 · 필요 서류</p>
+          <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 12 }}>신청 방법 · 필요 서류</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 14 }}>
             {[
               { n: "1", t: "재직 중 — 연말정산", d: "1~2월 연말정산 때 회사에 서류를 제출하면 2~3월 급여에 반영됩니다." },

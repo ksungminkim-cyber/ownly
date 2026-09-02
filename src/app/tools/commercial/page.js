@@ -60,8 +60,8 @@ export default function CommercialToolPage() {
             이 금액이 지역 기준 이내인지에 따라 상가건물임대차보호법 적용 범위가 달라집니다.
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <span className="chip">⚖️ 상가임대차보호법 시행령 기준</span>
-            <span className="chip">🆓 로그인 불필요</span>
+            <span className="chip">상가임대차보호법 시행령 기준</span>
+            <span className="chip">로그인 불필요</span>
           </div>
         </div>
 
@@ -83,7 +83,7 @@ export default function CommercialToolPage() {
               <p style={{ fontSize: 12, color: "#6a6a7a", fontWeight: 700, marginBottom: 4 }}>환산보증금 = {Number(deposit || 0).toLocaleString()} + {Number(rent || 0).toLocaleString()}×100</p>
               <p className="num" style={{ fontSize: 28, fontWeight: 900, color: NAVY, margin: "0 0 8px" }}>{fmt(result.converted)}</p>
               {result.protectedFull ? (
-                <p style={{ fontSize: 13, fontWeight: 800, color: "#0fa573", margin: 0 }}>✅ 지역 기준({fmt(result.limit)}) 이내 — 상가임대차보호법 <u>전면 적용</u></p>
+                <p style={{ fontSize: 13, fontWeight: 800, color: "#0fa573", margin: 0 }}>지역 기준({fmt(result.limit)}) 이내 — 상가임대차보호법 <u>전면 적용</u></p>
               ) : (
                 <p style={{ fontSize: 13, fontWeight: 800, color: "#b8860b", margin: 0 }}>⚠️ 지역 기준({fmt(result.limit)}) 초과 — <u>일부 조항만 적용</u></p>
               )}
@@ -98,7 +98,7 @@ export default function CommercialToolPage() {
 
         {/* 핵심 규정 요약 */}
         <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 18, padding: "22px 20px", marginBottom: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 12 }}>⚖️ 상가 임대인이 꼭 아는 4가지</p>
+          <p style={{ fontSize: 12, fontWeight: 800, color: NAVY, marginBottom: 12 }}>상가 임대인이 꼭 아는 4가지</p>
           {[
             ["계약갱신요구권 10년", "임차인은 최초 계약일로부터 10년간 갱신을 요구할 수 있고, 정당한 사유 없이 거절할 수 없습니다. 환산보증금과 무관하게 적용됩니다."],
             ["임대료 인상 상한 5%", "환산보증금이 기준 이내라면 증액 청구는 5%를 넘을 수 없습니다. 기준 초과 상가는 상한이 없지만 과도한 인상은 분쟁 소지가 있습니다."],

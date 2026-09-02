@@ -98,7 +98,7 @@ export default function YieldCalcPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
           {/* 입력 폼 */}
           <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "22px 24px" }}>
-            <h2 style={{ fontSize: 14, fontWeight: 800, color: "#1a2744", marginBottom: 14 }}>💰 기본 정보</h2>
+            <h2 style={{ fontSize: 14, fontWeight: 800, color: "#1a2744", marginBottom: 14 }}>기본 정보</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
               <FormField label="매매가 (만원)"  value={form.price}   onChange={set("price")}   placeholder="50000" required />
               <FormField label="월세 (만원)"    value={form.rent}    onChange={set("rent")}    placeholder="150" required />
@@ -156,7 +156,7 @@ export default function YieldCalcPage() {
 
               {/* 연간 내역 */}
               <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "22px 24px" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 800, color: "#1a2744", marginBottom: 12 }}>📊 연간 현금흐름 내역</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 800, color: "#1a2744", marginBottom: 12 }}>연간 현금흐름 내역</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <BreakRow label="연간 임대료 수입" value={`+${fmtMan(result.annualRent)}`} color="#0fa573" />
                   <BreakRow label="공실 반영 후" value={`+${fmtMan(result.adjRent)}`} color="#0fa573" />
@@ -210,11 +210,11 @@ export default function YieldCalcPage() {
               {/* 관련 도구 */}
               <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <Link href="/sise" style={{ padding: "14px 16px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, textDecoration: "none", color: "#1a2744" }}>
-                  <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>🗺️ 이 동네 시세는?</p>
+                  <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>이 동네 시세는?</p>
                   <p style={{ fontSize: 13, fontWeight: 700, color: "#0fa573" }}>전국 46개 지역 실거래 →</p>
                 </Link>
                 <Link href="/diagnose" style={{ padding: "14px 16px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, textDecoration: "none", color: "#1a2744" }}>
-                  <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>🎯 내 물건 등급은?</p>
+                  <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>내 물건 등급은?</p>
                   <p style={{ fontSize: 13, fontWeight: 700, color: "#5b4fcf" }}>1분 AI 진단 →</p>
                 </Link>
               </section>
@@ -236,7 +236,7 @@ export default function YieldCalcPage() {
 
         {/* 안내 */}
         <section style={{ marginTop: 22, padding: "14px 18px", background: "#f8f7f4", borderRadius: 10, fontSize: 11, color: "#8a8a9a", lineHeight: 1.7 }}>
-          <p>💡 <b style={{ color: "#6a6a7a" }}>참고</b>: 이 계산기는 간단한 가정(임대료 연 2% 상승, 금리·공실률 고정)에 기반한 참고용입니다. 실제 수익은 시장 상황·세법 개정·유지보수 비용에 따라 달라질 수 있습니다.</p>
+          <p><b style={{ color: "#6a6a7a" }}>참고</b>: 이 계산기는 간단한 가정(임대료 연 2% 상승, 금리·공실률 고정)에 기반한 참고용입니다. 실제 수익은 시장 상황·세법 개정·유지보수 비용에 따라 달라질 수 있습니다.</p>
           <p style={{ marginTop: 4 }}>정확한 실질 수익률(취득세·양도세·종합소득세 포함)은 <Link href="/login?mode=signup" style={{ color: "#5b4fcf", fontWeight: 700 }}>가입 후 프리미엄 계산기</Link>를 이용하세요.</p>
         </section>
       </div>
