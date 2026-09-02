@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; const MONTH_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"]; const DAY_KO = ["일","월","화","수","목","금","토"]; export default function CalendarPage() { const router = useRouter(); const { tenants, contracts, payments, vacancies, refreshData } = useApp(); const today = new Date(); const [year, setYear] = useState(today.getFullYear()); const [month, setMonth] = useState(today.getMonth()); const [selected, setSelected] = useState(null); useEffect(() => { refreshData(); }, []); const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); setSelected(null); }; const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); setSelected(null); }; const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); setSelected(today.getDate()); }; const daysInMonth = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); const getPayDayForMonth = (t, yr, mo) => { const pd = Number(t.pay_day); if (!pd || pd === 0) return 1; if (pd === 99) return new Date(yr, mo + 1, 0).getDate(); const lastDay = new Date(yr, mo + 1, 0).getDate(); return Math.min(pd, lastDay); };
+"use client"; import { useState, useMemo, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; const MONTH_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"]; const DAY_KO = ["일","월","화","수","목","금","토"]; export default function CalendarPage() { const router = useRouter(); const { tenants, contracts, payments, vacancies, refreshData } = useApp(); const today = new Date(); const [year, setYear] = useState(today.getFullYear()); const [month, setMonth] = useState(today.getMonth()); const [selected, setSelected] = useState(null); const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768); useEffect(() => { refreshData(); const check = () => setIsMobile(window.innerWidth < 768); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []); const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); setSelected(null); }; const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); setSelected(null); }; const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); setSelected(today.getDate()); }; const daysInMonth = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); const getPayDayForMonth = (t, yr, mo) => { const pd = Number(t.pay_day); if (!pd || pd === 0) return 1; if (pd === 99) return new Date(yr, mo + 1, 0).getDate(); const lastDay = new Date(yr, mo + 1, 0).getDate(); return Math.min(pd, lastDay); };
 
   // 공실 일수 계산
   const vacantDays = (since) => {
@@ -26,14 +26,15 @@
         if (d.getFullYear() === year && d.getMonth() === month)
           add(d.getDate(), { type: "paid", label: t.name, sub: "월세납부", color: "#0fa573" });
       } else {
-        add(payDay, { type: monthPayment?.status === "미납" ? "unpaid" : "due", label: t.name, sub: monthPayment?.status === "미납" ? "미납" : "수금예정", color: monthPayment?.status === "미납" ? C.rose : C.amber });
+        const isUnpaid = ["unpaid", "late"].includes(monthPayment?.status) || t.status === "미납";
+        add(payDay, { type: isUnpaid ? "unpaid" : "due", label: t.name, sub: isUnpaid ? "미납" : "수금예정", color: isUnpaid ? C.rose : C.amber });
       }
     });
 
     // 기존: 계약서 이벤트
     (contracts || []).forEach((c) => {
-      if (c.start_date) { const d = new Date(c.start_date); if (d.getFullYear() === year && d.getMonth() === month) add(d.getDate(), { type: "contract_start", label: c.tenant_name || c.tenantName || "", sub: "계약시작", color: "#1a2744" }); }
-      if (c.end_date) { const d = new Date(c.end_date); if (d.getFullYear() === year && d.getMonth() === month) add(d.getDate(), { type: "contract_end", label: c.tenant_name || c.tenantName || "", sub: "계약종료", color: "#5b4fcf" }); }
+      if (c.start_date) { const d = new Date(c.start_date); if (d.getFullYear() === year && d.getMonth() === month) add(d.getDate(), { type: "contract_start", label: c.tenant_name || c.tenantName || "계약서", sub: "계약시작", color: "#1a2744" }); }
+      if (c.end_date) { const d = new Date(c.end_date); if (d.getFullYear() === year && d.getMonth() === month) add(d.getDate(), { type: "contract_end", label: c.tenant_name || c.tenantName || "계약서", sub: "계약종료", color: "#5b4fcf" }); }
     });
 
     // 세금 신고·납부 일정 (소득세·부가세·재산세·종부세)
@@ -53,10 +54,11 @@
     // ✅ 공실 이벤트 추가
     // 공실 중인 세입자 (status === "공실")
     const vacantTenants = tenants.filter(t => t.status === "공실");
-    // vacancies 테이블 직접 등록된 공실
+    // vacancies 테이블 직접 등록된 공실 — 세입자 소스와 주소가 겹치면 중복 제거 (vacancy 페이지와 동일 기준)
+    const tenantVacantAddrs = new Set(vacantTenants.map(t => t.addr));
     const allVacant = [
-      ...vacantTenants.map(t => ({ id: t.id, addr: t.addr, since: t.start_date || new Date().toISOString().slice(0,10), name: t.name || t.addr, pType: t.pType })),
-      ...(vacancies || []).map(v => ({ id: v.id, addr: v.addr, since: v.vacant_since || v.vacantSince || new Date().toISOString().slice(0,10), name: v.addr, pType: v.p_type })),
+      ...vacantTenants.map(t => ({ id: t.id, addr: t.addr, since: t.vacant_since || t.start_date || new Date().toISOString().slice(0,10), name: t.name || t.addr, pType: t.pType })),
+      ...(vacancies || []).filter(v => !tenantVacantAddrs.has(v.addr)).map(v => ({ id: v.id, addr: v.addr, since: v.vacant_since || v.vacantSince || new Date().toISOString().slice(0,10), name: v.addr, pType: v.p_type })),
     ];
 
     allVacant.forEach(v => {
@@ -115,8 +117,8 @@
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", padding: "28px 28px 28px 36px" }}>
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", overflow: isMobile ? "visible" : "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: isMobile ? "visible" : "auto", padding: isMobile ? "20px 14px" : "28px 28px 28px 36px" }}>
         <div style={{ marginBottom: 20 }}>
           <SectionLabel>LEASE CALENDAR</SectionLabel>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a2744" }}>임대차 캘린더</h1>
@@ -124,9 +126,11 @@
 
         {/* 공실 요약 배너 */}
         {(() => {
+          const vt = tenants.filter(t => t.status === "공실");
+          const vtAddrs = new Set(vt.map(t => t.addr));
           const vacantItems = [
-            ...tenants.filter(t => t.status === "공실").map(t => ({ addr: t.addr, since: t.start_date, rent: Number(t.rent || 0) + Number(t.maintenance || 0) })),
-            ...(vacancies || []).map(v => ({ addr: v.addr, since: v.vacant_since || v.vacantSince, rent: Number(v.expected_rent || v.expectedRent || 0) + Number(v.maintenance || 0) })),
+            ...vt.map(t => ({ addr: t.addr, since: t.vacant_since || t.start_date, rent: Number(t.rent || 0) + Number(t.maintenance || 0) })),
+            ...(vacancies || []).filter(v => !vtAddrs.has(v.addr)).map(v => ({ addr: v.addr, since: v.vacant_since || v.vacantSince, rent: Number(v.expected_rent || v.expectedRent || 0) + Number(v.maintenance || 0) })),
           ];
           if (vacantItems.length === 0) return null;
           const daysOf = (s) => { if (!s) return 0; const d = Math.ceil((new Date() - new Date(s)) / 86400000); return d < 0 ? 0 : d; };
@@ -174,26 +178,35 @@
             const col = i % 7;
             const hasVacancy = evs.some(e => e.type?.startsWith("vacant"));
             return (
-              <div key={d} onClick={() => setSelected(isSel ? null : d)} style={{ minHeight: 72, borderRadius: 10, padding: "8px 7px", cursor: "pointer", background: isSel ? C.indigo + "25" : isToday(d) ? C.indigo + "12" : hasVacancy ? "rgba(249,115,22,0.04)" : "#ffffff", border: `1px solid ${isSel ? C.indigo : isToday(d) ? C.indigo + "60" : hasVacancy ? "rgba(249,115,22,0.3)" : "#ebe9e3"}`, transition: "all .12s" }}>
+              <div key={d} onClick={() => setSelected(isSel ? null : d)} style={{ minHeight: isMobile ? 54 : 72, borderRadius: 10, padding: isMobile ? "5px 4px" : "8px 7px", cursor: "pointer", background: isSel ? C.indigo + "25" : isToday(d) ? C.indigo + "12" : hasVacancy ? "rgba(249,115,22,0.04)" : "#ffffff", border: `1px solid ${isSel ? C.indigo : isToday(d) ? C.indigo + "60" : hasVacancy ? "rgba(249,115,22,0.3)" : "#ebe9e3"}`, transition: "all .12s" }}>
                 <div style={{ fontSize: 13, fontWeight: isToday(d) ? 800 : 600, color: isToday(d) ? C.indigo : col === 0 ? C.rose : col === 6 ? "#818cf8" : C.text, marginBottom: 4 }}>
                   {d} {isToday(d) && <span style={{ marginLeft: 3, fontSize: 9, background: C.indigo, color: "#fff", padding: "1px 4px", borderRadius: 4, fontWeight: 700 }}>오늘</span>}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {evs.slice(0, 3).map((ev, j) => (
-                    <div key={j} style={{ fontSize: 10, fontWeight: 600, color: ev.color, background: ev.color + "18", borderRadius: 4, padding: "2px 5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {ev.label} {ev.sub}
-                    </div>
-                  ))}
-                  {evs.length > 3 && <div style={{ fontSize: 10, color: "#8a8a9a" }}>+{evs.length - 3}개</div>}
-                </div>
+                {isMobile ? (
+                  <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                    {evs.slice(0, 4).map((ev, j) => (
+                      <div key={j} style={{ width: 7, height: 7, borderRadius: "50%", background: ev.color }} />
+                    ))}
+                    {evs.length > 4 && <span style={{ fontSize: 9, color: "#8a8a9a", lineHeight: "7px" }}>+</span>}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {evs.slice(0, 3).map((ev, j) => (
+                      <div key={j} style={{ fontSize: 10, fontWeight: 600, color: ev.color, background: ev.color + "18", borderRadius: 4, padding: "2px 5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {ev.label} {ev.sub}
+                      </div>
+                    ))}
+                    {evs.length > 3 && <div style={{ fontSize: 10, color: "#8a8a9a" }}>+{evs.length - 3}개</div>}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* 우측 사이드바 */}
-      <div style={{ width: 260, borderLeft: "1px solid #ebe9e3", overflowY: "auto", padding: "28px 18px", flexShrink: 0 }}>
+      {/* 우측 사이드바 (모바일에선 달력 아래로) */}
+      <div style={{ width: isMobile ? "auto" : 260, borderLeft: isMobile ? "none" : "1px solid #ebe9e3", borderTop: isMobile ? "1px solid #ebe9e3" : "none", overflowY: isMobile ? "visible" : "auto", padding: isMobile ? "20px 14px 40px" : "28px 18px", flexShrink: 0 }}>
         {selected ? (
           <>
             <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, letterSpacing: ".5px", textTransform: "uppercase", marginBottom: 10 }}>{month+1}월 {selected}일</p>
