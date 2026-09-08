@@ -76,12 +76,24 @@ async function fetchMolitRows(type, lawdCd, numMonths = 3) {
   const perMonth = await Promise.all(months.map(async (ym) => {
     try {
       const url = `${MOLIT_BASE}${baseUrl}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${lawdCd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=100&_type=json`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) return [];
-      const data = await res.json();
-      const items = data?.response?.body?.items?.item;
-      return Array.isArray(items) ? items : items ? [items] : [];
-    } catch { return []; }
+      const text = await res.text();
+      // MOLIT 은 _type=json 을 무시하고 XML 로 응답하는 경우가 많다 → JSON 시도 후 XML 파싱 (market/molit 프록시와 동일 방식)
+      try {
+        const data = JSON.parse(text);
+        const items = data?.response?.body?.items?.item;
+        return Array.isArray(items) ? items : items ? [items] : [];
+      } catch {
+        const out = [];
+        for (const m of text.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+          const obj = {};
+          for (const [, k, v] of m[1].matchAll(/<(\w+)>\s*([\s\S]*?)\s*<\/\1>/g)) obj[k] = v.trim();
+          out.push(obj);
+        }
+        return out;
+      }
+    } catch (e) { console.warn("[ai-pricing] MOLIT fetch failed:", type, ym, e?.message); return []; }
   }));
   return perMonth.flat();
 }

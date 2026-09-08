@@ -59,7 +59,9 @@ async function callGroq({ system, user, maxTokens, json, temperature }) {
         model: GROQ_MODEL,
         messages: [{ role: "system", content: system }, { role: "user", content: user }],
         temperature,
-        max_tokens: maxTokens,
+        // gpt-oss 계열은 추론 토큰이 완료 토큰 예산에 포함되어 답이 중간에 잘릴 수 있음 → 추론 낮춤 + 여유 확보
+        max_tokens: maxTokens + 2500,
+        reasoning_effort: "low",
         ...(json ? { response_format: { type: "json_object" } } : {}),
       }),
     });
