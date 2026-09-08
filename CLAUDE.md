@@ -102,9 +102,11 @@ SOLAPI_FROM=...                   # 발신 번호
 **가맹점 정보**: CID `CT75680604` · 사업자 137-81-52231 · 주식회사 맥클린
 ```
 KAKAOPAY_CID=CT75680604                       # 정기결제 가맹점 코드 (변경 가능성 낮음)
+KAKAOPAY_ONETIME_CID=...                      # 단건결제 CID (내용증명 추가 발급권) — 미설정 시 정기 CID 폴백. 실결제 전 파트너어드민에서 확인
 KAKAOPAY_SECRET_KEY=...                       # 카카오페이 파트너어드민에서 발급
 BILLING_RENEWAL_TOKEN=...                     # 매월 자동결제 cron 인증용 임의 토큰
 ```
+**단건 결제(내용증명 추가 발급권)**: `/api/billing/kakao/credit/ready` → 카카오 인증 → `/dashboard/certified?credit_order=...&pg_token=...` → `/api/billing/kakao/credit/approve` → `certified_credits.balance` 가산. 가격·얼리 액세스 무료 한도·종료일·혜택 문구는 `src/lib/constants.js`(`CERTIFIED_CREDIT_PRICE_KRW`, `EARLY_ACCESS_CERTIFIED_FREE`, `EARLY_ACCESS_END`, `EARLY_ACCESS_PERK`) 한 곳에서 관리합니다.
 **API 라우트 흐름**:
 1. `/api/billing/kakao/ready`         — 결제 준비 → next_redirect_url 응답
 2. `/api/billing/kakao/approve`       — pg_token 받아 승인 → sid(빌링키) 저장
@@ -133,6 +135,9 @@ Header: x-billing-token: $BILLING_RENEWAL_TOKEN
 - `20260520_billing_waitlist.sql` — 결제 사전등록
 - `20260520_certified_mail_status.sql` — 내용증명 발송 상태
 - `20260520_vacancy_action_steps.sql` — 공실 액션 플랜 진행 영속화
+- `20260709_events_tracking.sql` — 퍼널 이벤트 테이블
+- `20260908_growth_loop.sql` — 익명 도구 이벤트 정책 · 관리자 퍼널 RPC · 내용증명 발급권(certified_credits/credit_purchases) · 발급권 차감 RPC
+- `20260908_landlord_sms.sql` — 임대인 본인 미납 문자 옵트인 컬럼(newsletter_subscribers.sms_unpaid)
 
 **중요**: `tenants`, `vacancies` 같은 핵심 테이블은 `user_id` 컬럼 기준 RLS. 새 테이블 추가 시 동일 패턴 따르기.
 

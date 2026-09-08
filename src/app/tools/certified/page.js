@@ -1,8 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
 import { REASON_TEMPLATES } from "../../../lib/certifiedTemplates";
+import { EARLY_ACCESS_CERTIFIED_FREE, CERTIFIED_CREDIT_PRICE_KRW, CERTIFIED_DRAFT_KEY as DRAFT_KEY } from "../../../lib/constants";
+import { trackTool, trackToolCta } from "../../../lib/track";
+
+// 가입 후 복귀 경로 — 대시보드 내용증명 페이지가 ?draft=1 을 보고 localStorage 초안을 불러온다
+const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard/certified?draft=1")}`;
 
 // 무료 공개 도구: 내용증명 생성기
 // 로그인 불필요. 사유별 법적 근거 포함 양식 작성 + 워터마크 미리보기/인쇄.
@@ -35,6 +40,14 @@ export default function CertifiedToolPage() {
   const [form, setForm] = useState(initForm);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setReason = (r) => setForm((f) => ({ ...f, reason: r, deadlineDays: String(REASON_TEMPLATES[r].deadline) }));
+
+  useEffect(() => { trackTool("certified"); }, []);
+
+  // 가입 CTA — 작성 중인 초안을 보관해 가입 후 그대로 이어서 정식 발급
+  const onSignupCta = () => {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...form, savedAt: Date.now() })); } catch {}
+    trackToolCta("certified");
+  };
 
   const tmpl = REASON_TEMPLATES[form.reason];
   const body = tmpl.template(form);
@@ -208,11 +221,11 @@ export default function CertifiedToolPage() {
             <div style={{ background: "linear-gradient(135deg,#1a2744,#2d4270)", borderRadius: 16, padding: "22px 22px", color: "#fff" }}>
               <p style={{ fontSize: 15, fontWeight: 900, margin: "0 0 6px" }}>워터마크 없는 정식 문서가 필요하신가요?</p>
               <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.65)", lineHeight: 1.7, margin: "0 0 14px" }}>
-                무료 가입하면 <b style={{ color: "#fff" }}>워터마크 없는 정식 PDF를 월 1건</b> 발급할 수 있습니다.<br />
-                세입자 정보 자동 입력·발송 이력·등기번호 추적까지 한 곳에서.
+                무료 가입하면 <b style={{ color: "#fff" }}>지금 작성한 내용 그대로</b> 워터마크 없는 정식 PDF를 월 {EARLY_ACCESS_CERTIFIED_FREE}건 발급할 수 있습니다.<br />
+                세입자 정보 자동 입력·발송 이력·등기번호 추적까지 한 곳에서. 추가 발급은 1건 {CERTIFIED_CREDIT_PRICE_KRW.toLocaleString()}원.
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Link href="/login?mode=signup" className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료 가입하고 정식 발급 →</Link>
+                <Link href={SIGNUP_HREF} onClick={onSignupCta} className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료 가입하고 이어서 정식 발급 →</Link>
                 <Link href="/pricing" className="btn btn-ghost" style={{ color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.3)", textDecoration: "none" }}>플랜 비교</Link>
               </div>
             </div>
@@ -242,7 +255,7 @@ export default function CertifiedToolPage() {
               { q: "내용증명은 법적 효력이 있나요?", a: "내용증명 자체가 강제력을 갖지는 않지만, '언제·어떤 내용을·누구에게' 통보했는지를 우체국이 공적으로 증명합니다. 이후 소송·지급명령에서 핵심 증거가 되고, 계약 해지 등 의사표시의 도달을 입증하는 표준 수단입니다." },
               { q: "월세를 몇 개월 밀리면 계약을 해지할 수 있나요?", a: "주택은 2기(2개월분), 상가는 3기 임대료 연체 시 해지 사유가 됩니다. 해지 전에 미납 사실과 납부 기한을 명시한 내용증명을 보내 두면 이후 절차에서 유리합니다." },
               { q: "변호사 없이 보내도 되나요?", a: "네. 내용증명은 형식 요건만 갖추면 누구나 직접 작성·발송할 수 있습니다. 다만 소송으로 이어질 수 있는 복잡한 사안은 전문가 상담을 권장합니다." },
-              { q: "이 생성기는 정말 무료인가요?", a: "네, 작성과 미리보기·워터마크 인쇄는 회원가입 없이 무료입니다. 워터마크 없는 정식 PDF는 무료 가입 후 월 1건, 그 이상은 플러스 플랜(월 10건)에서 발급됩니다." },
+              { q: "이 생성기는 정말 무료인가요?", a: `네, 작성과 미리보기·워터마크 인쇄는 회원가입 없이 무료입니다. 워터마크 없는 정식 PDF는 무료 가입 후 월 ${EARLY_ACCESS_CERTIFIED_FREE}건까지 무료이고, 그 이상은 1건 ${CERTIFIED_CREDIT_PRICE_KRW.toLocaleString()}원의 추가 발급권으로 발급할 수 있습니다. 가입 버튼을 누르면 지금 작성한 내용이 그대로 이어집니다.` },
             ].map((f) => (
               <details key={f.q} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "14px 18px" }}>
                 <summary style={{ fontSize: 13.5, fontWeight: 800, color: NAVY, cursor: "pointer" }}>{f.q}</summary>

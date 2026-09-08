@@ -1,11 +1,14 @@
 ﻿"use client";
 import { useState, useEffect } from "react";
 import { SectionLabel, EmptyState, Modal, toast } from "../../../components/shared";
-import { C } from "../../../lib/constants";
+import { C, CERTIFIED_CREDIT_PRICE_KRW, CERTIFIED_DRAFT_KEY } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 import { supabase } from "../../../lib/supabase";
 import PlanGate from "../../../components/PlanGate";
 import { REASON_TEMPLATES } from "../../../lib/certifiedTemplates";
+import { track } from "../../../lib/track";
+
+const CREDIT_QTY_OPTIONS = [1, 3, 5];
 
 // 내용증명 발송 상태
 const STATUS_META = {
@@ -44,6 +47,10 @@ function CertifiedContent() {
   const [trackingTarget, setTrackingTarget] = useState(null);
   const [trackingInput, setTrackingInput] = useState("");
   const [postMethodInput, setPostMethodInput] = useState("postal");
+  // 추가 발급권(건당 결제) — 월 무료 한도 초과분에 사용
+  const [credits, setCredits] = useState(0);
+  const [showBuy, setShowBuy] = useState(false);
+  const [buying, setBuying] = useState(false);
 
   // 폼 상태
   const initForm = () => ({
@@ -115,6 +122,88 @@ function CertifiedContent() {
       .then(({ data }) => { if (data) setHistory(data); setLoading(false); });
   }, [user]);
 
+  const loadCredits = async (uid) => {
+    const { data } = await supabase.from("certified_credits").select("balance").eq("user_id", uid).maybeSingle();
+    setCredits(data?.balance || 0);
+  };
+  useEffect(() => { if (user) loadCredits(user.id); }, [user]);
+
+  // URL 파라미터 처리 (1회) — ① 무료 도구 초안 이어받기 ② 카카오페이 발급권 결제 승인
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    const cleanUrl = () => { try { window.history.replaceState(null, "", "/dashboard/certified"); } catch {} };
+    let cancelled = false;
+
+    if (params.get("draft") === "1") {
+      let draft = null;
+      try { draft = JSON.parse(localStorage.getItem(CERTIFIED_DRAFT_KEY) || "null"); localStorage.removeItem(CERTIFIED_DRAFT_KEY); } catch {}
+      cleanUrl();
+      if (draft) {
+        Promise.resolve().then(() => {
+          if (cancelled) return;
+          const fields = { ...draft }; delete fields.savedAt;
+          setEditTarget(null);
+          setForm({ ...initForm(), ...fields });
+          setShowModal(true);
+          toast("무료 도구에서 작성한 내용을 불러왔어요 — 저장하면 워터마크 없는 정식 PDF를 출력할 수 있습니다");
+        });
+      }
+    }
+
+    const order = params.get("credit_order");
+    const pgToken = params.get("pg_token");
+    if (order && pgToken) {
+      cleanUrl();
+      (async () => {
+        try {
+          const { data: s } = await supabase.auth.getSession();
+          const res = await fetch("/api/billing/kakao/credit/approve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${s?.session?.access_token || ""}` },
+            body: JSON.stringify({ pg_token: pgToken, orderId: order }),
+          });
+          const d = await res.json();
+          if (cancelled) return;
+          if (!res.ok || d.error) throw new Error(d.error || "결제 승인 실패");
+          setCredits(d.balance ?? 0);
+          if (!d.alreadyPaid) { track("credit_purchased", { qty: d.qty, amount: d.amount }); toast(`추가 발급권 ${d.qty}장이 적립됐어요 (보유 ${d.balance}장)`); }
+        } catch (e) {
+          if (!cancelled) toast("발급권 결제 승인 실패: " + e.message, "error");
+        }
+      })();
+    } else if (params.get("credit_failed") || params.get("credit_cancelled")) {
+      cleanUrl();
+      Promise.resolve().then(() => { if (!cancelled) toast(params.get("credit_failed") ? "결제가 실패했습니다. 다시 시도해주세요." : "결제가 취소되었습니다.", "warning"); });
+    }
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // 발급권 구매 → 카카오페이 결제창으로 이동
+  const buyCredits = async (qty) => {
+    setBuying(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const res = await fetch("/api/billing/kakao/credit/ready", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${s?.session?.access_token || ""}` },
+        body: JSON.stringify({ qty }),
+      });
+      const d = await res.json();
+      if (!res.ok || d.error) throw new Error(d.error || "결제 준비 실패");
+      track("pay_click", { plan: "credit", qty });
+      const isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+      window.location.href = isMobile ? (d.next_redirect_mobile_url || d.next_redirect_pc_url) : d.next_redirect_pc_url;
+    } catch (e) {
+      toast("결제 준비 실패: " + e.message, "error");
+      setBuying(false);
+    }
+  };
+
+  const monthLimit = getPlanLimit("certified");
+  const monthUsed = history.filter(x => (x.created_at || "").slice(0, 7) === new Date().toISOString().slice(0, 7)).length;
+  const hasMonthLimit = typeof monthLimit === "number" && isFinite(monthLimit);
+
   const openCreate = () => { setEditTarget(null); setForm(initForm()); setShowModal(true); };
   const openEdit = (h) => {
     setEditTarget(h);
@@ -127,17 +216,14 @@ function CertifiedContent() {
 
   const save = async () => {
     if (!form.receiverName.trim()) { toast("수신인(세입자) 이름을 입력하세요", "error"); return; }
-    // 플랜별 월 작성 한도 강제 (무료 1건 · 플러스 10건 · 프로 무제한)
-    if (!editTarget) {
-      const limit = getPlanLimit("certified");
-      if (typeof limit === "number" && isFinite(limit)) {
-        const ym = new Date().toISOString().slice(0, 7);
-        const monthCount = history.filter(x => (x.created_at || "").slice(0, 7) === ym).length;
-        if (monthCount >= limit) {
-          toast(`이번 달 내용증명 한도(${limit}건)를 모두 사용했어요 — 플랜을 올리면 더 발급할 수 있습니다`, "warning");
-          return;
-        }
-      }
+    // 플랜별 월 작성 한도 강제 — 초과 시 추가 발급권 1장 차감, 발급권도 없으면 구매 안내
+    let viaCredit = false;
+    if (!editTarget && hasMonthLimit && monthUsed >= monthLimit) {
+      if (credits <= 0) { setShowBuy(true); return; }
+      const { data: left, error: rpcErr } = await supabase.rpc("consume_certified_credit");
+      if (rpcErr) { toast(rpcErr.message?.includes("no_credit") ? "발급권이 없습니다" : "발급권 차감 실패: " + rpcErr.message, "error"); return; }
+      setCredits(typeof left === "number" ? left : Math.max(0, credits - 1));
+      viaCredit = true;
     }
     setSaving(true);
     const body = generateBody();
@@ -159,7 +245,8 @@ function CertifiedContent() {
         const { data, error } = await supabase.from("certified_mail").insert(row).select().single();
         if (error) throw error;
         setHistory(prev => [data, ...prev]);
-        toast("저장되었습니다");
+        track("certified_issued", { reason: form.reason, viaCredit });
+        toast(viaCredit ? "발급권 1장을 사용해 저장했습니다" : "저장되었습니다");
       }
       setShowModal(false);
     } catch (e) { toast("오류: " + e.message, "error"); }
@@ -247,12 +334,44 @@ function CertifiedContent() {
         <div>
           <SectionLabel>CERTIFIED MAIL</SectionLabel>
           <h1 style={{ fontSize:24, fontWeight:800, color:"#1a2744" }}>내용증명</h1>
-          <p style={{ fontSize:13, color:"#8a8a9a", marginTop:3 }}>총 {history.length}건 저장</p>
+          <p style={{ fontSize:13, color:"#8a8a9a", marginTop:3 }}>
+            총 {history.length}건 저장
+            {hasMonthLimit && <> · 이번 달 무료 <b style={{ color: monthUsed >= monthLimit ? C.rose : "#1a2744" }}>{Math.min(monthUsed, monthLimit)}/{monthLimit}건</b></>}
+            {" · "}추가 발급권 <b style={{ color:"#1a2744" }}>{credits}장</b>
+            <button onClick={() => setShowBuy(true)} style={{ marginLeft:8, padding:"2px 9px", borderRadius:6, border:`1px solid ${C.indigo}40`, background:"transparent", color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer" }}>구매</button>
+          </p>
         </div>
         <button onClick={openCreate} style={{ padding:"10px 20px", borderRadius:11, background:`linear-gradient(135deg,${C.indigo},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
           + 내용증명 작성
         </button>
       </div>
+
+      {/* 추가 발급권 구매 — 카카오페이 단건 결제 */}
+      {showBuy && (
+        <Modal open={showBuy} onClose={() => !buying && setShowBuy(false)}>
+          <div style={{ padding:"4px 0" }}>
+            <h2 style={{ fontSize:18, fontWeight:800, color:"#1a2744", marginBottom:6 }}>내용증명 추가 발급권</h2>
+            <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:16 }}>
+              {hasMonthLimit && monthUsed >= monthLimit
+                ? <>이번 달 무료 {monthLimit}건을 모두 사용했어요. </>
+                : <>무료 한도를 넘겨도 계속 발급할 수 있도록 미리 담아둘 수 있어요. </>}
+              발급권은 소멸되지 않으며, 1장당 정식 PDF 1건을 발급합니다.
+            </p>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:14 }}>
+              {CREDIT_QTY_OPTIONS.map(q => (
+                <button key={q} onClick={() => buyCredits(q)} disabled={buying}
+                  style={{ padding:"14px 8px", borderRadius:12, border:`1.5px solid ${q === 3 ? C.indigo : "#ebe9e3"}`, background: q === 3 ? C.indigo + "0d" : "#fff", cursor:"pointer", opacity: buying ? .6 : 1 }}>
+                  <p style={{ fontSize:15, fontWeight:900, color:"#1a2744", marginBottom:2 }}>{q}장</p>
+                  <p className="num" style={{ fontSize:12, color:C.muted }}>{(CERTIFIED_CREDIT_PRICE_KRW * q).toLocaleString()}원</p>
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize:11, color:"#a0a0b0", lineHeight:1.6, marginBottom:12 }}>카카오페이로 결제됩니다 · 부가세 포함 · 미사용 발급권은 결제일로부터 7일 이내 전액 환불 (inquiry@mclean21.com)</p>
+            <button onClick={() => setShowBuy(false)} disabled={buying}
+              style={{ width:"100%", padding:"11px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>닫기</button>
+          </div>
+        </Modal>
+      )}
 
       {/* 우체국 정식 발송 가이드 — 정직한 안내 (외부 연동 없음을 명시) */}
       <div style={{ marginBottom:16, padding:"14px 18px", background:"rgba(232,150,10,0.06)", border:"1px solid rgba(232,150,10,0.2)", borderRadius:12 }}>

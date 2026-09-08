@@ -1,7 +1,10 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
+import { trackTool, trackToolCta } from "../../../lib/track";
+
+const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
 // 무료 공개 도구: 임대 수익률 계산기
 // 로그인 불필요. 대출·공실·세금 반영한 실질 수익률 즉시 계산.
@@ -20,6 +23,8 @@ export default function YieldCalcPage() {
   });
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const n = (v) => Number(v || 0);
+  useEffect(() => { trackTool("yield"); }, []);
+  const onSignupCta = () => trackToolCta("yield");
 
   const result = useMemo(() => {
     const price = n(form.price);
@@ -82,7 +87,7 @@ export default function YieldCalcPage() {
             <span style={{ fontSize: 16, fontWeight: 900, color: "#1a2744" }}>온리</span>
             <span style={{ fontSize: 11, color: "#8a8a9a" }}>| 무료 도구</span>
           </Link>
-          <Link href="/login?mode=signup" style={{ padding: "7px 14px", background: "#1a2744", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>무료 시작 →</Link>
+          <Link href={SIGNUP_HREF} onClick={onSignupCta} style={{ padding: "7px 14px", background: "#1a2744", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>무료 시작 →</Link>
         </div>
       </header>
 
@@ -202,7 +207,7 @@ export default function YieldCalcPage() {
                 <p style={{ fontSize: 13, opacity: 0.85, marginBottom: 18, lineHeight: 1.7 }}>
                   온리에 물건을 등록하면 위 수익률을 자동 계산하고,<br />월세 수금·세금 시뮬·임대차 관리까지 한 곳에서 처리됩니다.
                 </p>
-                <Link href="/login?mode=signup" style={{ display: "inline-block", padding: "11px 26px", background: "#fff", color: "#1a2744", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
+                <Link href={SIGNUP_HREF} onClick={onSignupCta} style={{ display: "inline-block", padding: "11px 26px", background: "#fff", color: "#1a2744", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
                   무료 가입하고 물건 등록하기 →
                 </Link>
               </section>
@@ -237,7 +242,7 @@ export default function YieldCalcPage() {
         {/* 안내 */}
         <section style={{ marginTop: 22, padding: "14px 18px", background: "#f8f7f4", borderRadius: 10, fontSize: 11, color: "#8a8a9a", lineHeight: 1.7 }}>
           <p><b style={{ color: "#6a6a7a" }}>참고</b>: 이 계산기는 간단한 가정(임대료 연 2% 상승, 금리·공실률 고정)에 기반한 참고용입니다. 실제 수익은 시장 상황·세법 개정·유지보수 비용에 따라 달라질 수 있습니다.</p>
-          <p style={{ marginTop: 4 }}>정확한 실질 수익률(취득세·양도세·종합소득세 포함)은 <Link href="/login?mode=signup" style={{ color: "#5b4fcf", fontWeight: 700 }}>가입 후 프리미엄 계산기</Link>를 이용하세요.</p>
+          <p style={{ marginTop: 4 }}>정확한 실질 수익률(취득세·양도세·종합소득세 포함)은 <Link href={SIGNUP_HREF} onClick={onSignupCta} style={{ color: "#5b4fcf", fontWeight: 700 }}>가입 후 프리미엄 계산기</Link>를 이용하세요.</p>
         </section>
       </div>
 

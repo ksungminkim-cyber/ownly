@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { EARLY_ACCESS_END_LABEL, EARLY_ACCESS_PERK, EARLY_ACCESS_CERTIFIED_FREE, CERTIFIED_CREDIT_PRICE_KRW } from "../../lib/constants";
 
 const PLANS = [
   {
@@ -77,7 +78,7 @@ const PLANS = [
 const FAQ = [
   {
     q: "정말 전부 무료인가요?",
-    a: "네. 정식 출시 전 얼리 액세스 기간에는 프로 플랜 기능 전체를 무료로 사용할 수 있습니다. 실비가 발생하는 카카오 알림톡(월 30건)과 AI 분석(월 30회)만 넉넉한 한도가 있습니다. 유료 전환 시 최소 30일 전에 안내드리며, 얼리 액세스 가입자에게는 별도 혜택을 드릴 예정입니다.",
+    a: `네. 얼리 액세스 기간(${EARLY_ACCESS_END_LABEL}까지 예정)에는 프로 플랜 기능 전체를 무료로 사용할 수 있습니다. 실비가 발생하는 카카오 알림톡(월 30건)·AI 분석(월 30회)·내용증명 정식 발급(월 ${EARLY_ACCESS_CERTIFIED_FREE}건, 추가는 1건 ${CERTIFIED_CREDIT_PRICE_KRW.toLocaleString()}원)만 한도가 있습니다. 유료 전환 시 최소 30일 전에 이메일로 안내드리며, 얼리 액세스 기간에 가입한 분께는 ${EARLY_ACCESS_PERK} 혜택을 드립니다.`,
   },
   {
     q: "무료 플랜은 정말 영구 무료인가요?",
@@ -202,9 +203,10 @@ export default function PricingClient() {
             textAlign: "left",
           }}
         >
-          <b>얼리 액세스 무료 기간 안내</b> — 지금 가입하면 아래 유료 플랜의 기능 전체를
+          <b>얼리 액세스 무료 기간 안내 ({EARLY_ACCESS_END_LABEL}까지 예정)</b> — 지금 가입하면 아래 유료 플랜의 기능 전체를
           결제 없이 사용할 수 있습니다. 표시된 요금은 정식 출시 후 적용 예정이며,
           유료 전환 시 최소 30일 전에 이메일로 안내드립니다.
+          <br /><b>얼리 가입자 혜택:</b> {EARLY_ACCESS_PERK}.
         </div>
 
         {/* 월간/연간 토글 */}

@@ -43,7 +43,7 @@ export default function SiseIndexPage() {
           </Link>
           <div style={{ display: "flex", gap: 10 }}>
             <Link href="/community" style={{ padding: "8px 14px", borderRadius: 9, background: "transparent", border: "1px solid #ebe9e3", color: "#6a6a7a", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>임대인 커뮤니티</Link>
-            <Link href="/login?mode=signup" style={{ padding: "8px 16px", borderRadius: 9, background: "#1a2744", color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>무료 시작하기 →</Link>
+            <Link href="/login?mode=signup&next=%2Fdashboard" style={{ padding: "8px 16px", borderRadius: 9, background: "#1a2744", color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>무료 시작하기 →</Link>
           </div>
         </div>
       </header>
@@ -116,7 +116,7 @@ export default function SiseIndexPage() {
             실거래 데이터 + AI 분석으로 내 물건 적정 임대료를 즉시 확인하세요.<br />
             무료 가입 · 물건 3개까지 수금·계약·만료 알림 영구 무료
           </p>
-          <Link href="/login?mode=signup" style={{ display: "inline-block", padding: "13px 32px", background: "#fff", color: "#1a2744", borderRadius: 11, fontSize: 14, fontWeight: 800, textDecoration: "none" }}>
+          <Link href="/login?mode=signup&next=%2Fdashboard" style={{ display: "inline-block", padding: "13px 32px", background: "#fff", color: "#1a2744", borderRadius: 11, fontSize: 14, fontWeight: 800, textDecoration: "none" }}>
             무료로 시작하기 →
           </Link>
         </section>

@@ -450,7 +450,7 @@ function AdminContent({ currentUser }) {
 
       {/* 탭 */}
       <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-        {[{ k: "users", l: "👥 유저 관리" }, { k: "sql", l: "🛠️ SQL 가이드" }].map(t => (
+        {[{ k: "users", l: "👥 유저 관리" }, { k: "funnel", l: "📈 퍼널" }, { k: "sql", l: "🛠️ SQL 가이드" }].map(t => (
           <button key={t.k} onClick={() => setTab(t.k)}
             style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid " + (tab === t.k ? "#1a2744" : "#ebe9e3"), background: tab === t.k ? "#1a2744" : "transparent", color: tab === t.k ? "#fff" : "#8a8a9a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
             {t.l}
@@ -569,6 +569,9 @@ function AdminContent({ currentUser }) {
         </>
       )}
 
+      {/* 퍼널 탭 — events 테이블 집계 (RPC get_admin_funnel, 20260908_growth_loop.sql) */}
+      {tab === "funnel" && <FunnelPanel />}
+
       {/* SQL 가이드 탭 */}
       {tab === "sql" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -630,6 +633,124 @@ function AdminContent({ currentUser }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── 퍼널 탭 ──────────────────────────────────────────────────────
+// 광고 유입 → 가입 → 물건 등록 → 가치 이벤트를 한 화면에서. 데이터: public.events (src/lib/track.js)
+const EVENT_LABELS = {
+  login: "로그인", dashboard_view: "대시보드 방문(일 1회)", property_added: "물건 등록", sample_seeded: "샘플 체험",
+  sample_removed: "샘플 삭제", signup_source: "가입 유입경로 기록", onboard_addr_check: "온보딩 주소 조회",
+  tool_view: "무료 도구 조회", tool_cta_click: "무료 도구 → 가입 클릭", certified_issued: "내용증명 정식 발급",
+  portal_link_copied: "세입자 포털 링크 복사", sms_parse_used: "입금 문자 파싱 사용", credit_purchased: "발급권 구매",
+  interest_registered: "정식 출시 관심 등록", checklist_done: "시작 체크리스트 완료", checkout_view: "결제 페이지 진입", pay_click: "결제 버튼 클릭",
+};
+const TOOL_LABELS = { certified: "내용증명", diagnose: "물건 진단", yield: "수익률 계산기" };
+
+function FunnelPanel() {
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setBusy(true); setErr("");
+      const { data: d, error } = await supabase.rpc("get_admin_funnel", { p_days: days });
+      if (cancelled) return;
+      if (error) setErr(error.message);
+      else setData(d);
+      setBusy(false);
+    })();
+    return () => { cancelled = true; };
+  }, [days]);
+
+  const th = { fontSize: 11, color: "#8a8a9a", fontWeight: 700, textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #ebe9e3", whiteSpace: "nowrap" };
+  const td = { fontSize: 12.5, color: "#1a2744", padding: "8px 10px", borderBottom: "1px solid #f4f3f0" };
+  const num = { ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" };
+  const card = { background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "16px 18px", overflowX: "auto" };
+  const pct = (a, b) => b > 0 ? Math.round((a / b) * 100) + "%" : "—";
+
+  if (err) return (
+    <div style={{ background: "rgba(232,150,10,0.08)", border: "1px solid rgba(232,150,10,0.3)", borderRadius: 12, padding: "14px 18px" }}>
+      <p style={{ fontSize: 12, fontWeight: 800, color: "#c97a00", marginBottom: 4 }}>퍼널 RPC 호출 실패</p>
+      <p style={{ fontSize: 11, color: "#8a8a9a", lineHeight: 1.6 }}>{err}<br />supabase/migrations/20260908_growth_loop.sql 을 SQL Editor 에서 실행했는지 확인하세요.</p>
+    </div>
+  );
+
+  const events = data?.events || [];
+  const weekly = data?.weekly || [];
+  const sources = data?.sources || [];
+  const tools = data?.tools || [];
+  const maxWeekly = Math.max(1, ...weekly.map(w => w.users));
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span style={{ fontSize: 12, color: "#8a8a9a", fontWeight: 700 }}>기간</span>
+        {[7, 30, 90].map(d => (
+          <button key={d} onClick={() => setDays(d)} className={`chip ${days === d ? "is-active" : ""}`} style={{ cursor: "pointer" }}>{d}일</button>
+        ))}
+        {busy && <span style={{ fontSize: 11, color: "#a0a0b0", marginLeft: 6 }}>불러오는 중…</span>}
+      </div>
+
+      <div style={card}>
+        <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 10 }}>주간 활성 유저 (대시보드 방문 기준, 최근 12주)</p>
+        {weekly.length === 0 ? <p style={{ fontSize: 12, color: "#a0a0b0" }}>데이터 없음</p> : (
+          <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 90 }}>
+            {weekly.map(w => (
+              <div key={w.week} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                <span style={{ fontSize: 10, color: "#1a2744", fontWeight: 700 }}>{w.users}</span>
+                <div style={{ width: "100%", height: Math.max(3, (w.users / maxWeekly) * 60), background: "#4f46e5", borderRadius: "3px 3px 0 0" }} />
+                <span style={{ fontSize: 9, color: "#8a8a9a" }}>{w.week}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={card}>
+        <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>유입 경로별 가입 → 물건 등록</p>
+        <p style={{ fontSize: 11, color: "#8a8a9a", marginBottom: 10 }}>utm_source / utm_campaign / 첫 착지 페이지 기준. 광고 링크에 utm 파라미터를 붙여야 구분됩니다.</p>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><th style={th}>소스</th><th style={th}>캠페인</th><th style={th}>착지</th><th style={{ ...th, textAlign: "right" }}>가입</th><th style={{ ...th, textAlign: "right" }}>물건 등록</th><th style={{ ...th, textAlign: "right" }}>활성화율</th></tr></thead>
+          <tbody>
+            {sources.length === 0 ? <tr><td colSpan={6} style={{ ...td, color: "#a0a0b0" }}>기록 없음 — 신규 가입자가 대시보드에 처음 진입하면 쌓입니다</td></tr>
+              : sources.map((s, i) => (
+                <tr key={i}><td style={td}>{s.source}</td><td style={td}>{s.campaign}</td><td style={{ ...td, color: "#8a8a9a" }}>{s.landing}</td><td style={num}>{s.signups}</td><td style={num}>{s.activated}</td><td style={{ ...num, fontWeight: 700, color: s.activated > 0 ? "#0fa573" : "#8a8a9a" }}>{pct(s.activated, s.signups)}</td></tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="admin-dist-grid">
+        <div style={card}>
+          <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 10 }}>무료 도구 조회 → 가입 클릭 (익명 브라우저)</p>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={th}>도구</th><th style={{ ...th, textAlign: "right" }}>조회</th><th style={{ ...th, textAlign: "right" }}>가입 클릭</th><th style={{ ...th, textAlign: "right" }}>전환</th></tr></thead>
+            <tbody>
+              {tools.length === 0 ? <tr><td colSpan={4} style={{ ...td, color: "#a0a0b0" }}>기록 없음</td></tr>
+                : tools.map(t => (
+                  <tr key={t.tool}><td style={td}>{TOOL_LABELS[t.tool] || t.tool}</td><td style={num}>{t.views}</td><td style={num}>{t.cta}</td><td style={{ ...num, fontWeight: 700 }}>{pct(t.cta, t.views)}</td></tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={card}>
+          <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 10 }}>이벤트별 총계 ({days}일)</p>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={th}>이벤트</th><th style={{ ...th, textAlign: "right" }}>횟수</th><th style={{ ...th, textAlign: "right" }}>유저</th><th style={{ ...th, textAlign: "right" }}>익명</th></tr></thead>
+            <tbody>
+              {events.length === 0 ? <tr><td colSpan={4} style={{ ...td, color: "#a0a0b0" }}>기록 없음</td></tr>
+                : events.map(e => (
+                  <tr key={e.event}><td style={td}>{EVENT_LABELS[e.event] || e.event}<span style={{ fontSize: 10, color: "#c0c0cc", marginLeft: 6 }}>{e.event}</span></td><td style={num}>{e.cnt}</td><td style={num}>{e.users}</td><td style={{ ...num, color: "#8a8a9a" }}>{e.anon || 0}</td></tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

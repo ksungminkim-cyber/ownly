@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const REWARD_DAYS = 30;
+const CREDIT_REWARD = 2; // 내용증명 추가 발급권 (양쪽 각각)
 
 export async function POST(req) {
   try {
@@ -94,6 +95,15 @@ export async function POST(req) {
       });
     }
 
+    // 4-b) 양쪽에 내용증명 추가 발급권 +CREDIT_REWARD 장
+    //      (얼리 액세스 전면 무료 기간에는 체험 일수가 의미 없으므로 실사용 가치가 있는 보상을 함께 지급)
+    for (const uid of [inviteeId, inviterId]) {
+      const { data: cur } = await admin.from("certified_credits").select("balance").eq("user_id", uid).maybeSingle();
+      await admin.from("certified_credits").upsert({
+        user_id: uid, balance: (cur?.balance || 0) + CREDIT_REWARD, updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+    }
+
     // 5) 보상 이력 기록
     await admin.from("invite_rewards").insert({
       inviter_id: inviterId,
@@ -104,7 +114,8 @@ export async function POST(req) {
     return NextResponse.json({
       ok: true,
       rewardDays: REWARD_DAYS,
-      message: `${REWARD_DAYS}일 Plus 무료 체험이 추가됐습니다!`,
+      creditReward: CREDIT_REWARD,
+      message: `내용증명 추가 발급권 ${CREDIT_REWARD}장과 Plus ${REWARD_DAYS}일이 추가됐습니다!`,
     });
   } catch (err) {
     console.error("[invite/apply]", err.message);

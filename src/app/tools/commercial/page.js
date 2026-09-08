@@ -1,7 +1,10 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
+import { trackTool, trackToolCta } from "../../../lib/track";
+
+const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
 // 무료 공개 도구: 상가 환산보증금 계산기 (상가건물임대차보호법)
 // 상가·법인 임대인 세그먼트 특화 — 자리톡류 원룸 중심 서비스와의 차별점
@@ -28,6 +31,8 @@ function Field({ label, hint, ...props }) {
 }
 
 export default function CommercialToolPage() {
+  useEffect(() => { trackTool("commercial"); }, []);
+  const onSignupCta = () => trackToolCta("commercial");
   const [region, setRegion] = useState("seoul");
   const [deposit, setDeposit] = useState("");
   const [rent, setRent] = useState("");
@@ -123,7 +128,7 @@ export default function CommercialToolPage() {
             수금·부가세·세금계산서·3기 연체 추적·내용증명까지 — <b style={{ color: "#fff" }}>지금은 전부 무료</b>입니다.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link href="/login?mode=signup" className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료로 시작하기 →</Link>
+            <Link href={SIGNUP_HREF} onClick={onSignupCta} className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료로 시작하기 →</Link>
             <Link href="/tools/certified" className="btn btn-ghost" style={{ color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.3)", textDecoration: "none" }}>내용증명 생성기</Link>
           </div>
         </div>

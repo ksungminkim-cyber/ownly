@@ -1,11 +1,12 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../context/AppContext";
 import { toast } from "./shared";
 import { seedSampleData, removeSampleData, isSampleTenant } from "../lib/sampleData";
 import { track } from "../lib/track";
 import { isRegulatedAddr } from "../lib/policies";
+import { PREFILL_ADDR_KEY } from "../lib/constants";
 
 const COLORS = ["#6366f1", "#0fa573", "#e8960a", "#0d9488", "#5b4fcf"];
 
@@ -127,6 +128,21 @@ export default function OnboardingHero() {
       setSeeding(false);
     }
   };
+
+  // /diagnose 무료 진단에서 입력한 주소가 있으면 이어받아 바로 시세 조회 (1회 소비)
+  useEffect(() => {
+    let prefill = null;
+    try { prefill = localStorage.getItem(PREFILL_ADDR_KEY); if (prefill) localStorage.removeItem(PREFILL_ADDR_KEY); } catch {}
+    if (!prefill) return;
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setAddr(prefill);
+      checkAddress(prefill);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const inputStyle = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13.5, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
   const m = checked?.market;

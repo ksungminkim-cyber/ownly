@@ -1,7 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../components/SiteFooter";
+import { PREFILL_ADDR_KEY } from "../../lib/constants";
+import { trackTool, trackToolCta } from "../../lib/track";
+
+// 가입 후 대시보드 온보딩이 이 주소를 그대로 이어받아 첫 물건 등록을 1클릭으로 줄인다
+const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
 // 공개 공실/수익 진단 페이지
 // 주소 + 월세(옵션) 입력 → MOLIT + AI 분석 → 등급(A/B/C/D) + 공유 가능한 OG 이미지 URL
@@ -21,6 +26,12 @@ export default function DiagnosePage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [report, setReport] = useState(null);
+
+  useEffect(() => { trackTool("diagnose"); }, []);
+  const onSignupCta = () => {
+    try { if (addr.trim()) localStorage.setItem(PREFILL_ADDR_KEY, addr.trim()); } catch {}
+    trackToolCta("diagnose");
+  };
 
   const submit = async () => {
     if (!addr.trim()) { setErr("주소를 입력해주세요"); return; }
@@ -81,7 +92,7 @@ export default function DiagnosePage() {
             <span style={{ fontSize: 16, fontWeight: 900, color: "#1a2744" }}>온리</span>
             <span style={{ fontSize: 11, color: "#8a8a9a" }}>| 무료 진단</span>
           </Link>
-          <Link href="/login?mode=signup" style={{ padding: "7px 14px", background: "#1a2744", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>무료 시작 →</Link>
+          <Link href={SIGNUP_HREF} onClick={onSignupCta} style={{ padding: "7px 14px", background: "#1a2744", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>무료 시작 →</Link>
         </div>
       </header>
 
@@ -189,7 +200,7 @@ export default function DiagnosePage() {
             <section style={{ background: "linear-gradient(135deg,#0fa573,#5b4fcf)", color: "#fff", borderRadius: 14, padding: "24px 26px" }}>
               <p style={{ fontSize: 17, fontWeight: 900, marginBottom: 8 }}>이 물건, 계속 관리하고 싶다면</p>
               <p style={{ fontSize: 13, opacity: 0.9, marginBottom: 16, lineHeight: 1.7 }}>무료 가입 후 물건 3개까지 수금·계약·만료 알림을 자동 관리하세요. 상세 AI 진단·실거래 평당 비교·수익률·세금 계산은 플랜 업그레이드로.</p>
-              <Link href="/login?mode=signup" style={{ display: "inline-block", padding: "11px 24px", background: "#fff", color: "#1a2744", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
+              <Link href={SIGNUP_HREF} onClick={onSignupCta} style={{ display: "inline-block", padding: "11px 24px", background: "#fff", color: "#1a2744", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
                 무료로 시작하기 →
               </Link>
             </section>

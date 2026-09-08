@@ -8,6 +8,9 @@ function NewsletterSubscription({ user }) {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [lastSent, setLastSent] = useState(null);
+  // 미납 발생 시 임대인 본인 휴대폰 문자 (newsletter_subscribers.sms_unpaid)
+  const [smsUnpaid, setSmsUnpaid] = useState(false);
+  const myPhone = user?.user_metadata?.phone || "";
 
   useEffect(() => {
     if (!user) return;
@@ -17,11 +20,30 @@ function NewsletterSubscription({ user }) {
         if (data) {
           setEnabled(!!data.weekly_digest);
           setLastSent(data.last_sent_at || null);
+          setSmsUnpaid(!!data.sms_unpaid);
         }
       } catch {}
       setLoaded(true);
     })();
   }, [user]);
+
+  const toggleSms = async () => {
+    if (!user) return;
+    if (!smsUnpaid && !myPhone) { toast("아래 임대인 정보에서 전화번호를 먼저 저장하세요", "error"); return; }
+    const next = !smsUnpaid;
+    setSmsUnpaid(next);
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("newsletter_subscribers").upsert({
+        user_id: user.id, email: user.email, sms_unpaid: next, updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      if (error) throw error;
+      toast(next ? `미납 발생 시 ${myPhone} 으로 문자를 보내드립니다` : "미납 문자 알림 해제됨");
+    } catch (e) {
+      toast("저장 실패: " + e.message, "error");
+      setSmsUnpaid(!next);
+    } finally { setSaving(false); }
+  };
 
   const sendTest = async () => {
     if (!user) return;
@@ -81,6 +103,21 @@ function NewsletterSubscription({ user }) {
           </button>
         </div>
       )}
+
+      {/* 임대인 본인 미납 문자 */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>미납 발생 시 내 휴대폰으로 문자</p>
+          <p style={{ fontSize: 11, color: "#8a8a9a", margin: "3px 0 0", lineHeight: 1.6 }}>
+            납부일이 지나도 입금이 없으면 미납 이메일과 함께 문자 1통 (3일에 한 번까지)<br/>
+            수신 번호: <b style={{ color: "var(--text)" }}>{myPhone || "미등록 — 아래 임대인 정보에서 저장"}</b>
+          </p>
+        </div>
+        <div onClick={loaded && !saving ? toggleSms : undefined}
+          style={{ width: 44, height: 24, borderRadius: 12, background: smsUnpaid ? "#1a2744" : "#d1d5db", cursor: loaded && !saving ? "pointer" : "wait", position: "relative", transition: "background .2s", flexShrink: 0, opacity: saving ? 0.6 : 1 }}>
+          <div style={{ position: "absolute", top: 3, left: smsUnpaid ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left .2s" }} />
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
+import { trackTool, trackToolCta } from "../../../lib/track";
+
+const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
 // 무료 공개 도구: 임대차계약서 생성기
 // 로그인 불필요. 표준 조항 + 추천 특약 포함 계약서 작성 + 워터마크 미리보기/인쇄.
@@ -41,6 +44,8 @@ function Field({ label, hint, ...props }) {
 const num = (v) => Number(v || 0);
 
 export default function ContractToolPage() {
+  useEffect(() => { trackTool("contract"); }, []);
+  const onSignupCta = () => trackToolCta("contract");
   const [form, setForm] = useState(initForm);
   const [selectedTerms, setSelectedTerms] = useState(["confirm", "report", "repair", "restore"]);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -257,7 +262,7 @@ export default function ContractToolPage() {
                 세입자에게는 납부 이력 포털과 납부확인서가 제공됩니다.
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Link href="/login?mode=signup" className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료 가입하고 관리 시작 →</Link>
+                <Link href={SIGNUP_HREF} onClick={onSignupCta} className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료 가입하고 관리 시작 →</Link>
                 <Link href="/tools/certified" className="btn btn-ghost" style={{ color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.3)", textDecoration: "none" }}>내용증명 생성기</Link>
               </div>
             </div>

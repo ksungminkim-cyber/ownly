@@ -1,7 +1,10 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
+import { trackTool, trackToolCta } from "../../../lib/track";
+
+const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
 // 무료 공개 도구: 월세 세액공제(월세 환급) 계산기 — 세입자 대상
 // 세입자 유입 → "임대인이 온리를 쓰면 납부확인서 즉시 발급" → 임대인 추천 루프
@@ -20,6 +23,8 @@ function Field({ label, hint, ...props }) {
 }
 
 export default function RentRefundPage() {
+  useEffect(() => { trackTool("refund"); }, []);
+  const onSignupCta = () => trackToolCta("refund");
   const [monthlyRent, setMonthlyRent] = useState("");
   const [salary, setSalary] = useState("");
 
@@ -144,7 +149,7 @@ export default function RentRefundPage() {
             집주인에게 링크 하나만 공유해보세요 — 임대인도 수금·계약 관리가 전부 무료입니다.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link href="/login?mode=signup" className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>임대인이신가요? 무료 시작 →</Link>
+            <Link href={SIGNUP_HREF} onClick={onSignupCta} className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>임대인이신가요? 무료 시작 →</Link>
             <Link href="/" className="btn btn-ghost" style={{ color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.3)", textDecoration: "none" }}>온리 소개 보기</Link>
           </div>
         </div>

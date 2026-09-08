@@ -18,6 +18,11 @@ export default function AuthPage() {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get("mode");
     if (mode === "signup" || mode === "login") setTab(mode);
+    // next 파라미터 → 소셜 로그인·이메일 인증 콜백(/auth/callback)에서도 복귀할 수 있게 보관
+    const next = params.get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      try { localStorage.setItem("ownly_next", next); } catch {}
+    }
     // 초대 코드 감지 → localStorage에 저장 (로그인 완료 후 callback에서 적용)
     const ref = params.get("ref");
     if (ref && /^[A-Z0-9]{4,12}$/i.test(ref)) {
@@ -59,6 +64,7 @@ export default function AuthPage() {
         // next 파라미터 있으면 원래 가려던 페이지로 복귀
         const nextParam = new URLSearchParams(window.location.search).get("next");
         const dest = nextParam && nextParam.startsWith("/") ? nextParam : "/dashboard";
+        try { localStorage.removeItem("ownly_next"); } catch {}
         router.push(dest);
       } else {
         // ✅ 회원가입 시 닉네임 자동 생성해서 포함

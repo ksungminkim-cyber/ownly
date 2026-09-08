@@ -9,6 +9,21 @@ export const COLORS = ["#1a2744", "#e8960a", "#e8445a", "#1e7fcb", "#5b4fcf", "#
 // 정식 유료 전환 시 false로 바꾸면 기존 플랜 게이트가 그대로 복원됩니다.
 // 실비 가드레일: AI 분석 월 30회(아래 pro.aiPricing), 알림톡 월 30건(api/kakao/send)
 export const EARLY_ACCESS_FREE = true;
+// 얼리 액세스 종료 예정일·얼리 가입자 혜택 (가격 페이지·대시보드 배너 공통 문구)
+// ⚠️ 운영 결정값 — 날짜/혜택 확정 시 이 두 값만 바꾸면 모든 화면에 반영됩니다.
+export const EARLY_ACCESS_END = "2026-12-31";
+export const EARLY_ACCESS_PERK = "정식 출시 후 플러스 플랜 12개월 50% 할인";
+// 얼리 액세스 중 내용증명 정식 발급 무료 한도 (월). 초과분은 추가 발급권(건당 결제)으로.
+export const EARLY_ACCESS_CERTIFIED_FREE = 3;
+// 내용증명 추가 발급권 1장 가격 (원)
+export const CERTIFIED_CREDIT_PRICE_KRW = 4900;
+// 무료 도구 → 가입 딥링크용 localStorage 키 (도구 페이지가 저장, 대시보드가 소비)
+export const CERTIFIED_DRAFT_KEY = "ownly_certified_draft";   // /tools/certified 초안
+export const PREFILL_ADDR_KEY = "ownly_prefill_addr";         // /diagnose 에서 입력한 주소
+export const EARLY_ACCESS_END_LABEL = (() => {
+  const d = new Date(EARLY_ACCESS_END + "T00:00:00");
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+})();
 
 // ─── 구독 플랜 정의 ───────────────────────────────────────────────
 export const PLANS = {

@@ -75,7 +75,7 @@ export default function ReferralSection() {
   };
 
   const shareNative = () => {
-    const text = `온리(Ownly) 임대 관리 플랫폼에 초대합니다! 이 링크로 가입하면 Plus 30일 무료 체험이 추가돼요:\n${inviteUrl}`;
+    const text = `온리(Ownly) 임대 관리 플랫폼에 초대합니다! 이 링크로 가입하면 내용증명 추가 발급권 2장이 바로 지급돼요:\n${inviteUrl}`;
     if (navigator.share) {
       navigator.share({ title: "온리 초대", text, url: inviteUrl }).catch(() => copyLink());
     } else {
@@ -104,9 +104,9 @@ export default function ReferralSection() {
   return (
     <div style={{ background: "linear-gradient(135deg,rgba(91,79,207,0.05),rgba(232,150,10,0.03))", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 16, padding: 22, marginBottom: 18 }}>
       <p style={{ fontSize: 12, fontWeight: 700, color: "#5b4fcf", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 4 }}>🎁 친구 초대</p>
-      <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744", marginBottom: 4 }}>초대하면 양쪽 30일 무료 체험</p>
+      <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744", marginBottom: 4 }}>초대하면 양쪽 내용증명 발급권 2장</p>
       <p style={{ fontSize: 13, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 16 }}>
-        내 링크로 친구가 가입하면 <b>친구 +30일, 나 +30일</b> Plus 체험 기간이 추가됩니다.
+        내 링크로 친구가 가입하면 <b>친구 +2장, 나 +2장</b>의 내용증명 추가 발급권이 바로 지급되고, 정식 출시 후 쓸 수 있는 Plus 30일도 함께 쌓입니다.
       </p>
 
       {/* 통계 */}
@@ -116,8 +116,9 @@ export default function ReferralSection() {
           <p style={{ fontSize: 24, fontWeight: 900, color: "#1a2744" }}>{stats.invited}<span style={{ fontSize: 13, color: "#8a8a9a", fontWeight: 700, marginLeft: 3 }}>명</span></p>
         </div>
         <div style={{ padding: "12px 14px", background: "#fff", borderRadius: 10, textAlign: "center" }}>
-          <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>획득 보너스</p>
-          <p style={{ fontSize: 24, fontWeight: 900, color: "#0fa573" }}>+{stats.rewardDays}<span style={{ fontSize: 13, color: "#8a8a9a", fontWeight: 700, marginLeft: 3 }}>일</span></p>
+          <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>획득 발급권</p>
+          <p style={{ fontSize: 24, fontWeight: 900, color: "#0fa573" }}>+{stats.invited * 2}<span style={{ fontSize: 13, color: "#8a8a9a", fontWeight: 700, marginLeft: 3 }}>장</span></p>
+          <p style={{ fontSize: 10.5, color: "#a0a0b0", marginTop: 2 }}>Plus +{stats.rewardDays}일 별도 적립</p>
         </div>
       </div>
 

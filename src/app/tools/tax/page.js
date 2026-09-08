@@ -1,7 +1,10 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
+import { trackTool, trackToolCta } from "../../../lib/track";
+
+const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 import { calcTotalHoldingTax, HOLDING_TAX_BASIS_YEAR, HOLDING_TAX_DISCLAIMER } from "../../../lib/holdingTax";
 
 // 무료 공개 도구: 보유세(재산세 + 종부세) 계산기
@@ -38,6 +41,8 @@ const fmt = (manwon) => {
 };
 
 export default function HoldingTaxToolPage() {
+  useEffect(() => { trackTool("tax"); }, []);
+  const onSignupCta = () => trackToolCta("tax");
   const [housingEok, setHousingEok] = useState("");
   const [is1Home, setIs1Home] = useState(true);
   const [is3Plus, setIs3Plus] = useState(false);
@@ -131,7 +136,7 @@ export default function HoldingTaxToolPage() {
             무료 가입하면 물건을 등록해 <b style={{ color: "#fff" }}>종합소득세 시뮬레이션·수금 현황·만료 알림</b>까지 한 곳에서 관리할 수 있습니다.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link href="/login?mode=signup" className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료 가입하고 시작 →</Link>
+            <Link href={SIGNUP_HREF} onClick={onSignupCta} className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료 가입하고 시작 →</Link>
             <Link href="/tools/yield" className="btn btn-ghost" style={{ color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.3)", textDecoration: "none" }}>수익률 계산기</Link>
           </div>
         </div>

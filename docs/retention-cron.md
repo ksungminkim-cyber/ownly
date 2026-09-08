@@ -8,6 +8,8 @@
 `GET /api/notify` — 전체 유저 순회 후 각자에게 1통씩 발송
 
 - **미납 우선**: 이번 달 미납 세입자가 있으면 미납 알림, 없으면 만료 임박(≤90일) 알림
+- **임대인 본인 문자(옵트인)**: 설정에서 "미납 발생 시 내 휴대폰으로 문자"를 켠 유저(`newsletter_subscribers.sms_unpaid`)는 미납 이메일 발송 시 프로필 전화번호로 Solapi 일반 문자 1통을 추가로 받음. 알림톡 승인 템플릿이 세입자용뿐이라 SMS/LMS 사용. `notification_logs`(type unpaid, channel sms) 기록
+- **월간 자산 리포트(매월 1일)**: 지역 실거래 중위 월세와 함께 **내 주거 물건 평균 월세 대비 %** 를 표시 (문제가 없어도 돌아올 이유를 주는 긍정 트리거)
 - **빈 메일 금지**: 조치할 게 없으면 발송하지 않음 (스팸 방지)
 - **중복 방지**: `newsletter_subscribers.last_sent_at` 이 5일 이내면 skip → 하루 여러 번 돌아도 안전
 - **opt-out 존중**: `newsletter_subscribers.weekly_digest = false` 인 유저는 제외

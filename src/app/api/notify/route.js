@@ -3,6 +3,7 @@
 // POST /api/notify  { type: "unpaid" | "expiring" | "monthly_checklist" }
 // 미납 발생 즉시, 만료 D-90/60/30, 월초 수금 체크리스트
 
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { matchPolicies } from "../../../lib/policies";
 
@@ -22,6 +23,35 @@ async function sendEmail({ to, subject, html }) {
     body: JSON.stringify({ from: FROM, to: [to], subject, html }),
   });
   return res.json();
+}
+
+// ── 임대인 본인 문자 (Solapi SMS/LMS, 길이에 따라 자동 판별) ─────────
+// 알림톡은 사전 승인 템플릿이 세입자용뿐이라, 임대인 본인에게는 일반 문자로 보낸다.
+// 설정에서 옵트인(newsletter_subscribers.sms_unpaid)한 유저 + 프로필 전화번호가 있을 때만.
+async function sendLandlordSms({ to, text }) {
+  const key = process.env.SOLAPI_API_KEY, secret = process.env.SOLAPI_API_SECRET, from = process.env.SOLAPI_FROM;
+  if (!key || !secret || !from) return { skipped: true, reason: "solapi_not_configured" };
+  const phone = String(to || "").replace(/\D/g, "");
+  if (!/^01\d{8,9}$/.test(phone)) return { skipped: true, reason: "bad_phone" };
+  const date = new Date().toISOString();
+  const salt = crypto.randomBytes(16).toString("hex");
+  const signature = crypto.createHmac("sha256", secret).update(date + salt).digest("hex");
+  const res = await fetch("https://api.solapi.com/messages/v4/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `HMAC-SHA256 apiKey=${key}, date=${date}, salt=${salt}, signature=${signature}` },
+    body: JSON.stringify({ message: { to: phone, from, text } }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.errorCode) return { sent: false, error: data.errorMessage || `HTTP ${res.status}` };
+  return { sent: true, messageId: data.messageId || data.groupId };
+}
+
+// 미납 문자 본문 — 이메일과 같은 판정(sendUnpaidNotice 내부 로직)을 재사용하기 위해 목록을 받는다
+function unpaidSmsText(month, unpaidTenants) {
+  const first = unpaidTenants[0];
+  const rest = unpaidTenants.length > 1 ? ` 외 ${unpaidTenants.length - 1}건` : "";
+  const total = unpaidTenants.reduce((s, t) => s + (Number(t.rent) || 0), 0);
+  return `[온리] ${month}월 미납 ${unpaidTenants.length}건 · 총 ${total.toLocaleString()}만원\n${first.name} ${(first.rent || 0).toLocaleString()}만원${rest}\n납부 처리·독촉: https://www.ownly.kr/dashboard/payments`;
 }
 
 function baseHtml(title, body) {
@@ -71,6 +101,7 @@ async function sendUnpaidNotice(userId, userEmail, tenants, payments) {
   });
 
   if (unpaidTenants.length === 0) return { sent: false, reason: "no_unpaid" };
+  const smsText = unpaidSmsText(month, unpaidTenants);
 
   const rows = unpaidTenants.map(t => `
     <tr style="border-bottom:1px solid #f0efe9;">
@@ -99,11 +130,12 @@ async function sendUnpaidNotice(userId, userEmail, tenants, payments) {
       미납이 지속될 경우 내용증명 발송을 고려해보세요.
     </p>`;
 
-  return sendEmail({
+  const result = await sendEmail({
     to: userEmail,
     subject: `[온리] ${month}월 미납 세입자 ${unpaidTenants.length}명 — 확인이 필요합니다`,
     html: baseHtml(`⚠️ ${month}월 미납 알림`, body),
   });
+  return { ...(result || {}), smsText }; // 크론이 옵트인 유저에게 같은 내용을 문자로도 보낼 수 있게 본문 동봉
 }
 
 // ── 만료 임박 알림 ───────────────────────────────────────────────
@@ -250,25 +282,43 @@ async function sendMonthlyReport(userId, userEmail, tenants, payments) {
   }).length;
 
   // 지역 시세 — 유니크 시군구 최대 2곳 (실패해도 리포트는 발송)
+  // 같은 시군구에 속한 내 주거 물건의 평균 월세를 지역 중위값과 비교해 "시세 대비 몇 %"를 함께 보여준다.
   const seenCodes = new Set();
   const regions = [];
+  const regionRents = {}; // code → [내 월세…]
   for (const t of active) {
-    if (regions.length >= 2) break;
+    if (regions.length >= 2) break; // 지오코딩 호출 상한 — 비교는 조회한 물건 기준
     const addr = t.address || t.addr;
     if (!addr) continue;
     const stats = await fetchRegionStats(addr);
-    if (stats && !seenCodes.has(stats.code)) { seenCodes.add(stats.code); regions.push(stats); }
+    if (!stats) continue;
+    if (!seenCodes.has(stats.code)) { seenCodes.add(stats.code); regions.push(stats); }
+    if ((t.p_type || t.pType || "주거") === "주거" && Number(t.rent) > 0) {
+      (regionRents[stats.code] ||= []).push(Number(t.rent));
+    }
+  }
+  for (const r of regions) {
+    const mine = regionRents[r.code] || [];
+    if (mine.length && r.median > 0) {
+      r.myAvg = Math.round(mine.reduce((s, v) => s + v, 0) / mine.length);
+      r.diffPct = Math.round(((r.myAvg - r.median) / r.median) * 100);
+    }
   }
 
   // 정책 매칭 상위 3건 (lib/policies — 서버에서도 동작)
   const policyMatches = matchPolicies(tenants.map(t => ({ ...t, addr: t.address || t.addr }))).slice(0, 3);
 
-  const regionRows = regions.map(r => `
+  const regionRows = regions.map(r => {
+    const cmp = typeof r.diffPct === "number"
+      ? `<br/><span style="font-size:11.5px;color:${r.diffPct >= 0 ? "#0fa573" : "#e8960a"};font-weight:700;">내 평균 ${r.myAvg}만원 · 지역 중위 대비 ${r.diffPct >= 0 ? "+" : ""}${r.diffPct}%</span>`
+      : "";
+    return `
     <tr style="border-bottom:1px solid #f0efe9;">
       <td style="padding:9px 12px;font-size:12.5px;color:#1a2744;font-weight:600;">${r.name}</td>
-      <td style="padding:9px 12px;font-size:12.5px;color:#1a2744;font-weight:700;">월세 중위 ${r.median}만원</td>
+      <td style="padding:9px 12px;font-size:12.5px;color:#1a2744;font-weight:700;">월세 중위 ${r.median}만원${cmp}</td>
       <td style="padding:9px 12px;font-size:12px;color:#8a8a9a;">최근 3개월 ${r.tx.toLocaleString()}건</td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("");
 
   const policyRows = policyMatches.map(mch => `
     <li style="margin-bottom:6px;font-size:12.5px;color:#1a2744;line-height:1.6;">
@@ -372,7 +422,7 @@ export async function GET(req) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const summary = { processed: 0, unpaidSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0 };
+  const summary = { processed: 0, unpaidSent: 0, smsSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0 };
   const dedupCutoff = new Date(Date.now() - DEDUP_DAYS * 86400000);
   const unpaidCutoff = new Date(Date.now() - UNPAID_DEDUP_DAYS * 86400000);
   const kstNow = new Date(Date.now() + 9 * 3600000);
@@ -394,7 +444,7 @@ export async function GET(req) {
         const email = u.email;
         if (!email) continue;
         try {
-          const { data: sub } = await supabase.from("newsletter_subscribers").select("weekly_digest,last_sent_at").eq("user_id", u.id).maybeSingle();
+          const { data: sub } = await supabase.from("newsletter_subscribers").select("weekly_digest,last_sent_at,sms_unpaid").eq("user_id", u.id).maybeSingle();
           if (sub && sub.weekly_digest === false) { summary.skippedOptOut++; continue; }
 
           const { data: tenants } = await supabase.from("tenants").select("*").eq("user_id", u.id);
@@ -414,6 +464,17 @@ export async function GET(req) {
               summary.unpaidSent++;
               unpaidSentNow = true;
               await supabase.from("notification_logs").insert({ user_id: u.id, type: "unpaid", channel: "email", status: "sent" });
+              // ①-b 옵트인 유저에게는 같은 내용을 본인 휴대폰 문자로도 (이메일과 같은 3일 중복 방지 주기)
+              if (sub?.sms_unpaid && result?.smsText) {
+                const phone = u.user_metadata?.phone || u.phone;
+                const sms = await sendLandlordSms({ to: phone, text: result.smsText });
+                if (sms?.sent) {
+                  summary.smsSent++;
+                  await supabase.from("notification_logs").insert({ user_id: u.id, type: "unpaid", channel: "sms", status: "sent", provider_message_id: sms.messageId || null });
+                } else if (sms?.error) {
+                  await supabase.from("notification_logs").insert({ user_id: u.id, type: "unpaid", channel: "sms", status: "failed", error_message: sms.error });
+                }
+              }
             }
           }
 

@@ -101,7 +101,14 @@ export default function AuthCallbackPage() {
         if (cancelled) return;
         track("login", { method: "callback" }); // 소셜 로그인·이메일 인증 완료
         setStatus("✅ 인증 완료! 대시보드로 이동합니다...");
-        go("/dashboard", 300);
+        // 무료 도구 등에서 넘어온 경우 원래 가려던 페이지로 복귀 (login 페이지가 보관)
+        let dest = "/dashboard";
+        try {
+          const next = localStorage.getItem("ownly_next");
+          if (next && next.startsWith("/") && !next.startsWith("//")) dest = next;
+          localStorage.removeItem("ownly_next");
+        } catch {}
+        go(dest, 300);
       } catch {
         if (cancelled) return;
         setStatus("인증 중 오류가 발생했습니다. 다시 로그인해주세요.");
