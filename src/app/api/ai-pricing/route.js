@@ -1,6 +1,41 @@
-// 개선된 AI 임대료 분석: MOLIT 실거래 데이터 선조회 → Groq 분석
+// AI 임대료 분석: MOLIT 실거래 데이터 선조회 → LLM 분석 (src/lib/llm.js — Claude 우선, Groq 폴백)
 // 상가·토지처럼 월세 실거래가 없는 유형은 매매가 기반 수익률 역산
-export const runtime = "edge";
+//
+// 한도 정책 (서버에서 강제 — 클라이언트 체크는 UX 용):
+//  - 로그인 유저(Authorization: Bearer <supabase access token>): 월 한도 = 얼리 액세스 중 서포터 60회 / 일반 30회,
+//    정식 과금 후 PLANS[plan].limits.aiPricing. 성공 시 ai_usage 에 서버가 기록.
+//  - 비로그인(/diagnose 공개 진단): IP 당 시간당 10회
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+import { createClient } from "@supabase/supabase-js";
+import { callLLM, extractJson, llmConfigured } from "../../../lib/llm";
+import { PLANS, EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../lib/constants";
+
+const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+// Bearer 토큰 → 유저 + 이번 달 AI 분석 한도/사용량
+async function resolveQuota(req) {
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  const sb = admin();
+  const { data, error } = await sb.auth.getUser(token);
+  if (error || !data?.user) return null;
+  const user = data.user;
+
+  const { data: sub } = await sb.from("subscriptions").select("plan,status,current_period_end").eq("user_id", user.id).maybeSingle();
+  const active = sub && (sub.status === "active" || sub.status === "trial") && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+  const plan = active ? (sub.plan || "free") : "free";
+  const limit = EARLY_ACCESS_FREE
+    ? (plan !== "free" ? EARLY_SUPPORTER.aiMonthly : PLANS.pro.limits.aiPricing)
+    : ((PLANS[plan] || PLANS.free).limits.aiPricing || 0);
+
+  const now = new Date();
+  const { count } = await sb.from("ai_usage").select("id", { count: "exact", head: true })
+    .eq("user_id", user.id).eq("feature", "aiPricing").eq("year", now.getFullYear()).eq("month", now.getMonth() + 1);
+  return { user, plan, limit, used: count || 0, supporter: EARLY_ACCESS_FREE && plan !== "free" };
+}
 
 const MOLIT_BASE = "http://apis.data.go.kr/1613000/";
 const MOLIT_ENDPOINTS = {
@@ -37,19 +72,18 @@ async function fetchMolitRows(type, lawdCd, numMonths = 3) {
   const baseUrl = MOLIT_ENDPOINTS[type];
   if (!key || !baseUrl || !lawdCd) return [];
   const months = last3MonthsYM().slice(0, numMonths);
-  const rows = [];
-  for (const ym of months) {
+  // 월별 조회를 병렬로 — 응답 시간 단축 (LLM 호출 전 대기 최소화)
+  const perMonth = await Promise.all(months.map(async (ym) => {
     try {
       const url = `${MOLIT_BASE}${baseUrl}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${lawdCd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=100&_type=json`;
-      const res = await fetch(url);
-      if (!res.ok) continue;
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) return [];
       const data = await res.json();
       const items = data?.response?.body?.items?.item;
-      if (Array.isArray(items)) rows.push(...items);
-      else if (items) rows.push(items);
-    } catch {}
-  }
-  return rows;
+      return Array.isArray(items) ? items : items ? [items] : [];
+    } catch { return []; }
+  }));
+  return perMonth.flat();
 }
 
 // 임대 데이터 통계 — 월세(monthlyRent) > 0인 행만 + 면적 기반 평당 월세 집계
@@ -281,16 +315,31 @@ function isRateLimited(ip) {
 
 export async function POST(req) {
   try {
-    const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
-    if (isRateLimited(ip)) {
-      return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
+    if (!llmConfigured()) return Response.json({ error: "AI 분석이 일시적으로 준비되지 않았습니다. 잠시 후 다시 시도해주세요." }, { status: 503 });
+
+    // 로그인 유저는 월 한도, 비로그인은 IP 시간당 한도
+    const quota = await resolveQuota(req);
+    if (quota) {
+      if (quota.limit <= 0) {
+        return Response.json({ error: "AI 임대료 분석은 유료 플랜 기능입니다.", code: "plan_required" }, { status: 403 });
+      }
+      if (quota.used >= quota.limit) {
+        return Response.json({
+          error: quota.supporter
+            ? `이번 달 AI 분석 ${quota.limit}회를 모두 사용했습니다. 다음 달 1일에 초기화됩니다.`
+            : `이번 달 AI 분석 ${quota.limit}회를 모두 사용했습니다. 얼리 서포터 구독 시 월 ${EARLY_SUPPORTER.aiMonthly}회로 늘어납니다.`,
+          code: "quota_exceeded", used: quota.used, limit: quota.limit,
+        }, { status: 429 });
+      }
+    } else {
+      const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
+      if (isRateLimited(ip)) {
+        return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
+      }
     }
 
     const { address, propertyType = "주거", lawdCd, myRent, areaPyeong } = await req.json();
     if (!address) return Response.json({ error: "주소를 입력해주세요." }, { status: 400 });
-
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) return Response.json({ error: "AI API 키 미설정 (GROQ_API_KEY)" }, { status: 500 });
 
     // 1. MOLIT 실거래 데이터 선조회
     let marketStats = null;
@@ -302,42 +351,27 @@ export async function POST(req) {
       }
     }
 
-    // 2. Groq 호출
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: "You are a Korean real estate pricing expert. Output ONLY valid JSON. No markdown. All rent/deposit in 만원 units. All text in Korean." },
-          { role: "user", content: buildPricingPrompt(address, propertyType, marketStats, { myRent, areaPyeong }) },
-        ],
-        temperature: 0.3,
-        max_tokens: 1500,
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    const rawText = await res.text();
-    let data;
-    try { data = JSON.parse(rawText); }
-    catch { return Response.json({ error: `Groq 파싱 실패: ${rawText.substring(0, 300)}` }, { status: 500 }); }
-
-    if (!res.ok) {
-      const errMsg = data?.error?.message || data?.error || JSON.stringify(data);
-      return Response.json({ error: "분석 오류: " + errMsg }, { status: res.status });
+    // 2. LLM 호출 (Claude 우선 → Groq 폴백)
+    let llm;
+    try {
+      llm = await callLLM({
+        system: "You are a Korean real estate pricing expert. Output ONLY valid JSON. No markdown. All rent/deposit in 만원 units. All text in Korean.",
+        user: buildPricingPrompt(address, propertyType, marketStats, { myRent, areaPyeong }),
+        json: true, maxTokens: 2500, effort: "medium", temperature: 0.3,
+      });
+    } catch (e) {
+      console.error("[ai-pricing] llm failed:", e?.message);
+      return Response.json({ error: "AI 분석 서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해주세요. (사용 횟수는 차감되지 않았습니다)" }, { status: 502 });
     }
 
-    const content = data?.choices?.[0]?.message?.content;
-    if (!content) return Response.json({ error: "AI 응답이 비어있습니다." }, { status: 500 });
-
     let result;
-    try { result = JSON.parse(content); }
-    catch {
-      const start = content.indexOf("{");
-      const end = content.lastIndexOf("}");
-      try { result = JSON.parse(content.slice(start, end + 1)); }
-      catch (e) { return Response.json({ error: `파싱 실패: ${e.message}` }, { status: 500 }); }
+    try { result = extractJson(llm.text); }
+    catch (e) {
+      console.error("[ai-pricing] parse failed:", e?.message, llm.text?.slice(0, 200));
+      return Response.json({ error: "AI 응답을 해석하지 못했습니다. 다시 시도해주세요. (사용 횟수는 차감되지 않았습니다)" }, { status: 502 });
+    }
+    if (!result || typeof result !== "object" || !result.rentRange) {
+      return Response.json({ error: "AI 응답 형식이 올바르지 않습니다. 다시 시도해주세요. (사용 횟수는 차감되지 않았습니다)" }, { status: 502 });
     }
 
     // 원 단위 자동 변환
@@ -387,6 +421,18 @@ export async function POST(req) {
           ? `📊 ${marketStats.source.split(" ")[0]} 실거래 ${marketStats.totalRows}건의 매매가를 기반으로 수익률 역산 (${propertyType} 월세 실거래 미공개)`
           : `📊 국토부 실거래 ${marketStats.totalRows}건 (유효 ${marketStats.count}건, 평균 ${marketStats.avgAreaPy}평) 분석`)
       : null;
+
+    result.engine = llm.provider;
+
+    // 3. 성공한 분석만 사용량 기록 (로그인 유저) — 실패·오류는 차감하지 않음
+    if (quota) {
+      const now = new Date();
+      const { error: usageErr } = await admin().from("ai_usage").insert({
+        user_id: quota.user.id, feature: "aiPricing", year: now.getFullYear(), month: now.getMonth() + 1, used_at: now.toISOString(),
+      });
+      if (usageErr) console.error("[ai-pricing] ai_usage insert failed:", usageErr.message);
+      result.usage = { used: quota.used + 1, limit: quota.limit };
+    }
 
     return Response.json(result);
   } catch (err) {

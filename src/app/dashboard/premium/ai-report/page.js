@@ -2,6 +2,8 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
+import { supabase } from "../../../../lib/supabase";
+import { EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../../lib/constants";
 
 const C = {
   navy: "#1a2744", navyLight: "#2d4270", purple: "#5b4fcf",
@@ -92,7 +94,7 @@ function AddressInput({ value, onChange, onSelect, error }) {
 
 export default function AIReportPage() {
   const router = useRouter();
-  const { tenants, checkAiUsage, recordAiUsage, userPlan } = useApp();
+  const { tenants, checkAiUsage, refreshAiUsage, userPlan, isSupporter } = useApp();
   // ✅ 'location' (AI 입지 분석) 탭 제거 — 실데이터 미연동으로 정확도 낮아 비활성화
   // 적정 임대료 분석(MOLIT 실거래 기반)만 운영
   const propTypes = ["주거", "상가", "오피스텔", "토지"];
@@ -109,7 +111,9 @@ export default function AIReportPage() {
     if (!pInputAddr.trim()) { setPError("주소를 입력해주세요."); return; }
     const usage = checkAiUsage("aiPricing");
     if (!usage.allowed) {
-      setPError(`이번 달 AI 임대료 분석을 ${usage.limit}회 모두 사용했습니다. 플랜을 업그레이드하세요.`);
+      setPError(EARLY_ACCESS_FREE && !isSupporter
+        ? `이번 달 AI 임대료 분석 ${usage.limit}회를 모두 사용했습니다. 얼리 서포터 구독 시 월 ${EARLY_SUPPORTER.aiMonthly}회로 늘어납니다.`
+        : `이번 달 AI 임대료 분석 ${usage.limit}회를 모두 사용했습니다. 다음 달 1일에 초기화됩니다.`);
       return;
     }
     setPLoading(true); setPLoadingStep(0); setPError(""); setPResult(null);
@@ -131,16 +135,20 @@ export default function AIReportPage() {
 
       // 2단계: 실거래가 기반 AI 분석
       setPLoadingStep(1);
+      // 서버가 토큰으로 본인·월 한도를 검증하고, 성공한 분석만 사용량에 기록한다
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) throw new Error("세션이 만료되었습니다. 다시 로그인해주세요.");
       const res = await fetch("/api/ai-pricing", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ address: pInputAddr.trim(), propertyType: pPropType, lawdCd }),
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      const data = await res.json().catch(() => ({ error: `서버 오류 (${res.status})` }));
+      if (!res.ok || data.error) throw new Error(data.error || `서버 오류 (${res.status})`);
       setPLoadingStep(2);
       setPResult(data);
-      await recordAiUsage("aiPricing");
+      await refreshAiUsage();
     } catch (e) {
       setPError(e.message || "분석 중 오류가 발생했습니다.");
     }
