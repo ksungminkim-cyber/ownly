@@ -37,25 +37,10 @@ async function resolveQuota(req) {
   return { user, plan, limit, used: count || 0, supporter: EARLY_ACCESS_FREE && plan !== "free" };
 }
 
-const MOLIT_BASE = "http://apis.data.go.kr/1613000/";
-const MOLIT_ENDPOINTS = {
-  apt_rent:    "RTMSDataSvcAptRent/getRTMSDataSvcAptRent",
-  apt_trade:   "RTMSDataSvcAptTrade/getRTMSDataSvcAptTradeDev",
-  villa_rent:  "RTMSDataSvcRHRent/getRTMSDataSvcRHRent",
-  villa_trade: "RTMSDataSvcRHTrade/getRTMSDataSvcRHTrade",
-  offi_rent:   "RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent",
-  offi_trade:  "RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade",
-  house_rent:  "RTMSDataSvcSHRent/getRTMSDataSvcSHRent",
-  house_trade: "RTMSDataSvcSHTrade/getRTMSDataSvcSHTrade",
-  nrg_trade:   "RTMSDataSvcNrgTrade/getRTMSDataSvcNrgTrade",
-  land_trade:  "RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade",
-};
-
-function getMolitKey(type) {
-  const fallback = process.env.MOLIT_SERVICE_KEY;
-  const envVar = `MOLIT_${type.toUpperCase()}_KEY`;
-  return process.env[envVar] || fallback;
-}
+// MOLIT 접근은 검증된 내부 프록시(/api/market/molit — XML 파싱·키 관리 단일 지점)를 통해서만 한다.
+// 직접 호출 시 응답 포맷(JSON/XML) 차이로 실거래가 누락되던 문제를 없애기 위함.
+const SITE_BASE = process.env.SITE_URL || "https://www.ownly.kr";
+const MOLIT_TYPES = new Set(["apt_rent", "apt_trade", "villa_rent", "villa_trade", "offi_rent", "offi_trade", "house_rent", "house_trade", "nrg_trade", "land_trade"]);
 
 function last3MonthsYM() {
   const now = new Date();
@@ -67,56 +52,44 @@ function last3MonthsYM() {
   return out;
 }
 
-async function fetchMolitRows(type, lawdCd, numMonths = 3) {
-  const key = getMolitKey(type);
-  const baseUrl = MOLIT_ENDPOINTS[type];
-  if (!key || !baseUrl || !lawdCd) return [];
+async function fetchMolitRows(type, lawdCd, base = SITE_BASE, numMonths = 3) {
+  if (!MOLIT_TYPES.has(type) || !lawdCd) return [];
   const months = last3MonthsYM().slice(0, numMonths);
   // 월별 조회를 병렬로 — 응답 시간 단축 (LLM 호출 전 대기 최소화)
   const perMonth = await Promise.all(months.map(async (ym) => {
     try {
-      const url = `${MOLIT_BASE}${baseUrl}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${lawdCd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=100&_type=json`;
+      const url = `${base}/api/market/molit?type=${type}&lawdCd=${encodeURIComponent(lawdCd)}&dealYm=${ym}&numOfRows=100`;
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) return [];
-      const text = await res.text();
-      // MOLIT 은 _type=json 을 무시하고 XML 로 응답하는 경우가 많다 → JSON 시도 후 XML 파싱 (market/molit 프록시와 동일 방식)
-      try {
-        const data = JSON.parse(text);
-        const items = data?.response?.body?.items?.item;
-        return Array.isArray(items) ? items : items ? [items] : [];
-      } catch {
-        const out = [];
-        for (const m of text.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
-          const obj = {};
-          for (const [, k, v] of m[1].matchAll(/<(\w+)>\s*([\s\S]*?)\s*<\/\1>/g)) obj[k] = v.trim();
-          out.push(obj);
-        }
-        return out;
-      }
-    } catch (e) { console.warn("[ai-pricing] MOLIT fetch failed:", type, ym, e?.message); return []; }
+      const data = await res.json();
+      return Array.isArray(data?.items) ? data.items : [];
+    } catch (e) { console.warn("[ai-pricing] MOLIT proxy failed:", type, ym, e?.message); return []; }
   }));
   return perMonth.flat();
 }
 
 // 임대 데이터 통계 — 월세(monthlyRent) > 0인 행만 + 면적 기반 평당 월세 집계
+// MOLIT 숫자 필드는 "57,700" 처럼 천 단위 콤마가 포함됨 → 콤마 제거 후 숫자화 (아니면 NaN 으로 전부 탈락)
+const num = (v) => Number(String(v ?? 0).replace(/,/g, "").trim()) || 0;
+
 function analyzeRentRows(rows) {
   // 면적 읽기 유틸 (MOLIT: excluUseAr = 전용면적㎡, totalFloorAr = 단독주택 연면적)
-  const areaSqm = (r) => Number(String(r.excluUseAr || r.totalFloorAr || r.bldArea || 0).replace(/,/g, "").trim());
+  const areaSqm = (r) => num(r.excluUseAr || r.totalFloorAr || r.bldArea || 0);
   const toPyeong = (sqm) => sqm > 0 ? Math.round(sqm / 3.3058 * 10) / 10 : 0;
 
-  const monthly = rows.map(r => Number(r.monthlyRent || 0)).filter(v => v > 0).sort((a, b) => a - b);
+  const monthly = rows.map(r => num(r.monthlyRent)).filter(v => v > 0).sort((a, b) => a - b);
   if (monthly.length === 0) return null;
   const median = monthly[Math.floor(monthly.length / 2)];
   const avg = Math.round(monthly.reduce((s, v) => s + v, 0) / monthly.length);
   const p25 = monthly[Math.floor(monthly.length * 0.25)];
   const p75 = monthly[Math.floor(monthly.length * 0.75)];
 
-  const deposits = rows.map(r => Number(r.deposit || 0)).filter(v => v > 0).sort((a, b) => a - b);
+  const deposits = rows.filter(r => num(r.monthlyRent) > 0).map(r => num(r.deposit)).filter(v => v > 0).sort((a, b) => a - b);
   const medDep = deposits.length > 0 ? deposits[Math.floor(deposits.length / 2)] : 0;
 
   // 평당 월세 — 월세·면적 모두 유효한 행만 사용
   const rentPerPyList = rows
-    .map(r => ({ rent: Number(r.monthlyRent || 0), py: toPyeong(areaSqm(r)) }))
+    .map(r => ({ rent: num(r.monthlyRent), py: toPyeong(areaSqm(r)) }))
     .filter(x => x.rent > 0 && x.py > 0)
     .map(x => x.rent / x.py);
   const avgRentPerPy = rentPerPyList.length > 0
@@ -130,12 +103,12 @@ function analyzeRentRows(rows) {
 
   // 샘플 comparables — 실제 MOLIT 3건 골라서 반환 (면적·월세·보증금 포함)
   const samples = rows
-    .filter(r => Number(r.monthlyRent || 0) > 0 && areaSqm(r) > 0)
+    .filter(r => num(r.monthlyRent) > 0 && areaSqm(r) > 0)
     .slice(0, 3)
     .map(r => ({
-      type: `${r.aptName || r.houseType || r.offiNm || "인근 실거래"}${r.floor ? ` ${r.floor}층` : ""}`,
-      rent: Number(r.monthlyRent),
-      deposit: Number(r.deposit || 0),
+      type: `${r.aptNm || r.aptName || r.mhouseNm || r.houseType || r.offiNm || "인근 실거래"}${r.floor ? ` ${r.floor}층` : ""}`,
+      rent: num(r.monthlyRent),
+      deposit: num(r.deposit),
       areaPyeong: toPyeong(areaSqm(r)),
       note: `${r.dealYear || ""}.${String(r.dealMonth || "").padStart(2, "0")} 실거래 · ${r.buildYear ? `${r.buildYear}년 준공` : ""}`.trim(),
     }));
@@ -201,31 +174,31 @@ function analyzeTradeRows(rows, propertyType) {
 }
 
 // 유형별 MOLIT 데이터 집계
-async function fetchMarketData(propertyType, lawdCd) {
+async function fetchMarketData(propertyType, lawdCd, base) {
   if (propertyType === "주거") {
     // 아파트 + 빌라 + 단독 임대 합산
     const [apt, villa, house] = await Promise.all([
-      fetchMolitRows("apt_rent", lawdCd),
-      fetchMolitRows("villa_rent", lawdCd),
-      fetchMolitRows("house_rent", lawdCd),
+      fetchMolitRows("apt_rent", lawdCd, base),
+      fetchMolitRows("villa_rent", lawdCd, base),
+      fetchMolitRows("house_rent", lawdCd, base),
     ]);
     const all = [...apt, ...villa, ...house];
     const stats = analyzeRentRows(all);
     return stats ? { ...stats, source: "apt+villa+house rent", hasRealData: true } : null;
   }
   if (propertyType === "오피스텔") {
-    const rows = await fetchMolitRows("offi_rent", lawdCd);
+    const rows = await fetchMolitRows("offi_rent", lawdCd, base);
     const stats = analyzeRentRows(rows);
     return stats ? { ...stats, source: "offi_rent", hasRealData: true } : null;
   }
   if (propertyType === "상가") {
     // 월세 데이터 없음 → 상업·업무용 매매가 기반 역산
-    const rows = await fetchMolitRows("nrg_trade", lawdCd);
+    const rows = await fetchMolitRows("nrg_trade", lawdCd, base);
     const stats = analyzeTradeRows(rows, "상가");
     return stats ? { ...stats, source: "nrg_trade (sales→rent estimate)", hasRealData: true } : null;
   }
   if (propertyType === "토지") {
-    const rows = await fetchMolitRows("land_trade", lawdCd);
+    const rows = await fetchMolitRows("land_trade", lawdCd, base);
     const stats = analyzeTradeRows(rows, "토지");
     return stats ? { ...stats, source: "land_trade (sales→rent estimate)", hasRealData: true } : null;
   }
@@ -352,12 +325,15 @@ export async function POST(req) {
 
     const { address, propertyType = "주거", lawdCd, myRent, areaPyeong } = await req.json();
     if (!address) return Response.json({ error: "주소를 입력해주세요." }, { status: 400 });
+    // 내부 MOLIT 프록시 호출용 베이스 — 현재 배포 호스트 우선 (프리뷰·로컬에서도 동작)
+    const host = req.headers.get("host") || "";
+    const reqBase = host ? `${host.includes("localhost") ? "http" : "https"}://${host}` : SITE_BASE;
 
     // 1. MOLIT 실거래 데이터 선조회
     let marketStats = null;
     if (lawdCd) {
       try {
-        marketStats = await fetchMarketData(propertyType, lawdCd);
+        marketStats = await fetchMarketData(propertyType, lawdCd, reqBase);
       } catch (e) {
         console.warn("MOLIT fetch 실패:", e.message);
       }
