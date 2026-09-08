@@ -1,20 +1,23 @@
 // 카카오페이 단건 결제 — 내용증명 추가 발급권 구매 준비 (1단계)
 // POST { qty } → next_redirect_*_url 응답 → 카카오 인증 → /dashboard/certified?credit_order=...&pg_token=...
 //
-// ⚠️ 단건 결제 CID 는 정기결제 CID(CT75680604) 와 별개로 발급됩니다.
-//    KAKAOPAY_ONETIME_CID 미설정 시 정기 CID 로 폴백하지만, 실결제 전 파트너어드민에서 단건 CID 를 확인하세요.
 
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { KAKAOPAY_BASE, KAKAOPAY_SECRET, authHeaders, adminClient, userClientFrom, fmtKakaoError } from "../../_helpers";
 import { CERTIFIED_CREDIT_PRICE_KRW } from "../../../../../../lib/constants";
 
-const ONETIME_CID = process.env.KAKAOPAY_ONETIME_CID || process.env.KAKAOPAY_CID || "CT75680604";
+// ⚠️ 정기결제 CID(CT75680604)로 폴백하지 않는다 — 정기 CID 는 결제창에 정기결제 동의가 뜨고 빌링키가 발급되어 단건 구매에 부적합
+const ONETIME_CID = process.env.KAKAOPAY_ONETIME_CID || "";
 const ALLOWED_QTY = [1, 3, 5];
 
 export async function POST(req) {
   if (!KAKAOPAY_SECRET) {
     return NextResponse.json({ error: "KAKAOPAY_SECRET_KEY 환경변수가 설정되지 않았습니다" }, { status: 500 });
+  }
+  if (!ONETIME_CID) {
+    // 단건결제 가맹 추가 전 — 사용자에게는 준비 중으로 안내
+    return NextResponse.json({ error: "추가 발급권 결제는 준비 중입니다. 곧 열립니다 — 그동안 필요한 건은 inquiry@mclean21.com 으로 문의해 주세요." }, { status: 503 });
   }
 
   const userClient = userClientFrom(req);

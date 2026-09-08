@@ -5,11 +5,15 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { KAKAOPAY_BASE, KAKAOPAY_SECRET, authHeaders, adminClient, userClientFrom, fmtKakaoError } from "../../_helpers";
 
-const ONETIME_CID = process.env.KAKAOPAY_ONETIME_CID || process.env.KAKAOPAY_CID || "CT75680604";
+// ⚠️ 정기결제 CID(CT75680604)로 폴백하지 않는다 — 정기 CID 는 결제창에 정기결제 동의가 뜨고 빌링키가 발급되어 단건 구매에 부적합
+const ONETIME_CID = process.env.KAKAOPAY_ONETIME_CID || "";
 
 export async function POST(req) {
   if (!KAKAOPAY_SECRET) {
     return NextResponse.json({ error: "KAKAOPAY_SECRET_KEY 환경변수가 설정되지 않았습니다" }, { status: 500 });
+  }
+  if (!ONETIME_CID) {
+    return NextResponse.json({ error: "단건결제 CID(KAKAOPAY_ONETIME_CID)가 설정되지 않았습니다" }, { status: 503 });
   }
 
   const userClient = userClientFrom(req);
