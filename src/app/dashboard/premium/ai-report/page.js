@@ -168,6 +168,11 @@ export default function AIReportPage() {
               <span style={{ fontSize: 10, fontWeight: 800, color: C.purple, background: "rgba(91,79,207,0.1)", padding: "3px 8px", borderRadius: 6 }}>PRO</span>
             </div>
             <p style={{ fontSize: 13, color: C.muted }}>국토부 실거래 데이터 기반으로 적정 임대료 범위와 시장 포지션을 AI가 분석합니다</p>
+            {(() => { const u = checkAiUsage("aiPricing"); return isFinite(u.limit) ? (
+              <p style={{ fontSize: 12, color: u.allowed ? C.muted : C.rose, marginTop: 4 }}>
+                이번 달 <b style={{ color: u.allowed ? C.navy : C.rose }}>{u.used}/{u.limit}회</b> 사용{EARLY_ACCESS_FREE && isSupporter && " · 얼리 서포터 한도"}{EARLY_ACCESS_FREE && !isSupporter && ` · 얼리 서포터는 월 ${EARLY_SUPPORTER.aiMonthly}회`}
+              </p>
+            ) : null; })()}
           </div>
         </div>
 
