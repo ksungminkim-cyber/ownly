@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { EARLY_ACCESS_END_LABEL, EARLY_ACCESS_PERK, EARLY_ACCESS_CERTIFIED_FREE, CERTIFIED_CREDIT_PRICE_KRW } from "../../lib/constants";
+import { EARLY_ACCESS_END_LABEL, EARLY_ACCESS_PERK, EARLY_ACCESS_CERTIFIED_FREE, EARLY_SUPPORTER } from "../../lib/constants";
 
 const PLANS = [
   {
@@ -78,7 +78,7 @@ const PLANS = [
 const FAQ = [
   {
     q: "정말 전부 무료인가요?",
-    a: `네. 얼리 액세스 기간(${EARLY_ACCESS_END_LABEL}까지 예정)에는 프로 플랜 기능 전체를 무료로 사용할 수 있습니다. 실비가 발생하는 카카오 알림톡(월 30건)·AI 분석(월 30회)·내용증명 정식 발급(월 ${EARLY_ACCESS_CERTIFIED_FREE}건, 추가는 1건 ${CERTIFIED_CREDIT_PRICE_KRW.toLocaleString()}원)만 한도가 있습니다. 유료 전환 시 최소 30일 전에 이메일로 안내드리며, 얼리 액세스 기간에 가입한 분께는 ${EARLY_ACCESS_PERK} 혜택을 드립니다.`,
+    a: `네. 얼리 액세스 기간(${EARLY_ACCESS_END_LABEL}까지 예정)에는 프로 플랜 기능 전체를 무료로 사용할 수 있습니다. 실비가 발생하는 카카오 알림톡(월 30건)·AI 분석(월 30회)·내용증명 정식 발급(월 ${EARLY_ACCESS_CERTIFIED_FREE}건)만 한도가 있습니다. 한도 없이 쓰고 싶다면 얼리 서포터(플러스 플랜 월 ${EARLY_SUPPORTER.price.toLocaleString()}원, ${EARLY_SUPPORTER.lockMonths}개월 가격 고정)로 구독할 수 있고, 유료 전환 시 최소 30일 전에 이메일로 안내드립니다.`,
   },
   {
     q: "무료 플랜은 정말 영구 무료인가요?",

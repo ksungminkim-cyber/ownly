@@ -1,14 +1,13 @@
 ﻿"use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { SectionLabel, EmptyState, Modal, toast } from "../../../components/shared";
-import { C, CERTIFIED_CREDIT_PRICE_KRW, CERTIFIED_DRAFT_KEY } from "../../../lib/constants";
+import { C, CERTIFIED_DRAFT_KEY, EARLY_SUPPORTER, EARLY_ACCESS_FREE } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 import { supabase } from "../../../lib/supabase";
 import PlanGate from "../../../components/PlanGate";
 import { REASON_TEMPLATES } from "../../../lib/certifiedTemplates";
 import { track } from "../../../lib/track";
-
-const CREDIT_QTY_OPTIONS = [1, 3, 5];
 
 // 내용증명 발송 상태
 const STATUS_META = {
@@ -36,7 +35,8 @@ function FormInput({ label, ...props }) {
 }
 
 function CertifiedContent() {
-  const { tenants, user, getPlanLimit } = useApp();
+  const router = useRouter();
+  const { tenants, user, getPlanLimit, isSupporter } = useApp();
   const [history, setHistory]       = useState([]);
   const [loading, setLoading]       = useState(true);
   const [saving, setSaving]         = useState(false);
@@ -47,10 +47,10 @@ function CertifiedContent() {
   const [trackingTarget, setTrackingTarget] = useState(null);
   const [trackingInput, setTrackingInput] = useState("");
   const [postMethodInput, setPostMethodInput] = useState("postal");
-  // 추가 발급권(건당 결제) — 월 무료 한도 초과분에 사용
+  // 보너스 발급권(친구 초대 보상, certified_credits) — 월 무료 한도 초과분에 사용
   const [credits, setCredits] = useState(0);
-  const [showBuy, setShowBuy] = useState(false);
-  const [buying, setBuying] = useState(false);
+  // 한도 소진 시 얼리 서포터 안내
+  const [showUpsell, setShowUpsell] = useState(false);
 
   // 폼 상태
   const initForm = () => ({
@@ -128,7 +128,7 @@ function CertifiedContent() {
   };
   useEffect(() => { if (user) loadCredits(user.id); }, [user]);
 
-  // URL 파라미터 처리 (1회) — ① 무료 도구 초안 이어받기 ② 카카오페이 발급권 결제 승인
+  // URL 파라미터 처리 (1회) — 무료 도구 초안 이어받기
   useEffect(() => {
     if (!user) return;
     const params = new URLSearchParams(window.location.search);
@@ -151,54 +151,10 @@ function CertifiedContent() {
       }
     }
 
-    const order = params.get("credit_order");
-    const pgToken = params.get("pg_token");
-    if (order && pgToken) {
-      cleanUrl();
-      (async () => {
-        try {
-          const { data: s } = await supabase.auth.getSession();
-          const res = await fetch("/api/billing/kakao/credit/approve", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${s?.session?.access_token || ""}` },
-            body: JSON.stringify({ pg_token: pgToken, orderId: order }),
-          });
-          const d = await res.json();
-          if (cancelled) return;
-          if (!res.ok || d.error) throw new Error(d.error || "결제 승인 실패");
-          setCredits(d.balance ?? 0);
-          if (!d.alreadyPaid) { track("credit_purchased", { qty: d.qty, amount: d.amount }); toast(`추가 발급권 ${d.qty}장이 적립됐어요 (보유 ${d.balance}장)`); }
-        } catch (e) {
-          if (!cancelled) toast("발급권 결제 승인 실패: " + e.message, "error");
-        }
-      })();
-    } else if (params.get("credit_failed") || params.get("credit_cancelled")) {
-      cleanUrl();
-      Promise.resolve().then(() => { if (!cancelled) toast(params.get("credit_failed") ? "결제가 실패했습니다. 다시 시도해주세요." : "결제가 취소되었습니다.", "warning"); });
-    }
     return () => { cancelled = true; };
   }, [user]);
 
-  // 발급권 구매 → 카카오페이 결제창으로 이동
-  const buyCredits = async (qty) => {
-    setBuying(true);
-    try {
-      const { data: s } = await supabase.auth.getSession();
-      const res = await fetch("/api/billing/kakao/credit/ready", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${s?.session?.access_token || ""}` },
-        body: JSON.stringify({ qty }),
-      });
-      const d = await res.json();
-      if (!res.ok || d.error) throw new Error(d.error || "결제 준비 실패");
-      track("pay_click", { plan: "credit", qty });
-      const isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
-      window.location.href = isMobile ? (d.next_redirect_mobile_url || d.next_redirect_pc_url) : d.next_redirect_pc_url;
-    } catch (e) {
-      toast("결제 준비 실패: " + e.message, "error");
-      setBuying(false);
-    }
-  };
+  const goSupporter = () => { track("upsell_click", { from: "certified" }); router.push(`/dashboard/checkout/${EARLY_SUPPORTER.planId}`); };
 
   const monthLimit = getPlanLimit("certified");
   const monthUsed = history.filter(x => (x.created_at || "").slice(0, 7) === new Date().toISOString().slice(0, 7)).length;
@@ -216,10 +172,10 @@ function CertifiedContent() {
 
   const save = async () => {
     if (!form.receiverName.trim()) { toast("수신인(세입자) 이름을 입력하세요", "error"); return; }
-    // 플랜별 월 작성 한도 강제 — 초과 시 추가 발급권 1장 차감, 발급권도 없으면 구매 안내
+    // 플랜별 월 작성 한도 강제 — 초과 시 보너스 발급권 1장 차감, 없으면 얼리 서포터 안내 (서포터는 한도 없음)
     let viaCredit = false;
     if (!editTarget && hasMonthLimit && monthUsed >= monthLimit) {
-      if (credits <= 0) { setShowBuy(true); return; }
+      if (credits <= 0) { setShowUpsell(true); return; }
       const { data: left, error: rpcErr } = await supabase.rpc("consume_certified_credit");
       if (rpcErr) { toast(rpcErr.message?.includes("no_credit") ? "발급권이 없습니다" : "발급권 차감 실패: " + rpcErr.message, "error"); return; }
       setCredits(typeof left === "number" ? left : Math.max(0, credits - 1));
@@ -336,9 +292,12 @@ function CertifiedContent() {
           <h1 style={{ fontSize:24, fontWeight:800, color:"#1a2744" }}>내용증명</h1>
           <p style={{ fontSize:13, color:"#8a8a9a", marginTop:3 }}>
             총 {history.length}건 저장
-            {hasMonthLimit && <> · 이번 달 무료 <b style={{ color: monthUsed >= monthLimit ? C.rose : "#1a2744" }}>{Math.min(monthUsed, monthLimit)}/{monthLimit}건</b></>}
-            {" · "}추가 발급권 <b style={{ color:"#1a2744" }}>{credits}장</b>
-            <button onClick={() => setShowBuy(true)} style={{ marginLeft:8, padding:"2px 9px", borderRadius:6, border:`1px solid ${C.indigo}40`, background:"transparent", color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer" }}>구매</button>
+            {isSupporter && EARLY_ACCESS_FREE
+              ? <> · <span className="chip chip-success" style={{ fontSize:11 }}>얼리 서포터 · 발급 무제한</span></>
+              : hasMonthLimit && <> · 이번 달 무료 <b style={{ color: monthUsed >= monthLimit ? C.rose : "#1a2744" }}>{Math.min(monthUsed, monthLimit)}/{monthLimit}건</b>
+                  {credits > 0 && <> · 보너스 발급권 <b style={{ color:"#1a2744" }}>{credits}장</b></>}
+                  {EARLY_ACCESS_FREE && <button onClick={goSupporter} style={{ marginLeft:8, padding:"2px 9px", borderRadius:6, border:`1px solid ${C.indigo}40`, background:"transparent", color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer" }}>무제한으로 →</button>}
+                </>}
           </p>
         </div>
         <button onClick={openCreate} style={{ padding:"10px 20px", borderRadius:11, background:`linear-gradient(135deg,${C.indigo},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
@@ -346,29 +305,25 @@ function CertifiedContent() {
         </button>
       </div>
 
-      {/* 추가 발급권 구매 — 카카오페이 단건 결제 */}
-      {showBuy && (
-        <Modal open={showBuy} onClose={() => !buying && setShowBuy(false)}>
+      {/* 월 무료 한도 소진 — 얼리 서포터 안내 (정기결제, 기존 카카오페이 CID) */}
+      {showUpsell && (
+        <Modal open={showUpsell} onClose={() => setShowUpsell(false)}>
           <div style={{ padding:"4px 0" }}>
-            <h2 style={{ fontSize:18, fontWeight:800, color:"#1a2744", marginBottom:6 }}>내용증명 추가 발급권</h2>
-            <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:16 }}>
-              {hasMonthLimit && monthUsed >= monthLimit
-                ? <>이번 달 무료 {monthLimit}건을 모두 사용했어요. </>
-                : <>무료 한도를 넘겨도 계속 발급할 수 있도록 미리 담아둘 수 있어요. </>}
-              발급권은 소멸되지 않으며, 1장당 정식 PDF 1건을 발급합니다.
+            <h2 style={{ fontSize:18, fontWeight:800, color:"#1a2744", marginBottom:6 }}>이번 달 무료 {monthLimit}건을 모두 사용했어요</h2>
+            <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:14 }}>
+              얼리 서포터로 구독하면 내용증명을 <b style={{ color:"#1a2744" }}>제한 없이</b> 발급하고, 알림톡 월 {EARLY_SUPPORTER.kakaoMonthly}건·AI 분석 월 {EARLY_SUPPORTER.aiMonthly}회로 한도가 늘어납니다.
+              플러스 플랜 정식가의 50%인 <b style={{ color:"#1a2744" }}>월 {EARLY_SUPPORTER.price.toLocaleString()}원</b>이 {EARLY_SUPPORTER.lockMonths}개월 동안 고정됩니다.
             </p>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:14 }}>
-              {CREDIT_QTY_OPTIONS.map(q => (
-                <button key={q} onClick={() => buyCredits(q)} disabled={buying}
-                  style={{ padding:"14px 8px", borderRadius:12, border:`1.5px solid ${q === 3 ? C.indigo : "#ebe9e3"}`, background: q === 3 ? C.indigo + "0d" : "#fff", cursor:"pointer", opacity: buying ? .6 : 1 }}>
-                  <p style={{ fontSize:15, fontWeight:900, color:"#1a2744", marginBottom:2 }}>{q}장</p>
-                  <p className="num" style={{ fontSize:12, color:C.muted }}>{(CERTIFIED_CREDIT_PRICE_KRW * q).toLocaleString()}원</p>
-                </button>
-              ))}
+            <div style={{ background:"#f8f7f4", borderRadius:12, padding:"12px 14px", marginBottom:14, fontSize:12, color:"#6a6a7a", lineHeight:1.8 }}>
+              <div><s style={{ color:"#a0a0b0" }}>월 {EARLY_SUPPORTER.listPrice.toLocaleString()}원</s> → <b style={{ color:"#1a2744", fontSize:15 }}>월 {EARLY_SUPPORTER.price.toLocaleString()}원</b> · 언제든 해지</div>
+              <div>친구를 초대하면 보너스 발급권 2장도 바로 받을 수 있어요 (설정 → 친구 초대)</div>
             </div>
-            <p style={{ fontSize:11, color:"#a0a0b0", lineHeight:1.6, marginBottom:12 }}>카카오페이로 결제됩니다 · 부가세 포함 · 미사용 발급권은 결제일로부터 7일 이내 전액 환불 (inquiry@mclean21.com)</p>
-            <button onClick={() => setShowBuy(false)} disabled={buying}
-              style={{ width:"100%", padding:"11px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>닫기</button>
+            <div style={{ display:"flex", gap:10 }}>
+              <button onClick={() => setShowUpsell(false)}
+                style={{ flex:1, padding:"12px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>다음 달에</button>
+              <button onClick={goSupporter}
+                style={{ flex:2, padding:"12px", borderRadius:11, background:`linear-gradient(135deg,${C.navy},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>얼리 서포터로 무제한 발급 →</button>
+            </div>
           </div>
         </Modal>
       )}

@@ -11,7 +11,7 @@
 
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { KAKAOPAY_BASE, KAKAOPAY_CID, KAKAOPAY_SECRET, authHeaders, adminClient, PLAN_PRICE_KRW, PLAN_NAME, fmtKakaoError, nextMonthlyDate } from "../_helpers";
+import { KAKAOPAY_BASE, KAKAOPAY_CID, KAKAOPAY_SECRET, authHeaders, adminClient, PLAN_PRICE_KRW, fmtKakaoError, cycleAmount, itemNameFor, nextPeriodDate } from "../_helpers";
 
 const RENEWAL_TOKEN = process.env.BILLING_RENEWAL_TOKEN || "";
 
@@ -65,8 +65,12 @@ async function handle(req, body) {
   const results = [];
   for (const sub of subs || []) {
     const planId = sub.plan;
-    const amount = PLAN_PRICE_KRW[planId];
-    if (!amount) { results.push({ user_id: sub.user_id, skipped: "unknown plan" }); continue; }
+    if (!PLAN_PRICE_KRW[planId]) { results.push({ user_id: sub.user_id, skipped: "unknown plan" }); continue; }
+    // 얼리 서포터 가격 고정: price_locked_until 전까지 monthly_amount, 이후 정식가. 결제 주기(연간/월간)도 구독 레코드 기준
+    const cycle = sub.billing_cycle === "annual" ? "annual" : "monthly";
+    const locked = sub.price_locked_until && new Date(sub.price_locked_until) > now;
+    const monthly = locked && sub.monthly_amount ? sub.monthly_amount : PLAN_PRICE_KRW[planId];
+    const amount = cycleAmount(monthly, cycle);
     const orderId = `ownly_renew_${planId}_${sub.user_id.slice(0,8)}_${Date.now()}`;
 
     try {
@@ -78,7 +82,7 @@ async function handle(req, body) {
           sid: sub.kakao_sid,
           partner_order_id: orderId,
           partner_user_id: sub.user_id,
-          item_name: PLAN_NAME[planId] + " (자동결제)",
+          item_name: itemNameFor(planId, cycle) + " (자동결제)",
           quantity: 1,
           total_amount: amount,
           tax_free_amount: 0,
@@ -108,10 +112,11 @@ async function handle(req, body) {
         continue;
       }
 
-      // 성공: 다음 결제 예정 갱신
-      const next = nextMonthlyDate(now);
+      // 성공: 다음 결제 예정 갱신 (주기별). 가격 고정이 끝났으면 정식가로 기록
+      const next = nextPeriodDate(cycle, now);
       await admin.from("subscriptions").update({
         status: "active",
+        monthly_amount: monthly,
         current_period_end: next.toISOString(),
         next_payment_at: next.toISOString(),
         last_payment_at: new Date().toISOString(),

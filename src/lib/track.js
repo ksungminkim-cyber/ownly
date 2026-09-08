@@ -12,8 +12,8 @@ import { supabase } from "./supabase";
  * 주요 이벤트: login / dashboard_view(일 1회) / property_added / sample_seeded /
  *             checkout_view / pay_click / signup_source(유저당 1회, 유입 경로) /
  *             tool_view / tool_cta_click(익명 가능) /
- *             certified_issued / portal_link_copied / sms_parse_used / credit_purchased /
- *             interest_registered / checklist_done
+ *             certified_issued / portal_link_copied / sms_parse_used / upsell_click /
+ *             checklist_done
  */
 
 const ATTR_KEY = "ownly_attr";

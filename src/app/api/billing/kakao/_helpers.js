@@ -3,6 +3,7 @@
 // 공식 가이드: https://developers.kakaopay.com/docs/payment/online/common
 
 import { createClient } from "@supabase/supabase-js";
+import { EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../../lib/constants";
 
 export const KAKAOPAY_BASE = "https://open-api.kakaopay.com";
 export const KAKAOPAY_CID = process.env.KAKAOPAY_CID || "CT75680604";
@@ -43,6 +44,26 @@ export const PLAN_NAME = {
   plus: "온리 플러스 월 구독",
   pro: "온리 프로 월 구독",
 };
+
+// 얼리 서포터 — 얼리 액세스 기간의 플러스 플랜은 50% 가격(월 9,900원)으로 결제되고 12개월 고정
+export function isSupporterOffer(planId) {
+  return EARLY_ACCESS_FREE && planId === EARLY_SUPPORTER.planId;
+}
+// 이번 주기에 청구할 금액. monthly 기준가 → 연간이면 12개월 20% 할인
+export function cycleAmount(monthly, cycle) {
+  return cycle === "annual" ? Math.round(monthly * 12 * 0.8) : monthly;
+}
+export function itemNameFor(planId, cycle) {
+  const base = isSupporterOffer(planId) ? "온리 플러스 얼리 서포터 구독" : PLAN_NAME[planId];
+  return base + (cycle === "annual" ? " (연간)" : "");
+}
+// 다음 결제 예정일 — 주기별
+export function nextPeriodDate(cycle, from = new Date()) {
+  const d = new Date(from);
+  if (cycle === "annual") d.setFullYear(d.getFullYear() + 1);
+  else d.setMonth(d.getMonth() + 1);
+  return d;
+}
 
 // 카카오페이 응답 에러를 통일된 형태로
 export function fmtKakaoError(resp, body) {

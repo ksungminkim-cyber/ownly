@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { PLANS } from "../../../../lib/constants";
+import { PLANS, EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../../lib/constants";
 import { useApp } from "../../../../context/AppContext";
 import { supabase } from "../../../../lib/supabase";
 import { toast } from "../../../../components/shared";
@@ -18,7 +18,7 @@ const PG_OPTIONS = [
 export default function CheckoutPage() {
   const router = useRouter();
   const { planId } = useParams();
-  const { user, userPlan } = useApp();
+  const { user, subscriptionPlan: userPlan } = useApp(); // 얼리 액세스 중 userPlan 은 전원 pro 로 보이므로 실제 구독 플랜 사용
   const [billingCycle, setBillingCycle] = useState("monthly");
   const [selectedPg, setSelectedPg] = useState("kakao");
   const [waitlistSaved, setWaitlistSaved] = useState(false);
@@ -55,7 +55,9 @@ export default function CheckoutPage() {
     );
   }
 
-  const monthlyPrice = plan.price;
+  // 얼리 서포터: 얼리 액세스 기간의 플러스 플랜은 50% 가격, 12개월 고정 (서버 ready/approve 가 같은 규칙으로 청구)
+  const supporter = EARLY_ACCESS_FREE && plan.id === EARLY_SUPPORTER.planId;
+  const monthlyPrice = supporter ? EARLY_SUPPORTER.price : plan.price;
   const annualPrice = Math.round(monthlyPrice * 12 * 0.8);
   const totalAmount = billingCycle === "annual" ? annualPrice : monthlyPrice;
   const periodLabel = billingCycle === "annual" ? "연간 (20% 할인)" : "월간";
@@ -149,9 +151,15 @@ export default function CheckoutPage() {
             {isUpgrade ? "플랜 변경" : "구독 시작"}
           </p>
           <h1 style={{ fontSize: 28, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1.2 }}>
-            {plan.name} 플랜
+            {plan.name} 플랜{supporter && <span style={{ marginLeft: 10, verticalAlign: "middle", fontSize: 12, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#4f46e5,#7c3aed)", padding: "4px 10px", borderRadius: 20 }}>얼리 서포터 50%</span>}
           </h1>
           <p style={{ fontSize: 14, color: "#6b7280", marginTop: 6 }}>{plan.tagline}</p>
+          {supporter && (
+            <div style={{ marginTop: 12, padding: "12px 14px", background: "rgba(15,165,115,0.06)", border: "1px solid rgba(15,165,115,0.25)", borderRadius: 10, fontSize: 12.5, color: "#065f46", lineHeight: 1.7 }}>
+              <b>얼리 서포터 혜택</b> — 정식가 <s>월 {EARLY_SUPPORTER.listPrice.toLocaleString()}원</s> 대신 <b>월 {EARLY_SUPPORTER.price.toLocaleString()}원</b>이 {EARLY_SUPPORTER.lockMonths}개월 고정됩니다.
+              지금 바로 내용증명 무제한 발급 · 카카오 알림톡 월 {EARLY_SUPPORTER.kakaoMonthly}건 · AI 분석 월 {EARLY_SUPPORTER.aiMonthly}회. 정식 출시 후에도 고정 기간 동안 같은 가격입니다.
+            </div>
+          )}
           {/* 결제 성격 명시 (PG 심사용) */}
           <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(91,79,207,0.05)", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 10, fontSize: 12, color: "#5b4fcf", fontWeight: 600, lineHeight: 1.6 }}>
             💼 <b>임대 물건 관리 구독료 결제</b> — 본 결제는 임대 물건 관리 서비스의 월 구독료이며, 부동산 매매·임대·중개와 무관합니다.
@@ -201,7 +209,7 @@ export default function CheckoutPage() {
           <Card num="4" title="주문 요약">
             <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "18px 20px" }}>
               <Row label="상품" value="임대 물건 관리 구독권" />
-              <Row label="플랜" value={plan.name} />
+              <Row label="플랜" value={supporter ? `${plan.name} (얼리 서포터 · ${EARLY_SUPPORTER.lockMonths}개월 가격 고정)` : plan.name} />
               <Row label="결제 주기" value={periodLabel} />
               <Row label="다음 결제일" value={billingPeriodEnd} />
               <Row label="결제 수단" value={PG_OPTIONS.find(p => p.id === selectedPg)?.label || ""} />

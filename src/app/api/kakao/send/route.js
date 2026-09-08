@@ -1,7 +1,7 @@
 // src/app/api/kakao/send/route.js
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
-import { EARLY_ACCESS_FREE } from "../../../../lib/constants";
+import { EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../../lib/constants";
 
 const FREE_KAKAO_MONTHLY_LIMIT = 30; // 무료 기간 유저당 월 알림톡 한도 (Solapi 실비 보호)
 
@@ -139,14 +139,20 @@ async function verifyProUser(req) {
 
   // 얼리 액세스 전면 무료: 플랜 검증 대신 월 발송 한도로 실비 보호
   if (EARLY_ACCESS_FREE) {
+    // 얼리 서포터(유료 구독 중)는 한도 확대
+    const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan,status,current_period_end").eq("user_id", user.id).maybeSingle();
+    const isSupporter = sub && sub.plan !== "free" && (sub.status === "active" || sub.status === "trial") && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+    const limit = isSupporter ? EARLY_SUPPORTER.kakaoMonthly : FREE_KAKAO_MONTHLY_LIMIT;
     const monthStart = new Date();
     monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
     const { count } = await supabaseAdmin.from("notification_logs")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id).eq("channel", "kakao").eq("status", "sent")
       .gte("sent_at", monthStart.toISOString());
-    if ((count || 0) >= FREE_KAKAO_MONTHLY_LIMIT) {
-      return { error: `무료 기간 알림톡은 월 ${FREE_KAKAO_MONTHLY_LIMIT}건까지 발송할 수 있습니다 (이번 달 ${count}건 사용)`, status: 429 };
+    if ((count || 0) >= limit) {
+      return { error: isSupporter
+        ? `알림톡은 월 ${limit}건까지 발송할 수 있습니다 (이번 달 ${count}건 사용)`
+        : `무료 기간 알림톡은 월 ${limit}건까지 발송할 수 있습니다 (이번 달 ${count}건 사용). 얼리 서포터 구독 시 월 ${EARLY_SUPPORTER.kakaoMonthly}건`, status: 429 };
     }
     return { user };
   }

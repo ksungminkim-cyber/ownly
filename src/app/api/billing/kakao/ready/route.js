@@ -3,7 +3,8 @@
 
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { KAKAOPAY_BASE, KAKAOPAY_CID, KAKAOPAY_SECRET, authHeaders, adminClient, userClientFrom, PLAN_PRICE_KRW, PLAN_NAME, fmtKakaoError } from "../_helpers";
+import { KAKAOPAY_BASE, KAKAOPAY_CID, KAKAOPAY_SECRET, authHeaders, adminClient, userClientFrom, PLAN_PRICE_KRW, fmtKakaoError, isSupporterOffer, cycleAmount, itemNameFor } from "../_helpers";
+import { EARLY_SUPPORTER } from "../../../../../lib/constants";
 
 export async function POST(req) {
   if (!KAKAOPAY_SECRET) {
@@ -22,11 +23,13 @@ export async function POST(req) {
   try { body = await req.json(); } catch { return NextResponse.json({ error: "잘못된 요청" }, { status: 400 }); }
   const planId = (body.planId || "").toString();
   const cycle = body.cycle === "annual" ? "annual" : "monthly";
-  const price = PLAN_PRICE_KRW[planId];
-  if (!price) return NextResponse.json({ error: "유효하지 않은 플랜" }, { status: 400 });
+  if (!PLAN_PRICE_KRW[planId]) return NextResponse.json({ error: "유효하지 않은 플랜" }, { status: 400 });
 
-  const amount = cycle === "annual" ? Math.round(price * 12 * 0.8) : price;
-  const itemName = PLAN_NAME[planId] + (cycle === "annual" ? " (연간)" : "");
+  // 얼리 서포터: 플러스 플랜 월 9,900원 (정식가 19,900원) — 승인 시 12개월 가격 고정으로 저장
+  const supporter = isSupporterOffer(planId);
+  const monthly = supporter ? EARLY_SUPPORTER.price : PLAN_PRICE_KRW[planId];
+  const amount = cycleAmount(monthly, cycle);
+  const itemName = itemNameFor(planId, cycle);
   const orderId = `ownly_${planId}_${cycle}_${user.id.slice(0,8)}_${Date.now()}`;
 
   // 3) 콜백 URL — 현재 호스트 기준
@@ -76,6 +79,8 @@ export async function POST(req) {
       kakao_tid: kakaoBody.tid,
       toss_order_id: orderId, // 컬럼명은 toss_order_id 지만 일반 partner_order_id 용으로 재사용
       status: "pending",
+      billing_cycle: cycle,
+      monthly_amount: monthly,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
   } catch (e) {

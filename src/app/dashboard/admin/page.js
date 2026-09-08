@@ -643,7 +643,7 @@ const EVENT_LABELS = {
   login: "로그인", dashboard_view: "대시보드 방문(일 1회)", property_added: "물건 등록", sample_seeded: "샘플 체험",
   sample_removed: "샘플 삭제", signup_source: "가입 유입경로 기록", onboard_addr_check: "온보딩 주소 조회",
   tool_view: "무료 도구 조회", tool_cta_click: "무료 도구 → 가입 클릭", certified_issued: "내용증명 정식 발급",
-  portal_link_copied: "세입자 포털 링크 복사", sms_parse_used: "입금 문자 파싱 사용", credit_purchased: "발급권 구매",
+  portal_link_copied: "세입자 포털 링크 복사", sms_parse_used: "입금 문자 파싱 사용", upsell_click: "얼리 서포터 CTA 클릭",
   interest_registered: "정식 출시 관심 등록", checklist_done: "시작 체크리스트 완료", checkout_view: "결제 페이지 진입", pay_click: "결제 버튼 클릭",
 };
 const TOOL_LABELS = { certified: "내용증명", diagnose: "물건 진단", yield: "수익률 계산기" };

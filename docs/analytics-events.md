@@ -17,15 +17,14 @@
 | `sample_seeded` | 샘플 데이터 체험 시작 | |
 | `sample_removed` | 샘플 데이터 삭제 (체험 완료 신호) | |
 | `checkout_view` | 결제 페이지 진입 | `plan` |
-| `pay_click` | 결제하기 버튼 클릭 | `plan`, `cycle` (발급권은 `plan: credit`, `qty`) |
+| `pay_click` | 결제하기 버튼 클릭 | `plan`, `cycle` |
 | `signup_source` | 가입 후 첫 대시보드 진입 (유저당 1회) — 첫 방문 시 저장한 유입 경로 | `utm_source/medium/campaign/content`, `ref`, `landing`, `referrer` |
 | `tool_view` | 무료 도구 조회 (**익명 가능**, 브라우저당 도구별 하루 1회) | `tool`: certified·diagnose·yield, `anon_id` |
 | `tool_cta_click` | 무료 도구에서 가입 CTA 클릭 (**익명 가능**) | `tool`, `anon_id` |
 | `certified_issued` | 내용증명 정식 저장(발급) | `reason`, `viaCredit` |
 | `portal_link_copied` | 세입자 포털 링크 복사 | `from`: tenants·checklist |
 | `sms_parse_used` | 입금 문자 파싱으로 납부 처리 | `matched` |
-| `credit_purchased` | 내용증명 추가 발급권 결제 승인 | `qty`, `amount` |
-| `interest_registered` | 얼리 액세스 배너 "정식 출시 후에도 계속 쓰기" 등록 | `plan` |
+| `upsell_click` | 얼리 서포터 CTA 클릭 (대시보드 바 · 내용증명 한도 소진 모달) | `from`: dashboard_bar·certified |
 | `checklist_done` | 시작 체크리스트 3/3 완료 | |
 
 **유입 경로 캡처**: `src/components/AttributionCapture.js`(루트 레이아웃)가 첫 방문 URL의 `utm_*`·착지 경로를 localStorage(`ownly_attr`)에 1회 저장하고, 가입 후 첫 대시보드 진입에서 `signup_source`로 전송합니다. **광고 링크에는 반드시 utm_source·utm_campaign을 붙이세요** (예: `https://www.ownly.kr/tools/certified?utm_source=naver&utm_medium=cpc&utm_campaign=certified_sep`).

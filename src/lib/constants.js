@@ -12,11 +12,20 @@ export const EARLY_ACCESS_FREE = true;
 // 얼리 액세스 종료 예정일·얼리 가입자 혜택 (가격 페이지·대시보드 배너 공통 문구)
 // ⚠️ 운영 결정값 — 날짜/혜택 확정 시 이 두 값만 바꾸면 모든 화면에 반영됩니다.
 export const EARLY_ACCESS_END = "2026-12-31";
-export const EARLY_ACCESS_PERK = "정식 출시 후 플러스 플랜 12개월 50% 할인";
-// 얼리 액세스 중 내용증명 정식 발급 무료 한도 (월). 초과분은 추가 발급권(건당 결제)으로.
+// 얼리 서포터 — 얼리 액세스 기간에 지금 결제 가능한 유일한 상품 (기존 카카오페이 정기결제 CID 그대로 사용)
+// 플러스 플랜을 50% 가격에 구독하고, 그 가격이 lockMonths 동안 고정됩니다. 지금 당장 받는 혜택은 아래 perks.
+export const EARLY_SUPPORTER = {
+  planId: "plus",
+  price: 9900,          // 월 (원)
+  listPrice: 19900,     // 정식가 (원) — PLANS.plus.price 와 동일하게 유지
+  lockMonths: 12,       // 가격 고정 기간
+  kakaoMonthly: 100,    // 알림톡 월 한도 (일반 얼리 유저 30건)
+  aiMonthly: 60,        // AI 분석 월 한도 (일반 얼리 유저 30회)
+  // certified: 무제한 (일반 얼리 유저 월 EARLY_ACCESS_CERTIFIED_FREE 건)
+};
+export const EARLY_ACCESS_PERK = `얼리 서포터 구독 시 플러스 플랜 월 ${EARLY_SUPPORTER.price.toLocaleString()}원(정식가 대비 50%) · ${EARLY_SUPPORTER.lockMonths}개월 가격 고정`;
+// 얼리 액세스 중 내용증명 정식 발급 무료 한도 (월). 얼리 서포터는 무제한. 친구 초대 보너스 발급권(certified_credits)으로도 추가 가능.
 export const EARLY_ACCESS_CERTIFIED_FREE = 3;
-// 내용증명 추가 발급권 1장 가격 (원)
-export const CERTIFIED_CREDIT_PRICE_KRW = 4900;
 // 무료 도구 → 가입 딥링크용 localStorage 키 (도구 페이지가 저장, 대시보드가 소비)
 export const CERTIFIED_DRAFT_KEY = "ownly_certified_draft";   // /tools/certified 초안
 export const PREFILL_ADDR_KEY = "ownly_prefill_addr";         // /diagnose 에서 입력한 주소

@@ -102,11 +102,10 @@ SOLAPI_FROM=...                   # 발신 번호
 **가맹점 정보**: CID `CT75680604` · 사업자 137-81-52231 · 주식회사 맥클린
 ```
 KAKAOPAY_CID=CT75680604                       # 정기결제 가맹점 코드 (변경 가능성 낮음)
-KAKAOPAY_ONETIME_CID=...                      # 단건결제 CID (내용증명 추가 발급권). 2026-09-08 기준 미발급 — 가맹점센터에 단건결제 추가 신청 필요. 미설정 시 발급권 결제 API 가 503 "준비 중" 응답 (정기 CID 폴백 없음)
 KAKAOPAY_SECRET_KEY=...                       # 카카오페이 파트너어드민에서 발급
 BILLING_RENEWAL_TOKEN=...                     # 매월 자동결제 cron 인증용 임의 토큰
 ```
-**단건 결제(내용증명 추가 발급권)**: `/api/billing/kakao/credit/ready` → 카카오 인증 → `/dashboard/certified?credit_order=...&pg_token=...` → `/api/billing/kakao/credit/approve` → `certified_credits.balance` 가산. 가격·얼리 액세스 무료 한도·종료일·혜택 문구는 `src/lib/constants.js`(`CERTIFIED_CREDIT_PRICE_KRW`, `EARLY_ACCESS_CERTIFIED_FREE`, `EARLY_ACCESS_END`, `EARLY_ACCESS_PERK`) 한 곳에서 관리합니다.
+**얼리 서포터 (얼리 액세스 기간의 유일한 유료 상품, 2026-09-08)**: 가맹점에 단건결제 CID가 없어(정기결제 CID 만 보유) 건당 결제 대신 정기결제 상품으로 운영합니다. 플러스 플랜 체크아웃이 얼리 액세스 중에는 월 9,900원(정식가 50%)으로 결제되고 `subscriptions.monthly_amount / price_locked_until / billing_cycle` 에 저장되어 갱신 크론이 12개월간 같은 금액을 청구합니다. 서포터 혜택(내용증명 무제한·알림톡 월 100건·AI 월 60회)은 `AppContext.isSupporter` 와 `api/kakao/send` 가 판정합니다. 가격·한도·고정 기간·종료일은 `src/lib/constants.js` 의 `EARLY_SUPPORTER`, `EARLY_ACCESS_CERTIFIED_FREE`, `EARLY_ACCESS_END` 한 곳에서 관리합니다. `certified_credits` 는 친구 초대 보너스 발급권 용도로만 남아 있습니다.
 **API 라우트 흐름**:
 1. `/api/billing/kakao/ready`         — 결제 준비 → next_redirect_url 응답
 2. `/api/billing/kakao/approve`       — pg_token 받아 승인 → sid(빌링키) 저장
@@ -138,6 +137,7 @@ Header: x-billing-token: $BILLING_RENEWAL_TOKEN
 - `20260709_events_tracking.sql` — 퍼널 이벤트 테이블
 - `20260908_growth_loop.sql` — 익명 도구 이벤트 정책 · 관리자 퍼널 RPC · 내용증명 발급권(certified_credits/credit_purchases) · 발급권 차감 RPC
 - `20260908_landlord_sms.sql` — 임대인 본인 미납 문자 옵트인 컬럼(newsletter_subscribers.sms_unpaid)
+- `20260908_early_supporter.sql` — 구독자별 청구 기준가·주기·가격 고정 만료일(subscriptions.monthly_amount 등)
 
 **중요**: `tenants`, `vacancies` 같은 핵심 테이블은 `user_id` 컬럼 기준 RLS. 새 테이블 추가 시 동일 패턴 따르기.
 
