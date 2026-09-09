@@ -92,7 +92,8 @@ MOLIT_SERVICE_KEY=...   # 폴백
 ### AI (임대료 분석 · 인사이트 코멘트)
 ```
 GROQ_API_KEY=...                  # Groq (openai/gpt-oss-120b). 2026-08-16 llama-3.3-70b 종료 사고 이후 모델 ID 는 src/lib/llm.js 한 곳에서 관리
-ANTHROPIC_API_KEY=...             # 선택. 설정하면 Claude(claude-opus-5)가 1순위, Groq 는 폴백. 둘 중 하나만 있어도 동작
+ANTHROPIC_API_KEY=...             # 선택. 설정하면 Claude 가 1순위, Groq 는 폴백. 둘 중 하나만 있어도 동작. 콘솔 플랜이 "평가 액세스"(무료)면 결제 설정 후 사용
+ANTHROPIC_MODEL=claude-opus-5     # 선택. 기본 claude-opus-5, 비용 절감 시 claude-sonnet-5
 ```
 AI 호출은 반드시 `src/lib/llm.js` 의 `callLLM` 을 거칩니다 (제공자 폴백·타임아웃·JSON 추출 공통). `/api/ai-pricing` 은 로그인 유저의 월 한도(얼리 서포터 60 · 일반 30 · 정식 과금 후 플랜별)를 **서버에서** 검사하고 성공한 분석만 `ai_usage` 에 기록합니다. 비로그인 호출(/diagnose)은 IP 시간당 10회.
 

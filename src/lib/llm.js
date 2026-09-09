@@ -9,7 +9,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 
-export const CLAUDE_MODEL = "claude-opus-5";
+// 기본 claude-opus-5. 비용을 낮추려면 Vercel 환경변수 ANTHROPIC_MODEL=claude-sonnet-5 로 재배포 없이 전환 가능
+export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
 export const GROQ_MODEL = "openai/gpt-oss-120b"; // llama-3.3-70b-versatile 공식 후속 (Groq 프로덕션 티어)
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || "";
