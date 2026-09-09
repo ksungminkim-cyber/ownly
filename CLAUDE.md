@@ -185,6 +185,8 @@ ownly는 **임대인의 자산 정보**를 다루므로 정직성이 핵심입�
 - `npx eslint <file>` — 변경 파일 lint
 - `npx next build` — 전체 빌드 (127개 정적 페이지 약 5초)
 - 핵심 페이지는 변경 후 lint 0 errors 유지
+- **유료 기능(AI 분석·알림톡·결제)은 배포 후 프로덕션 엔드포인트를 curl 로 실제 호출해 확인** — 2026-08 Groq 모델 폐기로 AI 가 3주간 죽어 있던 사고의 교훈
+- Windows Git Bash 에서 한글 JSON 을 `curl -d '...'` 로 보내면 인코딩이 깨져 서버가 다른 값으로 받습니다. 반드시 UTF-8 파일로 저장 후 `--data-binary @file` 사용. AI 분석 라우트는 `x-debug-token: $CRON_SECRET` 헤더로 MOLIT 조회 진단(`debug.rows/errors`)을 응답에 포함합니다
 
 ## 10. 작업 시 권장 흐름
 
