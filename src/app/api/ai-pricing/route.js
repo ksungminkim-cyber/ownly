@@ -52,18 +52,25 @@ function last3MonthsYM() {
   return out;
 }
 
-async function fetchMolitRows(type, lawdCd, base = SITE_BASE, numMonths = 3) {
+// diag: 운영 진단용 수집기 (x-debug-token 헤더가 CRON_SECRET 과 일치할 때만 응답에 포함)
+async function fetchMolitRows(type, lawdCd, base = SITE_BASE, diag = null, numMonths = 3) {
   if (!MOLIT_TYPES.has(type) || !lawdCd) return [];
   const months = last3MonthsYM().slice(0, numMonths);
   // 월별 조회를 병렬로 — 응답 시간 단축 (LLM 호출 전 대기 최소화)
   const perMonth = await Promise.all(months.map(async (ym) => {
+    const url = `${base}/api/market/molit?type=${type}&lawdCd=${encodeURIComponent(lawdCd)}&dealYm=${ym}&numOfRows=100`;
     try {
-      const url = `${base}/api/market/molit?type=${type}&lawdCd=${encodeURIComponent(lawdCd)}&dealYm=${ym}&numOfRows=100`;
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-      if (!res.ok) return [];
+      if (!res.ok) { diag?.errors.push(`${type} ${ym} HTTP ${res.status}`); return []; }
       const data = await res.json();
-      return Array.isArray(data?.items) ? data.items : [];
-    } catch (e) { console.warn("[ai-pricing] MOLIT proxy failed:", type, ym, e?.message); return []; }
+      const items = Array.isArray(data?.items) ? data.items : [];
+      if (diag) diag.rows[`${type}:${ym}`] = items.length;
+      return items;
+    } catch (e) {
+      console.warn("[ai-pricing] MOLIT proxy failed:", type, ym, e?.message);
+      diag?.errors.push(`${type} ${ym} ${e?.name || ""} ${e?.message || ""}`.trim());
+      return [];
+    }
   }));
   return perMonth.flat();
 }
@@ -174,31 +181,31 @@ function analyzeTradeRows(rows, propertyType) {
 }
 
 // 유형별 MOLIT 데이터 집계
-async function fetchMarketData(propertyType, lawdCd, base) {
+async function fetchMarketData(propertyType, lawdCd, base, diag) {
   if (propertyType === "주거") {
     // 아파트 + 빌라 + 단독 임대 합산
     const [apt, villa, house] = await Promise.all([
-      fetchMolitRows("apt_rent", lawdCd, base),
-      fetchMolitRows("villa_rent", lawdCd, base),
-      fetchMolitRows("house_rent", lawdCd, base),
+      fetchMolitRows("apt_rent", lawdCd, base, diag),
+      fetchMolitRows("villa_rent", lawdCd, base, diag),
+      fetchMolitRows("house_rent", lawdCd, base, diag),
     ]);
     const all = [...apt, ...villa, ...house];
     const stats = analyzeRentRows(all);
     return stats ? { ...stats, source: "apt+villa+house rent", hasRealData: true } : null;
   }
   if (propertyType === "오피스텔") {
-    const rows = await fetchMolitRows("offi_rent", lawdCd, base);
+    const rows = await fetchMolitRows("offi_rent", lawdCd, base, diag);
     const stats = analyzeRentRows(rows);
     return stats ? { ...stats, source: "offi_rent", hasRealData: true } : null;
   }
   if (propertyType === "상가") {
     // 월세 데이터 없음 → 상업·업무용 매매가 기반 역산
-    const rows = await fetchMolitRows("nrg_trade", lawdCd, base);
+    const rows = await fetchMolitRows("nrg_trade", lawdCd, base, diag);
     const stats = analyzeTradeRows(rows, "상가");
     return stats ? { ...stats, source: "nrg_trade (sales→rent estimate)", hasRealData: true } : null;
   }
   if (propertyType === "토지") {
-    const rows = await fetchMolitRows("land_trade", lawdCd, base);
+    const rows = await fetchMolitRows("land_trade", lawdCd, base, diag);
     const stats = analyzeTradeRows(rows, "토지");
     return stats ? { ...stats, source: "land_trade (sales→rent estimate)", hasRealData: true } : null;
   }
@@ -328,12 +335,15 @@ export async function POST(req) {
     // 내부 MOLIT 프록시 호출용 베이스 — 현재 배포 호스트 우선 (프리뷰·로컬에서도 동작)
     const host = req.headers.get("host") || "";
     const reqBase = host ? `${host.includes("localhost") ? "http" : "https"}://${host}` : SITE_BASE;
+    // 운영 진단: x-debug-token 이 CRON_SECRET 과 일치하면 MOLIT 조회 결과/오류를 응답에 동봉
+    const dbg = req.headers.get("x-debug-token");
+    const diag = dbg && process.env.CRON_SECRET && dbg === process.env.CRON_SECRET ? { version: "2026-09-09a", base: reqBase, rows: {}, errors: [] } : null;
 
     // 1. MOLIT 실거래 데이터 선조회
     let marketStats = null;
     if (lawdCd) {
       try {
-        marketStats = await fetchMarketData(propertyType, lawdCd, reqBase);
+        marketStats = await fetchMarketData(propertyType, lawdCd, reqBase, diag);
       } catch (e) {
         console.warn("MOLIT fetch 실패:", e.message);
       }
@@ -411,6 +421,7 @@ export async function POST(req) {
       : null;
 
     result.engine = llm.provider;
+    if (diag) result.debug = diag;
 
     // 3. 성공한 분석만 사용량 기록 (로그인 유저) — 실패·오류는 차감하지 않음
     if (quota) {
