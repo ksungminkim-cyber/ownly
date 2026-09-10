@@ -38,9 +38,11 @@ async function fetchMarket(lawdCd) {
       body: JSON.stringify({ lawdCd }),
       next: { revalidate: 86400 },
     });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch { return null; }
+    const json = await res.json().catch(() => ({}));
+    // 국토부 API 장애(502)·네트워크 오류는 "데이터 없음"과 구분해 표시한다
+    if (!res.ok) return { error: true, upstream: json?.upstream === true };
+    return json;
+  } catch { return { error: true }; }
 }
 
 function fmtMan(n) {
@@ -75,7 +77,7 @@ export default async function RegionMarketPage({ params }) {
     "distribution": [{
       "@type": "DataDownload",
       "encodingFormat": "application/json",
-      "contentUrl": `https://www.ownly.kr/api/market/sigungu`,
+      "contentUrl": `https://www.ownly.kr/sise/${slug}`,
     }],
   };
 
@@ -114,9 +116,19 @@ export default async function RegionMarketPage({ params }) {
 
         {!hasData ? (
           <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, padding: "48px 28px", textAlign: "center" }}>
-            <p style={{ fontSize: 40, marginBottom: 12 }}>📭</p>
-            <p style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 6 }}>최근 3개월 실거래 데이터가 없습니다</p>
-            <p style={{ fontSize: 13, color: "#6a6a7a" }}>{region.name}은(는) 임대 실거래 공개가 제한적이거나 거래량이 적은 지역일 수 있어요.</p>
+            {data?.error ? (
+              <>
+                <p style={{ fontSize: 40, marginBottom: 12 }}>⏳</p>
+                <p style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 6 }}>시세를 일시적으로 불러오지 못했습니다</p>
+                <p style={{ fontSize: 13, color: "#6a6a7a" }}>국토교통부 실거래 API 응답이 지연되거나 점검 중일 수 있어요. 잠시 후 새로고침해 주세요.</p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 40, marginBottom: 12 }}>📭</p>
+                <p style={{ fontSize: 16, fontWeight: 800, color: "#1a2744", marginBottom: 6 }}>최근 3개월 실거래 데이터가 없습니다</p>
+                <p style={{ fontSize: 13, color: "#6a6a7a" }}>{region.name}은(는) 임대 실거래 공개가 제한적이거나 거래량이 적은 지역일 수 있어요.</p>
+              </>
+            )}
             <Link href="/sise" style={{ display: "inline-block", marginTop: 18, padding: "10px 20px", background: "#1a2744", color: "#fff", borderRadius: 9, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
               다른 지역 보기
             </Link>

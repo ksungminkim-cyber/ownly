@@ -12,6 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import { callLLM, extractJson, llmConfigured } from "../../../lib/llm";
 import { PLANS, EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../lib/constants";
 import { paidPlanOf, activePlanOf } from "../../../lib/plan";
+import { internalHeaders } from "../../../lib/ratelimit";
 
 const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -61,7 +62,7 @@ async function fetchMolitRows(type, lawdCd, base = SITE_BASE, diag = null, numMo
   const perMonth = await Promise.all(months.map(async (ym) => {
     const url = `${base}/api/market/molit?type=${type}&lawdCd=${encodeURIComponent(lawdCd)}&dealYm=${ym}&numOfRows=100`;
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000), headers: internalHeaders() });
       if (!res.ok) { diag?.errors.push(`${type} ${ym} HTTP ${res.status}`); return []; }
       const data = await res.json();
       const items = Array.isArray(data?.items) ? data.items : [];

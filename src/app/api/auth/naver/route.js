@@ -2,7 +2,10 @@ export const runtime = "edge";
 
 export async function GET(req) {
   const clientId     = process.env.NAVER_CLIENT_ID;
-  const redirectUri  = `${new URL(req.url).origin}/auth/naver/callback`;
+  // 네이버 개발자센터에 등록된 콜백 URI 와 정확히 일치해야 한다 — apex(ownly.kr)·프리뷰 도메인으로 진입해도 www 고정 (로컬만 예외)
+  const origin = new URL(req.url).origin;
+  const siteOrigin = origin.includes("localhost") ? origin : (process.env.NEXT_PUBLIC_SITE_URL || "https://www.ownly.kr");
+  const redirectUri  = `${siteOrigin}/auth/naver/callback`;
   // state: CSRF 방지용 랜덤값 (edge에서 crypto 사용 가능)
   const state        = crypto.randomUUID();
 

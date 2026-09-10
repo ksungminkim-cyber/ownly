@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { headers } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 import { FREE_TAGLINE } from "../../lib/constants";
 
 export const revalidate = 300; // 5분마다 재생성
@@ -38,15 +38,21 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString("ko-KR");
 }
 
+// 서버 컴포넌트에서 DB 를 직접 조회 (service role, 공개 글이라 RLS 우회 의도적). 이전엔 자기 API 를 HTTP 로 다시 부르며 headers() 를 써서
+// 페이지가 매 요청 동적 렌더(4초)였고, API 컬럼명 오류로 500 이 나면 빈 목록이 됐다.
 async function fetchPosts() {
   try {
-    const h = await headers();
-    const host = h.get("host") || "www.ownly.kr";
-    const proto = host.includes("localhost") ? "http" : "https";
-    const res = await fetch(`${proto}://${host}/api/community/public?limit=50`, { next: { revalidate: 300 } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.posts || [];
+    const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const { data, error } = await admin.from("community_posts")
+      .select("id, title, category, author_name, anonymous, views, likes, created_at, content")
+      .order("created_at", { ascending: false }).limit(50);
+    if (error) { console.error("[community] posts query failed:", error.message); return []; }
+    return (data || []).map((p) => ({
+      ...p,
+      nickname: p.anonymous ? "익명" : (p.author_name || "익명"),
+      like_count: p.likes || 0,
+      content: p.content?.length > 200 ? p.content.slice(0, 200) + "..." : p.content,
+    }));
   } catch { return []; }
 }
 

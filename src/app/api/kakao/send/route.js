@@ -144,8 +144,9 @@ async function verifyProUser(req) {
     const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan,status,current_period_end,kakao_sid,billing_key").eq("user_id", user.id).maybeSingle();
     const isSupporter = paidPlanOf(sub) !== "free"; // 결제 수단이 등록된 실제 유료 구독만 (trial·pending 제외)
     const limit = isSupporter ? EARLY_SUPPORTER.kakaoMonthly : FREE_KAKAO_MONTHLY_LIMIT;
-    const monthStart = new Date();
-    monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    // 이번 달 1일 00:00 KST (서버는 UTC — 로컬 기준으로 잡으면 매월 1일 09시 이전 발송분이 전월로 집계됨)
+    const kst = new Date(Date.now() + 9 * 3600000);
+    const monthStart = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), 1) - 9 * 3600000);
     const { count } = await supabaseAdmin.from("notification_logs")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id).eq("channel", "kakao").in("status", ["sent", "success"]) // logSend 는 "success" 로 기록 — "sent" 만 세면 한도가 영원히 0

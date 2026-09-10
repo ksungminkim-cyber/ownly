@@ -59,8 +59,10 @@ export default function AuthCallbackPage() {
 
         if (!session) {
           if (cancelled) return;
-          setStatus("로그인 페이지로 이동합니다...");
-          go("/login", 800);
+          // 이메일 인증 링크를 다른 기기·브라우저에서 열면 PKCE 교환이 실패해 세션이 없다 — 인증 자체는 완료됐으므로 로그인만 안내
+          const hadCode = new URL(window.location.href).searchParams.has("code");
+          setStatus(hadCode ? "이메일 인증이 완료되었습니다. 로그인 페이지로 이동합니다..." : "로그인 페이지로 이동합니다...");
+          go(hadCode ? "/login?msg=verified" : "/login", 800);
           return;
         }
 

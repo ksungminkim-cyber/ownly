@@ -8,6 +8,7 @@ export const maxDuration = 60;
 
 import { createClient } from "@supabase/supabase-js";
 import { matchPolicies } from "../../../lib/policies";
+import { internalHeaders } from "../../../lib/ratelimit";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -97,25 +98,26 @@ function baseHtml(title, body) {
 </div>`;
 }
 
-// ── 미납 알림 ─────────────────────────────────────────────────────
-async function sendUnpaidNotice(userId, userEmail, tenants, payments) {
-  // KST 기준 날짜 (Vercel 런타임은 UTC)
+// 이번 달 미납 세입자 계산 (KST 기준) — 이메일·문자 공용. src/lib/unpaid.js(클라이언트)와 같은 규칙
+function computeUnpaid(tenants, payments) {
   const kst = new Date(Date.now() + 9 * 3600000);
   const month = kst.getUTCMonth() + 1;
   const year = kst.getUTCFullYear();
   const today = kst.getUTCDate();
-
   const unpaidTenants = tenants.filter(t => {
     if (t.status === "퇴거" || t.status === "공실") return false;
     if (!(Number(t.rent) > 0)) return false; // 전세 등 월세 없는 계약 제외
     const payDay = Number(t.pay_day ?? t.payment_day ?? 5);
     if (today <= payDay) return false; // 아직 납부일 전
-    const paid = payments.find(p =>
-      p.tenant_id === t.id && p.month === month && p.year === year && p.status === "paid"
-    );
-    return !paid;
+    return !payments.find(p => p.tenant_id === t.id && p.month === month && p.year === year && p.status === "paid");
   });
+  return { month, year, unpaidTenants };
+}
 
+// ── 미납 알림 ─────────────────────────────────────────────────────
+async function sendUnpaidNotice(userId, userEmail, tenants, payments) {
+  // KST 기준 날짜 (Vercel 런타임은 UTC)
+  const { month, year, unpaidTenants } = computeUnpaid(tenants, payments);
   if (unpaidTenants.length === 0) return { sent: false, reason: "no_unpaid" };
   const smsText = unpaidSmsText(month, unpaidTenants);
 
@@ -215,46 +217,6 @@ async function sendExpiringNotice(userId, userEmail, tenants) {
   });
 }
 
-// ── 월별 수금 체크리스트 ─────────────────────────────────────────
-async function sendMonthlyChecklist(userId, userEmail, tenants) {
-  if (tenants.length === 0) return { sent: false, reason: "no_tenants" };
-
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
-
-  const rows = tenants.map(t => `
-    <tr style="border-bottom:1px solid #f0efe9;">
-      <td style="padding:10px 12px;font-size:13px;color:#1a2744;font-weight:600;">${t.name}</td>
-      <td style="padding:10px 12px;font-size:12px;color:#8a8a9a;">${t.address || t.addr || ""}</td>
-      <td style="padding:10px 12px;font-size:13px;color:#0fa573;font-weight:700;">${(t.rent || 0).toLocaleString()}만원</td>
-      <td style="padding:10px 12px;font-size:11px;color:#8a8a9a;">매월 ${t.payment_day || 1}일</td>
-    </tr>`).join("");
-
-  const total = tenants.reduce((s, t) => s + (t.rent || 0), 0);
-
-  const body = `
-    <p style="font-size:14px;color:#1a2744;font-weight:600;margin:0 0 4px;">${year}년 ${month}월 수금 체크리스트입니다.</p>
-    <p style="font-size:12px;color:#8a8a9a;margin:0 0 16px;">이번 달 수금 예정 총액: <strong style="color:#1a2744;">${total.toLocaleString()}만원</strong></p>
-    <table style="width:100%;border-collapse:collapse;background:#faf9f6;border-radius:10px;overflow:hidden;margin-bottom:16px;">
-      <thead>
-        <tr style="background:#f0efe9;">
-          <th style="padding:9px 12px;font-size:11px;color:#8a8a9a;font-weight:700;text-align:left;">세입자</th>
-          <th style="padding:9px 12px;font-size:11px;color:#8a8a9a;font-weight:700;text-align:left;">주소</th>
-          <th style="padding:9px 12px;font-size:11px;color:#8a8a9a;font-weight:700;text-align:left;">월세</th>
-          <th style="padding:9px 12px;font-size:11px;color:#8a8a9a;font-weight:700;text-align:left;">납부일</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-
-  return sendEmail({
-    to: userEmail,
-    subject: `[온리] ${month}월 수금 체크리스트 — ${total.toLocaleString()}만원 예정`,
-    html: baseHtml(`💰 ${month}월 수금 체크리스트`, body),
-  });
-}
-
 // ── 월간 자산 리포트 (매월 1일) ──────────────────────────────────
 // 자리톡류 수금 앱이 주지 못하는 "자산 관리실" 리포트:
 // 수금 요약 + 지역 실거래 시세 비교 + 정책 매칭 + 만료 임박
@@ -263,13 +225,13 @@ const SITE_BASE = process.env.SITE_URL || "https://www.ownly.kr";
 async function fetchRegionStats(addr) {
   try {
     const geoRes = await fetch(`${SITE_BASE}/api/geocode`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json", ...internalHeaders() },
       body: JSON.stringify({ address: addr }),
     });
     const geo = await geoRes.json();
     if (!geo?.sigunguCode) return null;
     const mRes = await fetch(`${SITE_BASE}/api/market/sigungu`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json", ...internalHeaders() },
       body: JSON.stringify({ lawdCd: geo.sigunguCode }),
     });
     const m = await mRes.json();
@@ -392,39 +354,118 @@ async function sendMonthlyReport(userId, userEmail, tenants, payments) {
 // 호출처(src/lib/notify.js)도 사용되지 않아 함께 삭제. 발송은 아래 GET 크론만 수행한다.
 
 // ── 리텐션 알림 크론 (매일 09:00 KST) ────────────────────────────
-// GET /api/notify  (헤더 x-cron-token 또는 ?token= 로 인증)
-// 매일: 납부일이 지났는데 미납인 세입자가 있으면 임대인에게 미납 알림 1통
-//   - 중복 방지: notification_logs 의 최근 unpaid 발송이 3일 이내면 skip
-// 월요일: 미납 메일이 없던 유저에게 만료 임박 다이제스트 1통
-//   - 중복 방지: newsletter_subscribers.last_sent_at 5일
-// - 발송 대상: 실제 이메일 보유 + newsletter_subscribers.weekly_digest !== false
-// - 조치할 게 없으면 발송하지 않음 (빈 메일 스팸 금지)
-// Vercel Cron 은 자동으로 Authorization: Bearer $CRON_SECRET 를 주입하므로 CRON_SECRET 우선 지원
+// GET /api/notify  (Authorization: Bearer CRON_SECRET — Vercel Cron 자동 주입 / x-cron-token / ?token=)
+// 매일: 납부일이 지났는데 미납인 세입자가 있으면 임대인에게 미납 이메일(+옵트인 문자) 1통 — 3일 중복 방지
+// 월요일: 미납 메일이 없던 유저에게 만료 임박 다이제스트 — 5일 중복 방지
+// 매월 1일: 월간 자산 리포트 — 25일 중복 방지
+//
+// 규모 대응 (2026-09-10): 구독 설정·최근 발송 이력을 한 번에 프리페치하고 유저를 CONCURRENCY 개씩 병렬 처리.
+// 유저당 DB 왕복 2회(tenants·payments) 로 줄여 수백 명까지 maxDuration(60s) 안에 끝난다.
 const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || process.env.BILLING_RENEWAL_TOKEN || "";
 const DEDUP_DAYS = 5;         // 만료 다이제스트
-const UNPAID_DEDUP_DAYS = 3;  // 미납 알림
+const UNPAID_DEDUP_DAYS = 3;  // 미납 알림 (이메일·문자 각각)
+const MONTHLY_DEDUP_DAYS = 25;
+const CONCURRENCY = 5;
+
+async function runPool(items, limit, fn) {
+  let idx = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (idx < items.length) { const item = items[idx++]; await fn(item); }
+  });
+  await Promise.all(workers);
+}
 
 export async function GET(req) {
-  // Vercel Cron 은 CRON_SECRET 미설정 시 Authorization 헤더를 주입하지 않으므로
-  // billing/kakao/subscription 과 동일하게 user-agent 폴백 허용 (last_sent_at 5일 dedup 이 남용 방지)
   const authHeader = req.headers.get("authorization") || "";
   const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   const token = bearer || req.headers.get("x-cron-token") || new URL(req.url).searchParams.get("token");
   // 시크릿이 설정돼 있으면 토큰만 인정 (Vercel Cron 은 CRON_SECRET 을 Bearer 로 자동 주입). UA 는 위조 가능하므로 시크릿 미설정 배포에서만 폴백.
   const authorized = CRON_TOKEN ? token === CRON_TOKEN : /vercel-cron/i.test(req.headers.get("user-agent") || "");
-  if (!authorized) {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
-  }
+  if (!authorized) return Response.json({ error: "unauthorized" }, { status: 401 });
 
-  const summary = { processed: 0, unpaidSent: 0, smsSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0 };
-  const dedupCutoff = new Date(Date.now() - DEDUP_DAYS * 86400000);
-  const unpaidCutoff = new Date(Date.now() - UNPAID_DEDUP_DAYS * 86400000);
+  const summary = { processed: 0, unpaidSent: 0, smsSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0, elapsedMs: 0 };
+  const started = Date.now();
+  const now = new Date();
   const kstNow = new Date(Date.now() + 9 * 3600000);
   const isMonday = kstNow.getUTCDay() === 1; // KST 기준
   const isFirstOfMonth = kstNow.getUTCDate() === 1;
-  const monthlyCutoff = new Date(Date.now() - 25 * 86400000); // 월간 리포트 중복 방지
+  const dayMs = 86400000;
 
   try {
+    // ── 프리페치: 구독 설정 + 최근 발송 이력 (유저별 반복 조회 제거)
+    const [subsRes, logsRes] = await Promise.all([
+      supabase.from("newsletter_subscribers").select("user_id,weekly_digest,last_sent_at,sms_unpaid"),
+      supabase.from("notification_logs").select("user_id,type,channel,sent_at").gte("sent_at", new Date(Date.now() - MONTHLY_DEDUP_DAYS * dayMs).toISOString()),
+    ]);
+    const subMap = new Map((subsRes.data || []).map((r) => [r.user_id, r]));
+    const lastSent = new Map(); // "user|type|channel" → 가장 최근 sent_at(ms)
+    for (const l of logsRes.data || []) {
+      const k = `${l.user_id}|${l.type}|${l.channel}`;
+      const t = new Date(l.sent_at).getTime();
+      if (!lastSent.has(k) || lastSent.get(k) < t) lastSent.set(k, t);
+    }
+    const recent = (uid, type, channel, days) => { const t = lastSent.get(`${uid}|${type}|${channel}`); return Boolean(t && Date.now() - t < days * dayMs); };
+    const logSent = async (uid, type, channel, extra = {}) => {
+      lastSent.set(`${uid}|${type}|${channel}`, Date.now());
+      await supabase.from("notification_logs").insert({ user_id: uid, type, channel, status: "sent", ...extra });
+    };
+
+    const processUser = async (u) => {
+      summary.processed++;
+      const email = u.email;
+      if (!email) return;
+      try {
+        const sub = subMap.get(u.id);
+        const emailOptOut = sub && sub.weekly_digest === false; // 이메일 수신 거부 — 문자 옵트인과는 별개
+        const smsOptIn = Boolean(sub?.sms_unpaid);
+        if (emailOptOut && !smsOptIn) { summary.skippedOptOut++; return; }
+
+        const { data: tenantsRaw } = await supabase.from("tenants").select("*").eq("user_id", u.id);
+        const tenants = (tenantsRaw || []).filter((t) => !isSampleRow(t));
+        if (tenants.length === 0) { summary.skippedNothing++; return; }
+        const { data: payments } = await supabase.from("payments").select("*").in("tenant_id", tenants.map(t => t.id));
+
+        // ① 미납 — 이메일(3일 중복 방지)과 문자(3일 중복 방지)를 독립적으로 판정
+        const { month, unpaidTenants } = computeUnpaid(tenants, payments || []);
+        let unpaidSentNow = false;
+        if (unpaidTenants.length > 0) {
+          if (!emailOptOut) {
+            if (recent(u.id, "unpaid", "email", UNPAID_DEDUP_DAYS)) summary.skippedRecent++;
+            else {
+              const result = await sendUnpaidNotice(u.id, email, tenants, payments || []);
+              if (result?.sent) { summary.unpaidSent++; unpaidSentNow = true; await logSent(u.id, "unpaid", "email"); }
+            }
+          }
+          if (smsOptIn && !recent(u.id, "unpaid", "sms", UNPAID_DEDUP_DAYS)) {
+            const phone = u.user_metadata?.phone || u.phone;
+            const sms = await sendLandlordSms({ to: phone, text: unpaidSmsText(month, unpaidTenants) });
+            if (sms?.sent) { summary.smsSent++; await logSent(u.id, "unpaid", "sms", { provider_message_id: sms.messageId || null }); }
+            else if (sms?.error) await supabase.from("notification_logs").insert({ user_id: u.id, type: "unpaid", channel: "sms", status: "failed", error_message: sms.error });
+          }
+        }
+        if (emailOptOut) return; // 아래는 전부 이메일
+
+        // ② 월간 자산 리포트 — 매월 1일
+        if (isFirstOfMonth && !recent(u.id, "monthly", "email", MONTHLY_DEDUP_DAYS)) {
+          const result = await sendMonthlyReport(u.id, email, tenants, payments || []);
+          if (result?.sent) { summary.monthlySent++; await logSent(u.id, "monthly", "email"); }
+        }
+
+        // ③ 만료 임박 다이제스트 — 월요일만, 같은 날 미납 메일·월간 리포트와 중복 금지
+        if (isMonday && !isFirstOfMonth && !unpaidSentNow) {
+          if (sub?.last_sent_at && now - new Date(sub.last_sent_at) < DEDUP_DAYS * dayMs) { summary.skippedRecent++; return; }
+          const result = await sendExpiringNotice(u.id, email, tenants);
+          if (!result?.sent) { summary.skippedNothing++; return; }
+          summary.digestSent++;
+          await supabase.from("newsletter_subscribers").upsert({ user_id: u.id, email, last_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+          await logSent(u.id, "expiring", "email");
+        }
+      } catch (e) {
+        summary.errors++;
+        console.error("cron-notify user error:", u.id, e?.message);
+      }
+    };
+
     let page = 1;
     const perPage = 200;
     for (;;) {
@@ -432,88 +473,15 @@ export async function GET(req) {
       if (error) throw error;
       const users = data?.users || [];
       if (users.length === 0) break;
-
-      for (const u of users) {
-        summary.processed++;
-        const email = u.email;
-        if (!email) continue;
-        try {
-          const { data: sub } = await supabase.from("newsletter_subscribers").select("weekly_digest,last_sent_at,sms_unpaid").eq("user_id", u.id).maybeSingle();
-          if (sub && sub.weekly_digest === false) { summary.skippedOptOut++; continue; }
-
-          const { data: tenantsRaw } = await supabase.from("tenants").select("*").eq("user_id", u.id);
-          const tenants = (tenantsRaw || []).filter((t) => !isSampleRow(t));
-          if (tenants.length === 0) { summary.skippedNothing++; continue; }
-          const { data: payments } = await supabase.from("payments").select("*").in("tenant_id", tenants.map(t => t.id));
-
-          // ① 미납 알림 — 매일 체크, notification_logs 기준 3일 중복 방지
-          let unpaidSentNow = false;
-          const { data: lastUnpaid } = await supabase.from("notification_logs")
-            .select("sent_at").eq("user_id", u.id).eq("type", "unpaid").eq("channel", "email")
-            .order("sent_at", { ascending: false }).limit(1);
-          if (lastUnpaid?.[0]?.sent_at && new Date(lastUnpaid[0].sent_at) > unpaidCutoff) {
-            summary.skippedRecent++;
-          } else {
-            const result = await sendUnpaidNotice(u.id, email, tenants, payments || []);
-            if (!(result?.sent === false || result?.skipped)) {
-              summary.unpaidSent++;
-              unpaidSentNow = true;
-              await supabase.from("notification_logs").insert({ user_id: u.id, type: "unpaid", channel: "email", status: "sent" });
-              // ①-b 옵트인 유저에게는 같은 내용을 본인 휴대폰 문자로도 (이메일과 같은 3일 중복 방지 주기)
-              if (sub?.sms_unpaid && result?.smsText) {
-                const phone = u.user_metadata?.phone || u.phone;
-                const sms = await sendLandlordSms({ to: phone, text: result.smsText });
-                if (sms?.sent) {
-                  summary.smsSent++;
-                  await supabase.from("notification_logs").insert({ user_id: u.id, type: "unpaid", channel: "sms", status: "sent", provider_message_id: sms.messageId || null });
-                } else if (sms?.error) {
-                  await supabase.from("notification_logs").insert({ user_id: u.id, type: "unpaid", channel: "sms", status: "failed", error_message: sms.error });
-                }
-              }
-            }
-          }
-
-          // ②-a 월간 자산 리포트 — 매월 1일 (notification_logs 25일 중복 방지)
-          if (isFirstOfMonth) {
-            const { data: lastMonthly } = await supabase.from("notification_logs")
-              .select("sent_at").eq("user_id", u.id).eq("type", "monthly").eq("channel", "email")
-              .order("sent_at", { ascending: false }).limit(1);
-            if (!(lastMonthly?.[0]?.sent_at && new Date(lastMonthly[0].sent_at) > monthlyCutoff)) {
-              const result = await sendMonthlyReport(u.id, email, tenants, payments || []);
-              if (!(result?.sent === false || result?.skipped)) {
-                summary.monthlySent++;
-                await supabase.from("notification_logs").insert({ user_id: u.id, type: "monthly", channel: "email", status: "sent" });
-              }
-            }
-          }
-
-          // ② 만료 임박 다이제스트 — 월요일만, 같은 날 미납 메일·월간 리포트와 중복 금지
-          if (isMonday && !isFirstOfMonth && !unpaidSentNow) {
-            if (sub?.last_sent_at && new Date(sub.last_sent_at) > dedupCutoff) {
-              summary.skippedRecent++;
-            } else {
-              const result = await sendExpiringNotice(u.id, email, tenants);
-              if (result?.sent === false || result?.skipped) {
-                summary.skippedNothing++;
-              } else {
-                summary.digestSent++;
-                await supabase.from("newsletter_subscribers").upsert({ user_id: u.id, email, last_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
-                await supabase.from("notification_logs").insert({ user_id: u.id, type: "expiring", channel: "email", status: "sent" });
-              }
-            }
-          }
-        } catch (e) {
-          summary.errors++;
-          console.error("cron-notify user error:", u.id, e?.message);
-        }
-      }
-
+      await runPool(users, CONCURRENCY, processUser);
       if (users.length < perPage) break;
       page++;
     }
+    summary.elapsedMs = Date.now() - started;
     return Response.json({ success: true, summary });
   } catch (e) {
     console.error("cron-digest error:", e);
+    summary.elapsedMs = Date.now() - started;
     return Response.json({ error: e.message, summary }, { status: 500 });
   }
 }

@@ -14,6 +14,7 @@ export const maxDuration = 60;
 
 import { createClient } from "@supabase/supabase-js";
 import { callLLM, llmConfigured, GROQ_MODEL, CLAUDE_MODEL } from "../../../lib/llm";
+import { internalHeaders } from "../../../lib/ratelimit";
 
 const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || "";
 const ALERT_TO = process.env.HEALTH_ALERT_EMAIL || "k.sungminkim@gmail.com";
@@ -67,7 +68,7 @@ export async function GET(req) {
       // 국토부 API 는 새벽에 일시 오류·점검이 잦다 → 1회 재시도, 지난달이 비면 전전달로 한 번 더 확인.
       // 프록시가 돌려주는 molitError(한도 초과·키 오류 등)를 그대로 메일에 남긴다.
       const probe = async (ym) => {
-        const res = await fetch(`${base}/api/market/molit?type=apt_rent&lawdCd=11440&dealYm=${ym}&numOfRows=20`, { signal: AbortSignal.timeout(20000) });
+        const res = await fetch(`${base}/api/market/molit?type=apt_rent&lawdCd=11440&dealYm=${ym}&numOfRows=20`, { signal: AbortSignal.timeout(20000), headers: internalHeaders() });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
         if (data.molitError) throw new Error(`MOLIT 응답 오류: ${data.molitError}`);

@@ -36,6 +36,7 @@ export default function AuthPage() {
     else if (err === "naver_failed")   setErrors({ submit: "네이버 로그인 중 오류가 발생했습니다. 다시 시도해주세요." });
     else if (err === "naver_state_mismatch") setErrors({ submit: "보안 오류가 발생했습니다. 다시 시도해주세요." });
     else if (params.get("msg") === "deleted") setErrors({ submit: "회원 탈퇴가 완료되었습니다." });
+    else if (params.get("msg") === "verified") setMsg("이메일 인증이 완료되었습니다. 가입한 이메일과 비밀번호로 로그인해 주세요.");
   }, []);
 
   const [inviteCode, setInviteCode] = useState("");

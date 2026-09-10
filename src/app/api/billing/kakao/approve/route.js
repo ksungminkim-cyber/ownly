@@ -3,7 +3,7 @@
 
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { KAKAOPAY_BASE, KAKAOPAY_CID, KAKAOPAY_SECRET, authHeaders, adminClient, userClientFrom, PLAN_PRICE_KRW, fmtKakaoError, isSupporterOffer, cycleAmount, nextPeriodDate } from "../_helpers";
+import { KAKAOPAY_BASE, KAKAOPAY_CID, KAKAOPAY_SECRET, authHeaders, adminClient, userClientFrom, PLAN_PRICE_KRW, fmtKakaoError, isSupporterOffer, cycleAmount, nextPeriodDate, addMonths } from "../_helpers";
 import { EARLY_SUPPORTER } from "../../../../../lib/constants";
 
 export async function POST(req) {
@@ -82,7 +82,7 @@ export async function POST(req) {
   const monthly = pending.monthly_amount || (supporter ? EARLY_SUPPORTER.price : PLAN_PRICE_KRW[planId]);
   const approvedAmount = kbody?.amount?.total ?? cycleAmount(monthly, cycle);
   // 얼리 서포터 가격 고정 만료일 — 이 시점까지는 갱신 크론이 monthly_amount 로 청구
-  const lockedUntil = supporter ? (() => { const d = new Date(); d.setMonth(d.getMonth() + EARLY_SUPPORTER.lockMonths); return d; })() : null;
+  const lockedUntil = supporter ? addMonths(new Date(), EARLY_SUPPORTER.lockMonths) : null;
   const methodLabel = kbody?.card_info?.kakaopay_purchase_corp
     ? `카드 (${kbody.card_info.kakaopay_purchase_corp})`
     : kbody?.payment_method_type === "MONEY" ? "카카오페이 머니" : "카카오페이";

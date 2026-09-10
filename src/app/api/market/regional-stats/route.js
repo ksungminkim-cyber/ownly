@@ -7,6 +7,8 @@
 // 캐싱: 24시간 ISR + fetch cache
 
 export const runtime = "edge";
+import { isRateLimited } from "../../../../lib/ratelimit";
+import { fetchMolitRows as fetchMolitRowsSafe } from "../../../../lib/molitParse";
 export const revalidate = 86400; // 24h
 
 const MOLIT_BASE = "http://apis.data.go.kr/1613000/";
@@ -33,18 +35,13 @@ function monthsBack(n) {
   return out;
 }
 
-async function fetchMolit(type, lawdCd, ym) {
+async function fetchMolit(type, lawdCd, ym, errs) {
   const key = getKey();
   const path = MOLIT_ENDPOINTS[type];
   if (!key || !path || !lawdCd) return [];
-  try {
-    const url = `${MOLIT_BASE}${path}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${lawdCd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=300&_type=json`;
-    const res = await fetch(url, { next: { revalidate: 86400 } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const items = data?.response?.body?.items?.item;
-    return Array.isArray(items) ? items : items ? [items] : [];
-  } catch { return []; }
+  const url = `${MOLIT_BASE}${path}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${lawdCd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=300&_type=json`;
+  // 오류 본문(한도 초과·키 오류·점검)을 "데이터 없음"과 구분 — src/lib/molitParse.js
+  return fetchMolitRowsSafe(url, errs, `${type} ${ym}`);
 }
 
 const SQM_PER_PYEONG = 3.3058;
@@ -66,6 +63,7 @@ const CONVERSION_RATE = 0.06;
 const depositToMonthly = (deposit) => Math.round(deposit * CONVERSION_RATE / 12);
 
 export async function POST(req) {
+  if (isRateLimited(req, "regional", 60)) return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
   const { lawdCd, propTypes = ["apt", "officetel"] } = await req.json();
   if (!lawdCd) return Response.json({ error: "lawdCd 필수" }, { status: 400 });
   if (!getKey()) return Response.json({ error: "MOLIT_SERVICE_KEY 미설정" }, { status: 500 });

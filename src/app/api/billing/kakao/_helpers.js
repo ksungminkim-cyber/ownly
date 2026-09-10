@@ -57,12 +57,20 @@ export function itemNameFor(planId, cycle) {
   const base = isSupporterOffer(planId) ? "온리 플러스 얼리 서포터 구독" : PLAN_NAME[planId];
   return base + (cycle === "annual" ? " (연간)" : "");
 }
+// 월 더하기 — 말일 오버플로 방지 (1/31 + 1개월 = 2/28, 3/3 아님)
+export function addMonths(from, months) {
+  const d = new Date(from);
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, last));
+  return d;
+}
+
 // 다음 결제 예정일 — 주기별
 export function nextPeriodDate(cycle, from = new Date()) {
-  const d = new Date(from);
-  if (cycle === "annual") d.setFullYear(d.getFullYear() + 1);
-  else d.setMonth(d.getMonth() + 1);
-  return d;
+  return addMonths(from, cycle === "annual" ? 12 : 1);
 }
 
 // 카카오페이 응답 에러를 통일된 형태로
@@ -76,7 +84,5 @@ export function fmtKakaoError(resp, body) {
 
 // 다음 자동 결제 예정일 계산 (한국 시간 기준 1개월 후)
 export function nextMonthlyDate(from = new Date()) {
-  const d = new Date(from);
-  d.setMonth(d.getMonth() + 1);
-  return d;
+  return addMonths(from, 1);
 }

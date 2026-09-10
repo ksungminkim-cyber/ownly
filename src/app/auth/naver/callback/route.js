@@ -31,7 +31,8 @@ export async function GET(req) {
   try {
     const clientId = process.env.NAVER_CLIENT_ID;
     const clientSecret = process.env.NAVER_CLIENT_SECRET;
-    const redirectUri = `${origin}/auth/naver/callback`;
+    const siteOrigin = origin.includes("localhost") ? origin : (process.env.NEXT_PUBLIC_SITE_URL || "https://www.ownly.kr"); // 네이버 콘솔 등록 URI 와 일치 (apex·프리뷰 도메인 대응)
+    const redirectUri = `${siteOrigin}/auth/naver/callback`;
 
     // 1. 네이버 토큰
     const tokenRes = await fetch("https://nid.naver.com/oauth2.0/token", {

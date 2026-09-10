@@ -176,10 +176,7 @@ function CertifiedContent() {
     let viaCredit = false;
     if (!editTarget && hasMonthLimit && monthUsed >= monthLimit) {
       if (credits <= 0) { setShowUpsell(true); return; }
-      const { data: left, error: rpcErr } = await supabase.rpc("consume_certified_credit");
-      if (rpcErr) { toast(rpcErr.message?.includes("no_credit") ? "발급권이 없습니다" : "발급권 차감 실패: " + rpcErr.message, "error"); return; }
-      setCredits(typeof left === "number" ? left : Math.max(0, credits - 1));
-      viaCredit = true;
+      viaCredit = true; // 발급권은 저장이 성공한 뒤에 차감 (저장 실패 시 발급권만 날아가는 것 방지)
     }
     setSaving(true);
     const body = generateBody();
@@ -201,6 +198,7 @@ function CertifiedContent() {
         const { data, error } = await supabase.from("certified_mail").insert(row).select().single();
         if (error) throw error;
         setHistory(prev => [data, ...prev]);
+        if (viaCredit) { const { data: left, error: rpcErr } = await supabase.rpc("consume_certified_credit"); if (rpcErr) console.warn("발급권 차감 실패:", rpcErr.message); else setCredits(typeof left === "number" ? left : Math.max(0, credits - 1)); }
         track("certified_issued", { reason: form.reason, viaCredit });
         toast(viaCredit ? "발급권 1장을 사용해 저장했습니다" : "저장되었습니다");
       }

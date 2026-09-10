@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { paidPlanOf } from "../../../../lib/plan";
 
 const REWARD_DAYS = 30;
 const CREDIT_REWARD = 2; // 내용증명 추가 발급권 (양쪽 각각)
@@ -59,41 +60,24 @@ export async function POST(req) {
       return d.toISOString();
     };
 
-    // 피초대자 sub
-    const { data: inviteeSub } = await admin.from("subscriptions").select("*").eq("user_id", inviteeId).single();
-    if (inviteeSub) {
-      await admin.from("subscriptions").update({
-        current_period_end: addDays(inviteeSub.current_period_end, REWARD_DAYS),
-        status: inviteeSub.status === "active" ? "active" : "trial",
-        plan: inviteeSub.plan || "plus",
-        updated_at: new Date().toISOString(),
-      }).eq("user_id", inviteeId);
-    } else {
-      await admin.from("subscriptions").insert({
-        user_id: inviteeId,
-        plan: "plus",
-        status: "trial",
-        current_period_end: addDays(null, REWARD_DAYS + 14), // 기본 14일 + 보너스 30일
-      });
-    }
-
-    // 초대자 sub
-    const { data: inviterSub } = await admin.from("subscriptions").select("*").eq("user_id", inviterId).single();
-    if (inviterSub) {
-      await admin.from("subscriptions").update({
-        current_period_end: addDays(inviterSub.current_period_end, REWARD_DAYS),
-        status: inviterSub.status === "active" ? "active" : "trial",
-        plan: inviterSub.plan || "plus",
-        updated_at: new Date().toISOString(),
-      }).eq("user_id", inviterId);
-    } else {
-      await admin.from("subscriptions").insert({
-        user_id: inviterId,
-        plan: "plus",
-        status: "trial",
-        current_period_end: addDays(null, REWARD_DAYS),
-      });
-    }
+    // 체험 연장 규칙 (2026-09-10 정리):
+    //  - 결제 수단이 등록된 유료 구독자: 건드리지 않음 (기간을 늘려도 갱신 크론이 덮어써 무의미하고, 상태를 trial 로 뒤집으면 위험)
+    //  - 행이 없거나 status 가 trial: current_period_end 를 +REWARD_DAYS
+    //  - 그 외(cancelled·past_due·pending 등): 그대로 둠
+    const grantTrial = async (uid, baseDays) => {
+      const { data: sub } = await admin.from("subscriptions").select("*").eq("user_id", uid).maybeSingle();
+      if (!sub) {
+        await admin.from("subscriptions").insert({ user_id: uid, plan: "plus", status: "trial", current_period_end: addDays(null, baseDays + REWARD_DAYS) });
+        return "created";
+      }
+      if (paidPlanOf(sub) !== "free") return "paid_skip";
+      if (sub.status !== "trial") return "status_skip";
+      const base = sub.current_period_end && new Date(sub.current_period_end) > new Date() ? sub.current_period_end : null;
+      await admin.from("subscriptions").update({ current_period_end: addDays(base, REWARD_DAYS), plan: sub.plan || "plus", updated_at: new Date().toISOString() }).eq("user_id", uid);
+      return "extended";
+    };
+    await grantTrial(inviteeId, 14); // 신규: 기본 14일 + 보너스
+    await grantTrial(inviterId, 0);
 
     // 4-b) 양쪽에 내용증명 추가 발급권 +CREDIT_REWARD 장
     //      (얼리 액세스 전면 무료 기간에는 체험 일수가 의미 없으므로 실사용 가치가 있는 보상을 함께 지급)

@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { isInternalCall } from "../../../lib/ratelimit";
 
 const SOLAPI_API_KEY = process.env.SOLAPI_API_KEY;
 const SOLAPI_API_SECRET = process.env.SOLAPI_API_SECRET;
@@ -18,6 +19,9 @@ function getSolapiAuth() {
 
 export async function POST(req) {
   try {
+    // 내부 호출 전용 — /api/request/[tenantId] 가 수리 요청을 저장한 뒤 서버에서 호출한다.
+    // (이전엔 tenantId 만 알면 누구나 임대인에게 알림톡을 무제한 발송할 수 있었음)
+    if (!isInternalCall(req)) return Response.json({ error: "unauthorized" }, { status: 401 });
     const { tenantId, category, memo, address, tenantName } = await req.json();
 
     if (!tenantId) {

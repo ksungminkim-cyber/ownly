@@ -57,21 +57,7 @@ export default function RepairRequestPage() {
       return;
     }
 
-    // 2. 임대인에게 카카오 알림톡 발송 (실패해도 접수는 완료)
-    try {
-      await fetch("/api/repair-notify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tenantId,
-          category: cat,
-          memo: desc,
-          address: tenant.address || "",
-          tenantName: tenant.name || "",
-        }),
-      });
-    } catch (_) {}
-
+    // 임대인 알림톡은 서버(/api/request)가 저장 성공 후 직접 보낸다
     setDone(true);
   };
 

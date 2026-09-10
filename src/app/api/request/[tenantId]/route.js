@@ -6,6 +6,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { internalHeaders } from "../../../../lib/ratelimit";
 
 const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,5 +57,20 @@ export async function POST(req, { params }) {
   }]).select("id").single();
   if (error) return NextResponse.json({ error: "접수 저장 실패: " + error.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, id: inserted.id, tenant: { name: tenant.name, address: tenant.address } });
+  // 임대인 알림톡 — 저장이 성공한 요청에 대해서만 서버에서 호출 (실패해도 접수는 완료)
+  let notified = false;
+  try {
+    const host = req.headers.get("host") || "www.ownly.kr";
+    const base = `${host.includes("localhost") ? "http" : "https"}://${host}`;
+    const r = await fetch(`${base}/api/repair-notify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...internalHeaders() },
+      body: JSON.stringify({ tenantId, category, memo: desc, address: tenant.address || "", tenantName: tenant.name || "" }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const j = await r.json().catch(() => ({}));
+    notified = Boolean(j?.success);
+  } catch (e) { console.warn("[request] repair-notify failed:", e?.message); }
+
+  return NextResponse.json({ ok: true, id: inserted.id, notified, tenant: { name: tenant.name, address: tenant.address } });
 }

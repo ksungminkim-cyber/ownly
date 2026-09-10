@@ -66,9 +66,9 @@ const PLANS = [
       { text: "플러스 전체 기능", included: true },
       { text: "내용증명 무제한", included: true },
       { text: "🗺️ 주변 매물 조회", included: true },
-      { text: "🤖 AI 분석 무제한", included: true },
+      { text: "🤖 AI 분석 월 30회", included: true },
       { text: "📱 카카오톡 수금 알림", included: true },
-      { text: "🏢 건물 단위 관리 + 엑셀 일괄 등록", included: true },
+      { text: "🏢 멀티 빌딩 관리 (예정)", included: true },
       { text: "전담 1:1 이메일 지원", included: true },
       { text: "신기능 최우선 출시", included: true },
     ],
@@ -85,8 +85,8 @@ const FAQ = [
     a: "네. 물건 3개·세입자 5명 이하라면 기간 제한 없이 영구 무료로 사용하실 수 있습니다. 신용카드 등록도 필요 없습니다.",
   },
   {
-    q: "연간 결제로 변경하면 바로 할인이 적용되나요?",
-    a: "네. 월간에서 연간으로 전환 시 남은 기간을 정산한 뒤 연간 요금(20% 할인)으로 자동 전환됩니다.",
+    q: "연간 결제로 바꾸면 할인이 적용되나요?",
+    a: "네. 연간 결제는 월 요금 12개월분에서 20% 할인됩니다. 이미 월간으로 구독 중이라면 현재 기간이 끝난 뒤 다음 결제부터 연간으로 전환되며, 즉시 전환이 필요하면 inquiry@mclean21.com 으로 요청해 주세요.",
   },
   {
     q: "플랜을 언제든지 취소할 수 있나요?",

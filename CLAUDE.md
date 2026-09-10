@@ -10,7 +10,7 @@
 - **Supabase** (Postgres + Auth + Storage + Realtime)
 - **Tailwind 4** + 커스텀 디자인 시스템 (`src/app/globals.css`)
 - **Recharts** 차트, **lucide-react** 아이콘, **framer-motion** 일부
-- **외부 API**: 국토부 실거래(MOLIT), Resend(이메일), Solapi(카카오 알림톡), Toss Payments(백엔드만, 카카오페이 PG 심사 중)
+- **외부 API**: 국토부 실거래(MOLIT), Resend(이메일), Solapi(카카오 알림톡), 카카오페이 정기결제(PG, 2026-05 심사 통과). Toss Payments 는 사용하지 않음 — 잔재 코드 발견 시 제거 (DB 컬럼 `toss_order_id`·`billing_key` 는 이름만 남은 범용 컬럼)
 
 ## 2. 디렉토리 핵심
 

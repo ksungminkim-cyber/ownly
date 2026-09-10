@@ -1,7 +1,10 @@
 // src/app/api/market/molit/route.js
 // 국토부 실거래가 API 통합 엔드포인트
 
+import { isRateLimited } from "../../../../lib/ratelimit";
+
 export async function GET(req) {
+  if (isRateLimited(req, "molit", 120)) return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") || "apt_rent";
   const lawdCd = searchParams.get("lawdCd");

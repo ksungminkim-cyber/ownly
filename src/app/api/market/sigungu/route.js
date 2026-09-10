@@ -4,6 +4,8 @@
 // 캐싱: fetch의 Next.js revalidate로 24시간 CDN 캐시
 
 export const runtime = "edge";
+import { isRateLimited } from "../../../../lib/ratelimit";
+import { fetchMolitRows as fetchMolitRowsSafe } from "../../../../lib/molitParse";
 export const revalidate = 86400; // 24h
 
 const MOLIT_BASE = "http://apis.data.go.kr/1613000/";
@@ -29,20 +31,13 @@ function monthsBack(n) {
   return out;
 }
 
-async function fetchMolit(type, lawdCd, ym) {
+async function fetchMolit(type, lawdCd, ym, errs) {
   const key = getKey(type);
   const path = MOLIT_ENDPOINTS[type];
   if (!key || !path || !lawdCd) return [];
-  try {
-    const url = `${MOLIT_BASE}${path}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${lawdCd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=200&_type=json`;
-    const res = await fetch(url, { next: { revalidate: 86400 } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const items = data?.response?.body?.items?.item;
-    return Array.isArray(items) ? items : items ? [items] : [];
-  } catch {
-    return [];
-  }
+  const url = `${MOLIT_BASE}${path}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${lawdCd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=200&_type=json`;
+  // 오류 본문(한도 초과·키 오류·점검)을 "데이터 없음"과 구분 — src/lib/molitParse.js (오류 시 캐시 우회 1회 재시도)
+  return fetchMolitRowsSafe(url, errs, `${type} ${ym}`);
 }
 
 const sqmToPy = (sqm) => sqm > 0 ? Math.round(sqm / 3.3058 * 10) / 10 : 0;
@@ -59,19 +54,21 @@ function avg(nums) {
 }
 
 export async function POST(req) {
+  if (isRateLimited(req, "sigungu", 60)) return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
   const { lawdCd } = await req.json();
   if (!lawdCd) return Response.json({ error: "lawdCd 필수" }, { status: 400 });
 
   const months = monthsBack(3);
+  const errs = []; // MOLIT 업스트림 오류 수집 — "데이터 없음"과 구분해 응답
 
   // 월세 실거래 — 아파트/빌라/오피스텔 병렬
   const rentTasks = [];
   for (const ym of months) {
-    rentTasks.push(fetchMolit("apt_rent", lawdCd, ym).then(rows => rows.map(r => ({ ...r, _type: "apt", _ym: ym }))));
-    rentTasks.push(fetchMolit("villa_rent", lawdCd, ym).then(rows => rows.map(r => ({ ...r, _type: "villa", _ym: ym }))));
-    rentTasks.push(fetchMolit("offi_rent", lawdCd, ym).then(rows => rows.map(r => ({ ...r, _type: "offi", _ym: ym }))));
+    rentTasks.push(fetchMolit("apt_rent", lawdCd, ym, errs).then(rows => rows.map(r => ({ ...r, _type: "apt", _ym: ym }))));
+    rentTasks.push(fetchMolit("villa_rent", lawdCd, ym, errs).then(rows => rows.map(r => ({ ...r, _type: "villa", _ym: ym }))));
+    rentTasks.push(fetchMolit("offi_rent", lawdCd, ym, errs).then(rows => rows.map(r => ({ ...r, _type: "offi", _ym: ym }))));
   }
-  const tradeTasks = months.map(ym => fetchMolit("apt_trade", lawdCd, ym).then(rows => rows.map(r => ({ ...r, _ym: ym }))));
+  const tradeTasks = months.map(ym => fetchMolit("apt_trade", lawdCd, ym, errs).then(rows => rows.map(r => ({ ...r, _ym: ym }))));
 
   const [rentChunks, tradeChunks] = await Promise.all([
     Promise.all(rentTasks),
@@ -97,6 +94,10 @@ export async function POST(req) {
     }));
 
   if (validRent.length === 0) {
+    if (errs.length > 0) {
+      // 국토부 API 오류(한도 초과·점검 등) — 빈 데이터로 위장하지 않고 502 로 알린다
+      return Response.json({ lawdCd, error: "국토부 실거래 API 응답 오류", upstream: true, detail: errs.slice(0, 3) }, { status: 502 });
+    }
     return Response.json({
       lawdCd,
       empty: true,

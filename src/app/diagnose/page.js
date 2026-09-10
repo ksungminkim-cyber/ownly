@@ -28,7 +28,14 @@ export default function DiagnosePage() {
   const [err, setErr] = useState("");
   const [report, setReport] = useState(null);
 
-  useEffect(() => { trackTool("diagnose"); }, []);
+  useEffect(() => {
+    trackTool("diagnose");
+    // 공유 링크·시세 페이지(/diagnose?addr=...)로 들어오면 주소를 미리 채운다
+    try {
+      const a = new URLSearchParams(window.location.search).get("addr");
+      if (a) Promise.resolve().then(() => setAddr(a.slice(0, 80)));
+    } catch {}
+  }, []);
   const onSignupCta = () => {
     try { if (addr.trim()) localStorage.setItem(PREFILL_ADDR_KEY, addr.trim()); } catch {}
     trackToolCta("diagnose");
@@ -56,8 +63,8 @@ export default function DiagnosePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: addr.trim(), propertyType: pType, lawdCd, myRent, areaPyeong: areaPy }),
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || "분석 서버가 잠시 응답하지 않습니다. 잠시 후 다시 시도해주세요.");
 
       // 등급 산정 로직 (MOLIT 실데이터 존재 + 시장 포지션 기반)
       const score = calcScore(data);
