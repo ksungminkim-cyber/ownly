@@ -19,7 +19,7 @@ const FAQS = [
 
 export default function PricingPage() {
   const router = useRouter();
-  const { user, paidPlan, subscription, isLegacyFree, planLoading } = useApp();
+  const { user, userPlan, paidPlan, subscription, isLegacyFree, planLoading } = useApp();
   const [faqOpen, setFaqOpen] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -32,6 +32,8 @@ export default function PricingPage() {
   const isPaid = paidPlan === PAID_PLAN_ID;
   const isTrial = !isPaid && subscription?.status === "trial" && subscription?.current_period_end && new Date(subscription.current_period_end) > new Date();
   const trialDays = isTrial ? Math.max(0, Math.ceil((new Date(subscription.current_period_end) - new Date()) / 86400000)) : 0;
+  // 결제 없이 플러스가 열려 있는 계정 (관리자 수동 부여) — 사이드바 "플러스 플랜" 표시와 어긋나지 않게 이용 중으로 취급
+  const grantedPlus = !isPaid && !isTrial && !isLegacyFree && userPlan === PAID_PLAN_ID;
 
   const goCheckout = () => {
     if (!user) { router.push(`/login?mode=signup&next=/dashboard/checkout/${PAID_PLAN_ID}`); return; }
@@ -42,15 +44,18 @@ export default function PricingPage() {
   const statusNote = planLoading ? null
     : isPaid ? { tone: "ok", text: "플러스 구독 중입니다. 해지·결제 이력은 설정 → 결제 관리에서 확인하세요." }
     : isTrial ? { tone: "info", text: `플러스 체험 중 (D-${trialDays}). 체험이 끝나면 무료 플랜으로 전환됩니다.` }
+    : grantedPlus ? { tone: "ok", text: "플러스 기능이 열려 있는 계정입니다 (운영자 부여). 결제 정보는 등록되어 있지 않습니다." }
     : isLegacyFree ? { tone: "info", text: `기존 가입자 혜택으로 ${LEGACY_FREE_UNTIL_LABEL}까지 플러스 기능을 무료로 쓰고 계십니다 (내용증명 월 ${LEGACY_LIMITS.certified}건·알림톡 월 ${LEGACY_LIMITS.kakaoMonthly}건·AI 월 ${LEGACY_LIMITS.aiPricing}회 한도). 지금 구독하면 한도가 바로 플러스 기준으로 늘어납니다.` }
     : null;
 
   const btnFor = (plan) => {
     if (plan.id === "free") {
       if (isPaid) return { label: "해지는 결제 관리에서", onClick: () => router.push("/dashboard/billing"), muted: true };
+      if (grantedPlus) return { label: "기본 플랜", disabled: true };
       return { label: "✓ 현재 플랜", disabled: true };
     }
     if (isPaid) return { label: "✓ 구독 중", disabled: true };
+    if (grantedPlus) return { label: "✓ 이용 중", disabled: true };
     return { label: isTrial ? "체험 후 계속 쓰기 →" : "플러스 시작하기 →", onClick: goCheckout };
   };
 
