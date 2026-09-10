@@ -19,7 +19,7 @@
 
 ## 인증
 
-`CRON_SECRET`(권장) 또는 `CRON_TOKEN` / `BILLING_RENEWAL_TOKEN` 값과 일치해야 실행됩니다. 세 방식 지원:
+`CRON_SECRET`(권장) 또는 `CRON_TOKEN` / `BILLING_RENEWAL_TOKEN` 값과 일치해야 실행됩니다. **시크릿이 설정된 배포에서는 user-agent 폴백을 인정하지 않습니다** (UA 는 위조 가능 — 2026-09-10 감사). 세 방식 지원:
 - `Authorization: Bearer <토큰>` — **Vercel Cron 이 자동 주입** (CRON_SECRET 사용 시)
 - `x-cron-token: <토큰>` 헤더
 - `?token=<토큰>` 쿼리 (수동 테스트용)
@@ -28,10 +28,13 @@
 
 ## 스케줄
 
-`vercel.json` 에 등록됨 — 매주 월요일 00:00 UTC(= 한국 월요일 09:00):
+`vercel.json` 에 등록됨 — **매일** 00:00 UTC(= 한국 09:00). 미납 알림은 매일, 만료 다이제스트는 월요일, 월간 리포트는 1일에만 발송:
 ```json
-{ "path": "/api/notify", "schedule": "0 0 * * 1" }
+{ "path": "/api/notify", "schedule": "0 0 * * *" }
 ```
+Supabase pg_cron 의 `daily-notify`(같은 시각 중복 실행)와 구 Toss `billing_renewal` 은 `20260910_security_hardening.sql` 로 제거 대상입니다.
+
+응답 summary 키: `processed · unpaidSent · smsSent · digestSent · monthlySent · skippedOptOut · skippedRecent · skippedNothing · errors`. 샘플 데이터(`[샘플]`)는 모든 알림에서 제외되고, Resend 가 오류를 돌려주면 "발송됨"으로 기록하지 않습니다.
 
 ### 필수 설정 (Vercel 환경변수)
 `CRON_SECRET` 을 Vercel 프로젝트 환경변수에 추가하세요. Vercel Cron 이 이 값을 Bearer 토큰으로 자동 전송합니다.
