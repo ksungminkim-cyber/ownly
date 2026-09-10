@@ -81,7 +81,16 @@ export async function GET(req) {
     const totalMatch = xml.match(/<totalCount>(\d+)<\/totalCount>/);
     const totalCount = totalMatch ? parseInt(totalMatch[1]) : items.length;
 
-    return Response.json({ items, totalCount, type, lawdCd, dealYm });
+    // MOLIT 결과 코드 — 정상은 "000"(또는 "00"). 한도 초과·키 오류·점검 등은 0건처럼 보이므로 코드·메시지를 그대로 노출
+    // (헬스체크·AI 분석이 "0건"과 "API 오류"를 구분할 수 있게). 호환을 위해 HTTP 200 유지.
+    const codeMatch = xml.match(/<resultCode>\s*([^<\s]+)\s*<\/resultCode>/i) || xml.match(/<returnReasonCode>\s*([^<\s]+)\s*<\/returnReasonCode>/i);
+    const msgMatch = xml.match(/<resultMsg>\s*([\s\S]*?)\s*<\/resultMsg>/i) || xml.match(/<returnAuthMsg>\s*([\s\S]*?)\s*<\/returnAuthMsg>/i) || xml.match(/<errMsg>\s*([\s\S]*?)\s*<\/errMsg>/i);
+    const resultCode = codeMatch ? codeMatch[1] : null;
+    const resultMsg = msgMatch ? msgMatch[1].trim() : null;
+    const molitError = resultCode && !/^0+$/.test(resultCode) ? `${resultMsg || "MOLIT error"} (${resultCode})` : null;
+    if (molitError) console.warn("[market/molit]", type, lawdCd, dealYm, molitError);
+
+    return Response.json({ items, totalCount, type, lawdCd, dealYm, resultCode, resultMsg, molitError });
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });
   }

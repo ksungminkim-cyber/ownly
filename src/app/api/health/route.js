@@ -65,12 +65,27 @@ export async function GET(req) {
       return `${r.provider}:${r.model} · ${r.text.slice(0, 40)}`;
     }),
     timed(async () => {
-      const res = await fetch(`${base}/api/market/molit?type=apt_rent&lawdCd=11440&dealYm=${lastYm}&numOfRows=20`, { signal: AbortSignal.timeout(20000) });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-      const n = Array.isArray(data.items) ? data.items.length : 0;
-      if (n === 0) throw new Error(`실거래 0건 (${lastYm} 마포구)`);
-      return `${n}건 (${lastYm})`;
+      // 국토부 API 는 새벽에 일시 오류·점검이 잦다 → 1회 재시도, 지난달이 비면 전전달로 한 번 더 확인.
+      // 프록시가 돌려주는 molitError(한도 초과·키 오류 등)를 그대로 메일에 남긴다.
+      const probe = async (ym) => {
+        const res = await fetch(`${base}/api/market/molit?type=apt_rent&lawdCd=11440&dealYm=${ym}&numOfRows=20`, { signal: AbortSignal.timeout(20000) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+        if (data.molitError) throw new Error(`MOLIT 응답 오류: ${data.molitError}`);
+        return Array.isArray(data.items) ? data.items.length : 0;
+      };
+      const d2 = new Date(); d2.setMonth(d2.getMonth() - 2);
+      const prevYm = `${d2.getFullYear()}${String(d2.getMonth() + 1).padStart(2, "0")}`;
+      let lastErr = null;
+      for (const [attempt, ym] of [[1, lastYm], [2, lastYm], [3, prevYm]]) {
+        try {
+          const n = await probe(ym);
+          if (n > 0) return `${n}건 (${ym}${attempt > 1 ? `, ${attempt}차 시도` : ""})`;
+          lastErr = new Error(`실거래 0건 (${ym} 마포구)`);
+        } catch (e) { lastErr = e; }
+        await new Promise((r) => setTimeout(r, 4000));
+      }
+      throw lastErr;
     }),
     timed(async () => {
       const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -86,7 +101,7 @@ export async function GET(req) {
   if (failed.length > 0) {
     const lines = failed.map(([name, c]) => `[${name}] FAIL (${c.ms}ms): ${c.detail}`);
     lines.push("", `참고: LLM 모델 = groq:${GROQ_MODEL} / claude:${CLAUDE_MODEL} (src/lib/llm.js)`);
-    lines.push(`확인: ${base}/api/health?token=... · 문서 CLAUDE.md §4 AI`);
+    lines.push(`확인: https://www.ownly.kr/api/health?token=... · 문서 CLAUDE.md §4 AI`);
     console.error("[health] FAIL", lines.join(" | "));
     const r = await sendAlert(`[온리 헬스체크] ${failed.map(([n]) => n).join(", ")} 실패`, lines);
     alerted = !r?.skipped;
