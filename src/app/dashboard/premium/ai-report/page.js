@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
 import { supabase } from "../../../../lib/supabase";
-import { EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../../lib/constants";
+import { PLANS, PAID_PLAN_ID } from "../../../../lib/constants";
 
 const C = {
   navy: "#1a2744", navyLight: "#2d4270", purple: "#5b4fcf",
@@ -94,7 +94,7 @@ function AddressInput({ value, onChange, onSelect, error }) {
 
 export default function AIReportPage() {
   const router = useRouter();
-  const { tenants, checkAiUsage, refreshAiUsage, userPlan, isSupporter } = useApp();
+  const { tenants, checkAiUsage, refreshAiUsage, userPlan, paidPlan } = useApp();
   // ✅ 'location' (AI 입지 분석) 탭 제거 — 실데이터 미연동으로 정확도 낮아 비활성화
   // 적정 임대료 분석(MOLIT 실거래 기반)만 운영
   const propTypes = ["주거", "상가", "오피스텔", "토지"];
@@ -111,8 +111,8 @@ export default function AIReportPage() {
     if (!pInputAddr.trim()) { setPError("주소를 입력해주세요."); return; }
     const usage = checkAiUsage("aiPricing");
     if (!usage.allowed) {
-      setPError(EARLY_ACCESS_FREE && !isSupporter
-        ? `이번 달 AI 임대료 분석 ${usage.limit}회를 모두 사용했습니다. 얼리 서포터 구독 시 월 ${EARLY_SUPPORTER.aiMonthly}회로 늘어납니다.`
+      setPError(paidPlan !== PAID_PLAN_ID
+        ? `이번 달 AI 임대료 분석 ${usage.limit}회를 모두 사용했습니다. 플러스 구독 시 월 ${PLANS[PAID_PLAN_ID].limits.aiPricing}회로 늘어납니다.`
         : `이번 달 AI 임대료 분석 ${usage.limit}회를 모두 사용했습니다. 다음 달 1일에 초기화됩니다.`);
       return;
     }
@@ -165,12 +165,12 @@ export default function AIReportPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
               <h1 style={{ fontSize: 22, fontWeight: 900, color: C.navy, letterSpacing: "-.4px" }}>AI 적정 임대료 분석</h1>
-              <span style={{ fontSize: 10, fontWeight: 800, color: C.purple, background: "rgba(91,79,207,0.1)", padding: "3px 8px", borderRadius: 6 }}>PRO</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: C.purple, background: "rgba(91,79,207,0.1)", padding: "3px 8px", borderRadius: 6 }}>플러스</span>
             </div>
             <p style={{ fontSize: 13, color: C.muted }}>국토부 실거래 데이터 기반으로 적정 임대료 범위와 시장 포지션을 AI가 분석합니다</p>
             {(() => { const u = checkAiUsage("aiPricing"); return isFinite(u.limit) ? (
               <p style={{ fontSize: 12, color: u.allowed ? C.muted : C.rose, marginTop: 4 }}>
-                이번 달 <b style={{ color: u.allowed ? C.navy : C.rose }}>{u.used}/{u.limit}회</b> 사용{EARLY_ACCESS_FREE && isSupporter && " · 얼리 서포터 한도"}{EARLY_ACCESS_FREE && !isSupporter && ` · 얼리 서포터는 월 ${EARLY_SUPPORTER.aiMonthly}회`}
+                이번 달 <b style={{ color: u.allowed ? C.navy : C.rose }}>{u.used}/{u.limit}회</b> 사용{paidPlan !== PAID_PLAN_ID && ` · 플러스는 월 ${PLANS[PAID_PLAN_ID].limits.aiPricing}회`}
               </p>
             ) : null; })()}
           </div>

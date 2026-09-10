@@ -105,7 +105,7 @@ export default function TaxInvoicePage() {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const isPro = userPlan === "pro";
+  const isPro = userPlan === "plus";
   const commercialTenants = tenants.filter(t => t.pType === "상가");
 
   // 발행 이력 로드

@@ -90,7 +90,6 @@ export default function CommunityPage() {
 
   const getBadge = () => {
     const plan = userPlan || "free";
-    if (plan === "pro") return { label:"🏆 프로 임대인", color:"#c9920a", bg:"rgba(201,146,10,0.1)" };
     if (plan === "plus") return { label:"⭐ 플러스 임대인", color:"#4f46e5", bg:"rgba(79,70,229,0.1)" };
     if ((tenants?.length||0) >= 1) return { label:"🌱 임대인", color:"#8a8a9a", bg:"rgba(138,138,154,0.1)" };
     return null;

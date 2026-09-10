@@ -106,7 +106,7 @@ function ProfitAnalysisContent() {
       <div style={{ marginBottom: 24 }}>
         <SectionLabel>SELL VS HOLD ANALYSIS</SectionLabel>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1a2744", letterSpacing: "-.4px" }}>팔 것인가 vs 계속 임대할 것인가</h1>
-        <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>양도세 계산 · 임대 수익 분석 · 의사결정 지원 — 프로 플랜 전용</p>
+        <p style={{ fontSize: 13, color: "#8a8a9a", marginTop: 3 }}>양도세 계산 · 임대 수익 분석 · 의사결정 지원 — 플러스 플랜</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>

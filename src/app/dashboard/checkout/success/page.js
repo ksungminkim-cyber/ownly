@@ -46,7 +46,7 @@ export default function CheckoutSuccessPage() {
         if (!res.ok || data.error) throw new Error(data.error || "결제 승인 실패");
         setResult(data);
         setStatus("done");
-        // 대시보드로 돌아갔을 때 서포터 혜택이 바로 반영되도록 구독 상태 재조회
+        // 대시보드로 돌아갔을 때 플러스 한도가 바로 반영되도록 구독 상태 재조회
         try { await refreshSubscription?.(); } catch {}
       } catch (e) {
         if (!cancelled) { setStatus("error"); setErrMsg(e.message); }
@@ -85,14 +85,8 @@ export default function CheckoutSuccessPage() {
           <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text)", marginBottom: 8, letterSpacing: "-0.3px" }}>{plan?.name} 플랜 구독이 활성화되었어요</h1>
           <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 20, lineHeight: 1.7 }}>
             카카오페이로 ₩{(result?.amount || 0).toLocaleString()} 결제가 정상 처리되었습니다.<br />
-            {cycle === "annual" ? "매년" : "매월"} 같은 날짜에 자동으로 청구됩니다.
+            매월 같은 날짜에 자동으로 청구됩니다. 언제든 설정 → 결제 관리에서 해지할 수 있습니다.
           </p>
-          {result?.supporter && result?.price_locked_until && (
-            <div style={{ padding: "12px 16px", marginBottom: 16, borderRadius: 12, background: "rgba(15,165,115,0.06)", border: "1px solid rgba(15,165,115,0.25)", fontSize: 13, color: "#065f46", lineHeight: 1.7, textAlign: "left" }}>
-              <b>얼리 서포터가 되어주셔서 감사합니다.</b> 지금 결제한 가격이 {new Date(result.price_locked_until).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })}까지 고정되고,
-              내용증명 무제한 발급·알림톡·AI 분석 한도 확대가 바로 적용됩니다.
-            </div>
-          )}
           {result?.next_payment_at && (
             <div className="surface-card" style={{ padding: "14px 18px", marginBottom: 20, textAlign: "left" }}>
               <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>다음 자동결제일</p>

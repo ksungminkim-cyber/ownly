@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { PLANS, EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../../lib/constants";
+import { PLANS, PAID_PLAN_ID } from "../../../../lib/constants";
 import { useApp } from "../../../../context/AppContext";
 import { supabase } from "../../../../lib/supabase";
 import { toast } from "../../../../components/shared";
@@ -18,8 +18,8 @@ const PG_OPTIONS = [
 export default function CheckoutPage() {
   const router = useRouter();
   const { planId } = useParams();
-  const { user, paidPlan: userPlan } = useApp(); // 얼리 액세스 중 userPlan 은 전원 pro 로 보이므로 결제 수단이 등록된 실제 유료 플랜 사용
-  const [billingCycle, setBillingCycle] = useState("monthly");
+  const { user } = useApp();
+  const billingCycle = "monthly"; // 결제 주기는 월간 하나
   const [selectedPg, setSelectedPg] = useState("kakao");
   const [waitlistSaved, setWaitlistSaved] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -30,7 +30,6 @@ export default function CheckoutPage() {
   const [customerPhone, setCustomerPhone] = useState("");
 
   const plan = PLANS[planId];
-  const isUpgrade = userPlan && userPlan !== planId && userPlan !== "free";
 
   useEffect(() => {
     if (user?.user_metadata?.name) setCustomerName(user.user_metadata.name);
@@ -43,7 +42,7 @@ export default function CheckoutPage() {
     if (planId) track("checkout_view", { plan: planId });
   }, [planId]);
 
-  if (!plan || plan.id === "free") {
+  if (!plan || plan.id !== PAID_PLAN_ID) {
     return (
       <div style={{ padding: 40, textAlign: "center", fontFamily: "'Pretendard',sans-serif" }}>
         <p style={{ fontSize: 14, color: "#6a6a7a" }}>유효하지 않은 플랜입니다.</p>
@@ -55,16 +54,13 @@ export default function CheckoutPage() {
     );
   }
 
-  // 얼리 서포터: 얼리 액세스 기간의 플러스 플랜은 50% 가격, 12개월 고정 (서버 ready/approve 가 같은 규칙으로 청구)
-  const supporter = EARLY_ACCESS_FREE && plan.id === EARLY_SUPPORTER.planId;
-  const monthlyPrice = supporter ? EARLY_SUPPORTER.price : plan.price;
-  const annualPrice = Math.round(monthlyPrice * 12 * 0.8);
-  const totalAmount = billingCycle === "annual" ? annualPrice : monthlyPrice;
-  const periodLabel = billingCycle === "annual" ? "연간 (20% 할인)" : "월간";
+  // 가격은 PLANS 한 곳에서 — 서버 ready/approve/갱신 크론이 같은 값으로 청구
+  const monthlyPrice = plan.price;
+  const totalAmount = monthlyPrice;
+  const periodLabel = "월간";
   const billingPeriodEnd = (() => {
     const d = new Date();
-    if (billingCycle === "annual") d.setFullYear(d.getFullYear() + 1);
-    else d.setMonth(d.getMonth() + 1);
+    d.setMonth(d.getMonth() + 1);
     return d.toLocaleDateString("ko-KR");
   })();
 
@@ -148,18 +144,15 @@ export default function CheckoutPage() {
         {/* 헤더 */}
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 11, fontWeight: 800, color: "#5b4fcf", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>
-            {isUpgrade ? "플랜 변경" : "구독 시작"}
+            구독 시작
           </p>
           <h1 style={{ fontSize: 28, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1.2 }}>
-            {plan.name} 플랜{supporter && <span style={{ marginLeft: 10, verticalAlign: "middle", fontSize: 12, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#4f46e5,#7c3aed)", padding: "4px 10px", borderRadius: 20 }}>얼리 서포터 50%</span>}
+            {plan.name} 플랜
           </h1>
           <p style={{ fontSize: 14, color: "#6b7280", marginTop: 6 }}>{plan.tagline}</p>
-          {supporter && (
-            <div style={{ marginTop: 12, padding: "12px 14px", background: "rgba(15,165,115,0.06)", border: "1px solid rgba(15,165,115,0.25)", borderRadius: 10, fontSize: 12.5, color: "#065f46", lineHeight: 1.7 }}>
-              <b>얼리 서포터 혜택</b> — 정식가 <s>월 {EARLY_SUPPORTER.listPrice.toLocaleString()}원</s> 대신 <b>월 {EARLY_SUPPORTER.price.toLocaleString()}원</b>이 {EARLY_SUPPORTER.lockMonths}개월 고정됩니다.
-              지금 바로 내용증명 무제한 발급 · 카카오 알림톡 월 {EARLY_SUPPORTER.kakaoMonthly}건 · AI 분석 월 {EARLY_SUPPORTER.aiMonthly}회. 정식 출시 후에도 고정 기간 동안 같은 가격입니다.
-            </div>
-          )}
+          <div style={{ marginTop: 12, padding: "12px 14px", background: "rgba(79,70,229,0.05)", border: "1px solid rgba(79,70,229,0.2)", borderRadius: 10, fontSize: 12.5, color: "#1a2744", lineHeight: 1.7 }}>
+            결제 즉시 <b>물건·세입자 무제한 · 내용증명 무제한 · 카카오 알림톡 월 {plan.limits.kakaoMonthly}건 · AI 임대료 분석 월 {plan.limits.aiPricing}회</b>와 세금·수익 분석·공실 관리·매물 조회가 모두 열립니다. 추가 요금은 없습니다.
+          </div>
           {/* 결제 성격 명시 (PG 심사용) */}
           <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(91,79,207,0.05)", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 10, fontSize: 12, color: "#5b4fcf", fontWeight: 600, lineHeight: 1.6 }}>
             💼 <b>임대 물건 관리 구독료 결제</b> — 본 결제는 임대 물건 관리 서비스의 월 구독료이며, 부동산 매매·임대·중개와 무관합니다.
@@ -168,14 +161,17 @@ export default function CheckoutPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-          {/* 결제 주기 */}
+          {/* 결제 주기 — 월간 하나 */}
           <Card num="1" title="결제 주기">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <CycleCard active={billingCycle === "monthly"} onClick={() => setBillingCycle("monthly")}
-                title="월간" price={monthlyPrice} unit="/월" desc="매월 자동 갱신" />
-              <CycleCard active={billingCycle === "annual"} onClick={() => setBillingCycle("annual")}
-                title="연간" badge="20% 할인" price={annualPrice} unit="/년"
-                desc={`월 ₩${Math.round(annualPrice / 12).toLocaleString()} · 2.4개월 무료`} />
+            <div style={{ padding: "16px 18px", borderRadius: 12, border: "2px solid #5b4fcf", background: "rgba(91,79,207,0.04)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <p style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: 0 }}>월간</p>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: "#10b981", padding: "2px 8px", borderRadius: 20 }}>언제든 해지</span>
+              </div>
+              <p style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: "0 0 4px", letterSpacing: "-0.5px" }}>
+                ₩{monthlyPrice.toLocaleString()}<span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>/월</span>
+              </p>
+              <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>매월 같은 날짜에 자동 결제 · VAT 포함 · 약정 없음</p>
             </div>
           </Card>
 
@@ -209,7 +205,7 @@ export default function CheckoutPage() {
           <Card num="4" title="주문 요약">
             <div style={{ background: "#f8f7f4", borderRadius: 12, padding: "18px 20px" }}>
               <Row label="상품" value="임대 물건 관리 구독권" />
-              <Row label="플랜" value={supporter ? `${plan.name} (얼리 서포터 · ${EARLY_SUPPORTER.lockMonths}개월 가격 고정)` : plan.name} />
+              <Row label="플랜" value={plan.name} />
               <Row label="결제 주기" value={periodLabel} />
               <Row label="다음 결제일" value={billingPeriodEnd} />
               <Row label="결제 수단" value={PG_OPTIONS.find(p => p.id === selectedPg)?.label || ""} />
@@ -379,32 +375,6 @@ function Card({ num, title, subtitle, children }) {
       {subtitle && <p style={{ fontSize: 12, color: "#9ca3af", margin: "0 0 16px 36px" }}>{subtitle}</p>}
       {children}
     </section>
-  );
-}
-
-function CycleCard({ active, onClick, title, badge, price, unit, desc }) {
-  return (
-    <div onClick={onClick}
-      style={{
-        padding: "16px 18px", borderRadius: 12,
-        border: `2px solid ${active ? "#5b4fcf" : "#e5e7eb"}`,
-        background: active ? "rgba(91,79,207,0.04)" : "#fff",
-        cursor: "pointer", transition: "all .15s",
-        position: "relative",
-      }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-        <p style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: 0 }}>{title}</p>
-        {badge && (
-          <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: "#10b981", padding: "2px 8px", borderRadius: 20 }}>
-            {badge}
-          </span>
-        )}
-      </div>
-      <p style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: "0 0 4px", letterSpacing: "-0.5px" }}>
-        ₩{price.toLocaleString()}<span style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>{unit}</span>
-      </p>
-      <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>{desc}</p>
-    </div>
   );
 }
 

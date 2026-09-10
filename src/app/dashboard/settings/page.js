@@ -246,7 +246,7 @@ import { exportTenants, exportPayments, exportContracts, exportLedger, exportAll
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, tenants, payments, contracts, ledger, resetAllData, userPlan } = useApp();
+  const { user, tenants, payments, contracts, ledger, resetAllData, userPlan, isLegacyFree } = useApp();
   const currentNickname = user?.user_metadata?.nickname || "";
   const currentPhone = user?.user_metadata?.phone || "";
   const currentLandlordName = user?.user_metadata?.landlord_name || "";
@@ -468,7 +468,7 @@ export default function SettingsPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>
-              현재 플랜: {userPlan === "pro" ? "프로" : userPlan === "plus" ? "플러스" : userPlan === "starter" ? "스타터" : "무료"}
+              현재 플랜: {userPlan === "plus" ? "플러스" : "무료"}{isLegacyFree ? " (기존 가입자 무료 이용 중)" : ""}
             </p>
             <p style={{ fontSize: 11, color: "#8a8a9a", margin: "3px 0 0", lineHeight: 1.6 }}>
               구독 상태 확인, 결제 이력 조회, 구독 취소

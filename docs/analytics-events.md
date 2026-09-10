@@ -25,7 +25,7 @@
 | `certified_issued` | 내용증명 정식 저장(발급) | `reason`, `viaCredit` |
 | `portal_link_copied` | 세입자 포털 링크 복사 | `from`: tenants·checklist |
 | `sms_parse_used` | 입금 문자 파싱으로 납부 처리 | `matched` |
-| `upsell_click` | 얼리 서포터 CTA 클릭 (대시보드 바 · 내용증명 한도 소진 모달) | `from`: dashboard_bar·certified |
+| `upsell_click` | 플러스 구독 CTA 클릭 (대시보드 바 · 내용증명 한도 소진 모달) | `from`: dashboard_bar·certified |
 | `checklist_done` | 시작 체크리스트 3/3 완료 | |
 
 **유입 경로 캡처**: `src/components/AttributionCapture.js`(루트 레이아웃)가 첫 방문 URL의 `utm_*`·착지 경로를 localStorage(`ownly_attr`)에 1회 저장하고, 가입 후 첫 대시보드 진입에서 `signup_source`로 전송합니다. **광고 링크에는 반드시 utm_source·utm_campaign을 붙이세요** (예: `https://www.ownly.kr/tools/certified?utm_source=naver&utm_medium=cpc&utm_campaign=certified_sep`).

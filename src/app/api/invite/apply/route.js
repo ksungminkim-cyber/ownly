@@ -80,7 +80,7 @@ export async function POST(req) {
     await grantTrial(inviterId, 0);
 
     // 4-b) 양쪽에 내용증명 추가 발급권 +CREDIT_REWARD 장
-    //      (얼리 액세스 전면 무료 기간에는 체험 일수가 의미 없으므로 실사용 가치가 있는 보상을 함께 지급)
+    //      (체험 일수 외에 바로 쓸 수 있는 보상을 함께 지급)
     for (const uid of [inviteeId, inviterId]) {
       const { data: cur } = await admin.from("certified_credits").select("balance").eq("user_id", uid).maybeSingle();
       await admin.from("certified_credits").upsert({

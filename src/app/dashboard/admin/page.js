@@ -12,7 +12,6 @@ const PLAN_META = {
   free:         { label: "무료",    color: "#8a8a9a", bg: "#f0efe9" },
   
   plus: { label: "플러스", color: "#4f46e5", bg: "#e5e4fd" },
-  pro:          { label: "프로",    color: "#c9920a", bg: "#fdf0cc" },
 };
 
 const STATUS_META = {
@@ -82,16 +81,12 @@ function AdminContent({ currentUser }) {
       sql: "SELECT user_id, plan, status, current_period_end, billing_key\nFROM public.subscriptions\nORDER BY created_at DESC;",
     },
     {
-      title: "② 특정 유저 → 프로 업그레이드",
-      sql: "UPDATE public.subscriptions\nSET plan = 'pro',\n    status = 'active',\n    current_period_end = NULL\nWHERE user_id = 'YOUR_USER_ID';",
-    },
-    {
-      title: "③ 특정 유저 → 플러스 설정",
+      title: "② 특정 유저 → 플러스 설정 (수동 부여)",
       sql: "UPDATE public.subscriptions\nSET plan = 'plus',\n    status = 'active',\n    current_period_end = NULL\nWHERE user_id = 'YOUR_USER_ID';",
     },
     {
       title: "④ 구독 레코드 없는 유저에게 생성",
-      sql: "INSERT INTO public.subscriptions (user_id, plan, status)\nVALUES ('YOUR_USER_ID', 'pro', 'active')\nON CONFLICT (user_id) DO UPDATE\nSET plan = EXCLUDED.plan,\n    status = EXCLUDED.status,\n    current_period_end = NULL;",
+      sql: "INSERT INTO public.subscriptions (user_id, plan, status)\nVALUES ('YOUR_USER_ID', 'plus', 'active')\nON CONFLICT (user_id) DO UPDATE\nSET plan = EXCLUDED.plan,\n    status = EXCLUDED.status,\n    current_period_end = NULL;",
     },
     {
       title: "⑤ 무료 플랜으로 초기화 (테스트 후 복구)",
@@ -266,9 +261,8 @@ function AdminContent({ currentUser }) {
         return pd.getFullYear() === y && pd.getMonth() + 1 === m;
       });
       const plus = paidRows.filter(b => b.plan === "plus").reduce((s, b) => s + (Number(b.amount) || 0), 0);
-      const pro  = paidRows.filter(b => b.plan === "pro").reduce((s, b) => s + (Number(b.amount) || 0), 0);
-      const other = paidRows.filter(b => b.plan !== "plus" && b.plan !== "pro").reduce((s, b) => s + (Number(b.amount) || 0), 0);
-      months.push({ label, total: plus + pro + other, plus, pro, other });
+      const other = paidRows.filter(b => b.plan !== "plus").reduce((s, b) => s + (Number(b.amount) || 0), 0);
+      months.push({ label, total: plus + other, plus, other });
     }
     return months;
   }, [billing]);
@@ -341,8 +335,7 @@ function AdminContent({ currentUser }) {
             title: "플랜 분포",
             segments: [
               { key: "free", label: "무료", count: users.filter(u => u.plan === "free").length, color: "#8a8a9a" },
-              { key: "plus", label: "플러스", count: users.filter(u => u.plan === "plus").length, color: "#4f46e5" },
-              { key: "pro", label: "프로", count: users.filter(u => u.plan === "pro").length, color: "#c9920a" },
+              { key: "plus", label: "플러스", count: users.filter(u => u.plan === "plus" || u.plan === "pro").length, color: "#4f46e5" },
             ],
           },
           {
@@ -441,7 +434,6 @@ function AdminContent({ currentUser }) {
                 formatter={(v, name) => [`₩${Number(v).toLocaleString()}`, name]}
               />
               <Area type="monotone" dataKey="plus" name="플러스" stackId="1" stroke="#4f46e5" fill="url(#mrrPlus)" strokeWidth={2} />
-              <Area type="monotone" dataKey="pro" name="프로" stackId="1" stroke="#c9920a" fill="url(#mrrPro)" strokeWidth={2} />
               <Area type="monotone" dataKey="other" name="기타" stackId="1" stroke="#8a8a9a" fill="#8a8a9a33" strokeWidth={1} />
             </AreaChart>
           </ResponsiveContainer>
@@ -643,8 +635,8 @@ const EVENT_LABELS = {
   login: "로그인", dashboard_view: "대시보드 방문(일 1회)", property_added: "물건 등록", sample_seeded: "샘플 체험",
   sample_removed: "샘플 삭제", signup_source: "가입 유입경로 기록", onboard_addr_check: "온보딩 주소 조회",
   tool_view: "무료 도구 조회", tool_cta_click: "무료 도구 → 가입 클릭", certified_issued: "내용증명 정식 발급",
-  portal_link_copied: "세입자 포털 링크 복사", sms_parse_used: "입금 문자 파싱 사용", upsell_click: "얼리 서포터 CTA 클릭",
-  interest_registered: "정식 출시 관심 등록", checklist_done: "시작 체크리스트 완료", checkout_view: "결제 페이지 진입", pay_click: "결제 버튼 클릭",
+  portal_link_copied: "세입자 포털 링크 복사", sms_parse_used: "입금 문자 파싱 사용", upsell_click: "플러스 구독 CTA 클릭",
+  interest_registered: "관심 등록 (구 이벤트)", checklist_done: "시작 체크리스트 완료", checkout_view: "결제 페이지 진입", pay_click: "결제 버튼 클릭",
 };
 const TOOL_LABELS = { certified: "내용증명", diagnose: "물건 진단", yield: "수익률 계산기" };
 

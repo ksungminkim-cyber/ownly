@@ -114,7 +114,8 @@ KAKAOPAY_CID=CT75680604                       # 정기결제 가맹점 코드 (�
 KAKAOPAY_SECRET_KEY=...                       # 카카오페이 파트너어드민에서 발급
 BILLING_RENEWAL_TOKEN=...                     # 매월 자동결제 cron 인증용 임의 토큰
 ```
-**얼리 서포터 (얼리 액세스 기간의 유일한 유료 상품, 2026-09-08)**: 가맹점에 단건결제 CID가 없어(정기결제 CID 만 보유) 건당 결제 대신 정기결제 상품으로 운영합니다. 플러스 플랜 체크아웃이 얼리 액세스 중에는 월 9,900원(정식가 50%)으로 결제되고 `subscriptions.monthly_amount / price_locked_until / billing_cycle` 에 저장되어 갱신 크론이 12개월간 같은 금액을 청구합니다. 서포터 혜택은 **플러스 플랜의 정식 한도 그 자체**(`PLANS.plus.limits`: 내용증명 무제한·알림톡 월 100건·AI 월 60회)이며 `EARLY_SUPPORTER.kakaoMonthly/aiMonthly` 는 여기서 파생됩니다 — 플랜 한도를 바꾸면 요금제 화면·서버 판정(`api/kakao/send`·`api/ai-pricing`·`AppContext.limitFor`)·서포터 안내가 함께 바뀝니다. 얼리 액세스 중 무료 유저 한도는 `EARLY_ACCESS_CERTIFIED_FREE / KAKAO_FREE / AI_FREE`(3건·30건·30회), 종료일은 `EARLY_ACCESS_END`. 공개 `/pricing` 의 기능 목록도 `PLANS[*].features` 에서 파생되므로 문구를 두 곳에 쓰지 않습니다. `certified_credits` 는 친구 초대 보너스 발급권 용도로만 남아 있습니다.
+**요금제 (2026-09-10 단순화)**: 무료 / 플러스(월 9,900원) 두 가지뿐이며 연간 결제·프로 플랜·얼리 액세스·얼리 서포터는 모두 폐지했습니다. 한도·가격·기능 문구·비교표 행은 `src/lib/constants.js` 의 `PLANS`·`PLAN_COMPARE` 한 곳에서만 정의하고, 요금제 화면(대시보드 `/dashboard/pricing`·공개 `/pricing`·랜딩)·서버 한도 판정(`api/kakao/send`·`api/ai-pricing`)·`AppContext` 가 전부 이를 읽습니다. 유저별 실제 한도는 `src/lib/plan.js` 의 `entitlementsOf(user, sub)` 가 단일 판정합니다 (유료/체험 구독 → 플러스 한도, 아니면 무료 한도). DB 의 과거 plan 값 `pro`·`starter` 는 `normalizePlan` 이 플러스로 취급합니다.
+**기존 가입자 보호**: 2026-09-10 이전에는 "2026-12-31 까지 프로 기능 무료"를 공개 약속했으므로 `LEGACY_SIGNUP_BEFORE`(2026-09-11 00:00 KST) 이전 가입 계정은 `LEGACY_FREE_UNTIL` 까지 플러스 한도를 무료로 쓰되 실비 항목만 `LEGACY_LIMITS`(내용증명 3건·알림톡 30건·AI 30회/월) 를 적용합니다. 판정은 `isLegacyFreeUser(user)`(auth user.created_at 기준). 약관 제5조 ④항과 요금제 FAQ 에 같은 내용이 적혀 있으니 날짜를 바꾸면 함께 고칩니다.
 **API 라우트 흐름**:
 1. `/api/billing/kakao/ready`         — 결제 준비 → next_redirect_url 응답
 2. `/api/billing/kakao/approve`       — pg_token 받아 승인 → sid(빌링키) 저장

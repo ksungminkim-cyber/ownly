@@ -478,7 +478,7 @@ function CalculatorContent() {
   const params = useSearchParams();
   const { userPlan } = useApp();
   const [tab, setTab] = useState(params?.get("tab") || "roi");
-  const isPro = userPlan === "plus" || userPlan === "pro";
+  const isPro = userPlan === "plus";
 
   if (!isPro) {
     return (

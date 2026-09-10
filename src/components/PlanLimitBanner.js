@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 // 플랜 한도 진행률 배너 — 한도 가까울 때 부드러운 업그레이드 프롬프트
 // used / limit 기준 75%+ 에서 노란색, 100% 도달 시 빨간색 + 업그레이드 CTA
 
-export default function PlanLimitBanner({ used, limit, featureLabel, currentPlan }) {
+export default function PlanLimitBanner({ used, limit, featureLabel }) {
   const router = useRouter();
 
   if (!limit || limit === Infinity || used < Math.floor(limit * 0.75)) return null;
@@ -14,7 +14,7 @@ export default function PlanLimitBanner({ used, limit, featureLabel, currentPlan
   const atLimit = used >= limit;
   const color = atLimit ? "#e8445a" : "#e8960a";
   const bg = atLimit ? "rgba(232,68,90,0.05)" : "rgba(232,150,10,0.05)";
-  const nextPlan = currentPlan === "free" ? "플러스" : "프로";
+  const nextPlan = "플러스"; // 유료 플랜은 플러스 하나
 
   return (
     <div style={{ background: bg, border: `1px solid ${color}30`, borderLeft: `3px solid ${color}`, borderRadius: 11, padding: "12px 16px", marginBottom: 14 }}>

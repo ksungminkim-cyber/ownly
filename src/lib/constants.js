@@ -4,32 +4,10 @@ export const INTENT_MAP = { "갱신의향 있음": { c: "#0fa573", bg: "rgba(15,
 export const PAY_MAP = { paid: { label: "납부완료", c: "#0fa573", bg: "rgba(15,165,115,0.1)" }, unpaid: { label: "미납", c: "#e8445a", bg: "rgba(232,68,90,0.1)" }, late: { label: "연체", c: "#e8960a", bg: "rgba(232,150,10,0.1)" }, };
 export const COLORS = ["#1a2744", "#e8960a", "#e8445a", "#1e7fcb", "#5b4fcf", "#0fa573", "#2d4270"];
 
-// ─── 얼리 액세스 전면 무료 스위치 ─────────────────────────────────
-// true인 동안 모든 유저를 pro로 취급 (클라이언트 게이트 + 카카오 서버 게이트 공통).
-// 정식 유료 전환 시 false로 바꾸면 기존 플랜 게이트가 그대로 복원됩니다.
-// 얼리 액세스 전면 무료 스위치. 무료 유저 실비 가드레일은 아래 EARLY_ACCESS_*_FREE, 서포터·정식 플랜 한도는 PLANS[plan].limits 가 유일한 기준
-export const EARLY_ACCESS_FREE = true;
-// 얼리 액세스 종료 예정일·얼리 가입자 혜택 (가격 페이지·대시보드 배너 공통 문구)
-// ⚠️ 운영 결정값 — 날짜/혜택 확정 시 이 두 값만 바꾸면 모든 화면에 반영됩니다.
-export const EARLY_ACCESS_END = "2026-12-31";
-// 얼리 액세스 중 "무료 유저"의 실비 항목 월 한도. 얼리 서포터(=플러스 플랜 구독자)는 PLANS.plus.limits 를 그대로 적용.
-export const EARLY_ACCESS_CERTIFIED_FREE = 3;   // 내용증명 정식 발급 (건). 친구 초대 보너스 발급권(certified_credits)으로 추가 가능
-export const EARLY_ACCESS_KAKAO_FREE = 30;      // 카카오 알림톡 (건) — Solapi 실비 보호
-export const EARLY_ACCESS_AI_FREE = 30;         // AI 임대료 분석 (회) — LLM·MOLIT 실비 보호
-// 무료 도구 → 가입 딥링크용 localStorage 키 (도구 페이지가 저장, 대시보드가 소비)
-export const CERTIFIED_DRAFT_KEY = "ownly_certified_draft";   // /tools/certified 초안
-export const PREFILL_ADDR_KEY = "ownly_prefill_addr";         // /diagnose 에서 입력한 주소
-export const EARLY_ACCESS_END_LABEL = (() => {
-  const d = new Date(EARLY_ACCESS_END + "T00:00:00");
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
-})();
-// 랜딩·정책·커뮤니티·요금제 등 공개 화면의 "무료" 한 줄 문구 — 한 곳에서만 관리해 화면마다 다르게 말하지 않는다.
-// 사실 관계: 얼리 액세스 종료일까지 프로 기능 무료(실비 항목만 한도) · 종료 후에도 기본 관리 기능(물건 3개·세입자 5명)은 계속 무료 · 카드 등록 불필요
-export const FREE_TAGLINE = EARLY_ACCESS_FREE
-  ? `${EARLY_ACCESS_END_LABEL}까지 프로 기능 무료 · 이후에도 기본 관리 기능은 계속 무료 · 카드 등록 불필요`
-  : "기본 관리 기능 무료 · 카드 등록 불필요";
-
-// ─── 구독 플랜 정의 ───────────────────────────────────────────────
+// ─── 요금제 (2026-09-10 단순화: 무료 / 플러스 월 9,900원) ─────────────
+// 유료 플랜은 플러스 하나뿐입니다. 한도·가격·기능 문구는 여기서만 정의하고, 요금제 화면(대시보드·공개)·서버 한도 판정
+// (api/kakao/send · api/ai-pricing · AppContext)·안내 문구가 전부 PLANS 를 읽습니다. 숫자를 바꿀 땐 이 파일만 고치면 됩니다.
+export const PAID_PLAN_ID = "plus";
 export const PLANS = {
   free: {
     id: "free",
@@ -38,96 +16,89 @@ export const PLANS = {
     priceLabel: "무료",
     color: C.muted,
     emoji: "🌱",
-    tagline: "처음 시작하는 임대인을 위해",
+    tagline: "혼자 관리하는 임대인의 기본 도구",
     limits: {
-      properties: 3,   // ✅ 2 → 3
-      tenants: 5,       // ✅ 3 → 5
-      reports: false, tax: false, certified: 1, vacancy: false,
-      export: false, roi: false, vacancyLoss: false, leaseCheck: false,
-      mapSearch: false, aiPricing: 0, kakaoAlert: false, kakaoMonthly: 0, globalReports: false, profitAnalysis: false,
+      properties: 3, tenants: 5,
+      reports: true, tax: false, certified: 1, vacancy: false, export: false,
+      roi: false, vacancyLoss: false, leaseCheck: false, mapSearch: false,
+      aiPricing: 3, kakaoAlert: false, kakaoMonthly: 0, globalReports: false, profitAnalysis: false,
     },
     features: [
-      { t: "물건 최대 3개", ok: true },
-      { t: "세입자 최대 5명", ok: true },
-      { t: "수금 현황 관리", ok: true },
-      { t: "계약서 기본 관리", ok: true },
-      { t: "캘린더", ok: true },
-      { t: "내용증명 월 1건", ok: true },
-      { t: "리포트 / 세금 관리", ok: false },
-      { t: "PDF 내보내기", ok: false },
-      { t: "프리미엄 기능 전체", ok: false },
+      { t: "물건 최대 3개 · 세입자 최대 5명", ok: true },
+      { t: "수금 현황 · 계약 · 캘린더 관리", ok: true },
+      { t: "수익 리포트 기본", ok: true },
+      { t: "내용증명 정식 발급 월 1건 (미리보기 무제한)", ok: true },
+      { t: "AI 임대료 분석 월 3회", ok: true },
+      { t: "카카오 알림톡 발송", ok: false },
+      { t: "세금 시뮬레이터 · 수익 분석 · 공실 관리", ok: false },
+      { t: "주변 매물 조회 · 시장 리포트 · PDF 내보내기", ok: false },
     ],
   },
-
   plus: {
     id: "plus",
     name: "플러스",
-    price: 19900,
-    priceLabel: "19,900원/월",
+    price: 9900,
+    priceLabel: "9,900원/월",
     color: "#4f46e5",
     emoji: "📊",
-    tagline: "개인 임대인의 올인원 솔루션",
-    badge: "추천",
+    tagline: "임대 관리에 필요한 전부, 월 9,900원",
+    badge: "전체 기능",
     limits: {
-      properties: 15, tenants: 30, reports: true, tax: true, certified: Infinity,
-      vacancy: true, export: true, roi: true, vacancyLoss: true, leaseCheck: true,
-      mapSearch: false, aiPricing: 60, kakaoAlert: true, kakaoMonthly: 100, globalReports: true, profitAnalysis: false,
+      properties: Infinity, tenants: Infinity,
+      reports: true, tax: true, certified: Infinity, vacancy: true, export: true,
+      roi: true, vacancyLoss: true, leaseCheck: true, mapSearch: true,
+      aiPricing: 60, kakaoAlert: true, kakaoMonthly: 100, globalReports: true, profitAnalysis: true,
     },
     features: [
-      { t: "물건 최대 15개", ok: true },
-      { t: "세입자 최대 30명", ok: true },
-      { t: "수금·계약·캘린더·세금 전체", ok: true },
-      { t: "내용증명 무제한", ok: true },
-      { t: "📱 카카오 알림톡 월 100건", ok: true },
-      { t: "🤖 AI 임대료 분석 월 60회", ok: true },
-      { t: "💰 수익률 계산기", ok: true },
-      { t: "📊 공실 손실 계산기", ok: true },
-      { t: "📋 임대차 3법 체크리스트", ok: true },
-      { t: "🗺️ 주변 매물 조회", ok: false },
-    ],
-  },
-
-  pro: {
-    id: "pro",
-    name: "프로",
-    price: 32900,
-    priceLabel: "32,900원/월",
-    color: C.gold,
-    emoji: "🚀",
-    tagline: "다주택자·법인을 위한 완전체",
-    badge: "최강",
-    limits: {
-      properties: Infinity, tenants: Infinity, reports: true, tax: true, certified: Infinity,
-      vacancy: true, export: true, roi: true, vacancyLoss: true, leaseCheck: true,
-      mapSearch: true, aiPricing: 200, kakaoAlert: true, kakaoMonthly: 300, globalReports: true, profitAnalysis: true,
-    },
-    features: [
-      { t: "물건·세입자 무제한", ok: true },
-      { t: "플러스 전체 기능", ok: true },
-      { t: "내용증명 무제한", ok: true },
-      { t: "📱 카카오 알림톡 월 300건", ok: true },
-      { t: "🤖 AI 임대료 분석 월 200회", ok: true },
-      { t: "🗺️ 주변 매물 조회", ok: true },
-      { t: "멀티 빌딩 관리 (예정)", ok: true },
-      { t: "전담 1:1 이메일 지원", ok: true },
-      { t: "신기능 최우선 출시", ok: true },
+      { t: "물건 · 세입자 무제한", ok: true },
+      { t: "내용증명 정식 발급 무제한", ok: true },
+      { t: "카카오 알림톡 월 100건 (세입자 독촉·안내)", ok: true },
+      { t: "AI 임대료 분석 월 60회", ok: true },
+      { t: "세금 시뮬레이터 · 수익 분석 · 세금계산서", ok: true },
+      { t: "공실 관리 · 수익률 · 공실 손실 계산기 · 임대차 3법", ok: true },
+      { t: "주변 매물 조회 · 시세 추이 · 물건 가치 평가", ok: true },
+      { t: "PDF 내보내기 · 이메일 지원", ok: true },
     ],
   },
 };
+// 요금제 비교표 행 — 두 요금제 화면이 같은 표를 그린다. key 는 PLANS[*].limits 의 키.
+export const PLAN_COMPARE = [
+  { label: "물건 수", key: "properties", unit: "개" },
+  { label: "세입자 수", key: "tenants", unit: "명" },
+  { label: "내용증명 정식 발급 (워터마크 없음)", key: "certified", unit: "건/월" },
+  { label: "카카오 알림톡 (세입자 독촉·안내)", key: "kakaoMonthly", unit: "건/월" },
+  { label: "AI 임대료 분석 (국토부 실거래 기반)", key: "aiPricing", unit: "회/월" },
+  { label: "수익 리포트", key: "reports" },
+  { label: "세금 시뮬레이터 · 세금계산서", key: "tax" },
+  { label: "수익 분석 (양도세·의사결정)", key: "profitAnalysis" },
+  { label: "공실 관리", key: "vacancy" },
+  { label: "수익률 · 공실 손실 계산기", key: "roi" },
+  { label: "임대차 3법 체크", key: "leaseCheck" },
+  { label: "시장 리포트 (시세 추이·수익률 벤치마크·가치 평가)", key: "globalReports" },
+  { label: "주변 매물 조회", key: "mapSearch" },
+  { label: "PDF 내보내기", key: "export" },
+];
+export function fmtLimit(v, unit = "") {
+  if (v === Infinity) return "무제한";
+  if (v === true) return true;
+  if (!v) return false;
+  return `${v}${unit}`;
+}
 
-// 얼리 서포터 — 얼리 액세스 기간에 결제 가능한 유일한 상품 (카카오페이 정기결제).
-// "플러스 플랜 그 자체"를 50% 가격에 구독하는 것이며 혜택(한도)은 PLANS.plus.limits 에서 파생됩니다.
-// → 정식 출시 후에도 요금제 화면·서버 한도 판정·서포터 안내 문구가 서로 어긋나지 않습니다.
-export const EARLY_SUPPORTER = {
-  planId: "plus",
-  price: 9900,                                   // 월 (원)
-  listPrice: PLANS.plus.price,                   // 정식가 19,900원
-  lockMonths: 12,                                // 가격 고정 기간
-  kakaoMonthly: PLANS.plus.limits.kakaoMonthly,  // 알림톡 월 100건 (무료 유저 EARLY_ACCESS_KAKAO_FREE)
-  aiMonthly: PLANS.plus.limits.aiPricing,        // AI 분석 월 60회 (무료 유저 EARLY_ACCESS_AI_FREE)
-  // 내용증명: PLANS.plus.limits.certified = 무제한 (무료 유저 EARLY_ACCESS_CERTIFIED_FREE 건)
-};
-export const EARLY_ACCESS_PERK = `얼리 서포터 구독 시 플러스 플랜 월 ${EARLY_SUPPORTER.price.toLocaleString()}원(정식가 대비 50%) · ${EARLY_SUPPORTER.lockMonths}개월 가격 고정`;
+// ─── 기존 가입자 보호 ─────────────────────────────
+// 2026-09-10 이전에는 "2026년 12월 31일까지 프로 기능 무료"를 공개적으로 약속했습니다. 그 전에 가입한 계정은 그 날짜까지
+// 플러스 기능을 그대로 무료로 쓰고, 실비 항목(내용증명·알림톡·AI)만 당시와 같은 월 한도를 유지합니다. 이후엔 무료 플랜 한도가 적용됩니다.
+// 판정은 src/lib/plan.js 의 isLegacyFreeUser / entitlementsOf 한 곳에서 합니다.
+export const LEGACY_SIGNUP_BEFORE = "2026-09-11T00:00:00+09:00";
+export const LEGACY_FREE_UNTIL = "2026-12-31T23:59:59+09:00";
+export const LEGACY_FREE_UNTIL_LABEL = "2026년 12월 31일";
+export const LEGACY_LIMITS = { certified: 3, kakaoMonthly: 30, aiPricing: 30 };
+
+// 랜딩·정책·커뮤니티·요금제 등 공개 화면의 "무료" 한 줄 문구 — 한 곳에서만 관리해 화면마다 다르게 말하지 않는다.
+export const FREE_TAGLINE = `무료로 시작 · 카드 등록 불필요 · 전체 기능은 월 ${PLANS.plus.price.toLocaleString()}원`;
+// 무료 도구 → 가입 딥링크용 localStorage 키 (도구 페이지가 저장, 대시보드가 소비)
+export const CERTIFIED_DRAFT_KEY = "ownly_certified_draft";   // /tools/certified 초안
+export const PREFILL_ADDR_KEY = "ownly_prefill_addr";         // /diagnose 에서 입력한 주소
 
 export const REVENUE = [
   { m: "10월", income: 625, expense: 42 },

@@ -106,7 +106,7 @@ export default function ReferralSection() {
       <p style={{ fontSize: 12, fontWeight: 700, color: "#5b4fcf", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 4 }}>🎁 친구 초대</p>
       <p style={{ fontSize: 18, fontWeight: 900, color: "#1a2744", marginBottom: 4 }}>초대하면 양쪽 내용증명 발급권 2장</p>
       <p style={{ fontSize: 13, color: "#6a6a7a", lineHeight: 1.7, marginBottom: 16 }}>
-        내 링크로 친구가 가입하면 <b>친구 +2장, 나 +2장</b>의 내용증명 추가 발급권이 바로 지급되고, 정식 출시 후 쓸 수 있는 Plus 30일도 함께 쌓입니다.
+        내 링크로 친구가 가입하면 <b>친구 +2장, 나 +2장</b>의 내용증명 추가 발급권이 바로 지급되고, 플러스 30일 체험도 함께 쌓입니다.
       </p>
 
       {/* 통계 */}
@@ -118,7 +118,7 @@ export default function ReferralSection() {
         <div style={{ padding: "12px 14px", background: "#fff", borderRadius: 10, textAlign: "center" }}>
           <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 4 }}>획득 발급권</p>
           <p style={{ fontSize: 24, fontWeight: 900, color: "#0fa573" }}>+{stats.invited * 2}<span style={{ fontSize: 13, color: "#8a8a9a", fontWeight: 700, marginLeft: 3 }}>장</span></p>
-          <p style={{ fontSize: 10.5, color: "#a0a0b0", marginTop: 2 }}>Plus +{stats.rewardDays}일 별도 적립</p>
+          <p style={{ fontSize: 10.5, color: "#a0a0b0", marginTop: 2 }}>플러스 체험 +{stats.rewardDays}일 별도 적립</p>
         </div>
       </div>
 

@@ -6,7 +6,7 @@ import { C } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 import { supabase } from "../../../lib/supabase";
 
-const PLAN_LABEL = { free: "무료", starter: "스타터", plus: "플러스", pro: "프로" };
+const PLAN_LABEL = { free: "무료", plus: "플러스" };
 const STATUS_LABEL = {
   paid:      { label: "결제 완료",   color: "#0fa573", bg: "rgba(15,165,115,0.1)" },
   failed:    { label: "결제 실패",   color: "#e8445a", bg: "rgba(232,68,90,0.1)" },
@@ -16,7 +16,7 @@ const STATUS_LABEL = {
 
 export default function BillingPage() {
   const router = useRouter();
-  const { user, paidPlan: userPlan, subscription } = useApp(); // 얼리 액세스 중 userPlan 은 전원 pro 로 보이므로 실제 결제 플랜 기준으로 표시
+  const { user, paidPlan: userPlan, subscription } = useApp(); // 결제 수단이 등록된 실제 유료 구독 기준 (기존 가입자 무료 혜택·체험은 여기선 무료로 표시)
   const [history, setHistory] = useState([]);
   const [loadingHist, setLoadingHist] = useState(true);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -114,10 +114,6 @@ export default function BillingPage() {
               </button>
             ) : (
               <>
-                <button onClick={() => router.push("/dashboard/pricing")}
-                  style={{ padding: "9px 16px", borderRadius: 10, border: "1px solid #ebe9e3", background: "#fff", color: "#1a2744", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  플랜 변경
-                </button>
                 {!isCancelled && (
                   <button onClick={() => setCancelOpen(true)}
                     style={{ padding: "9px 16px", borderRadius: 10, border: "1px solid rgba(232,68,90,0.3)", background: "transparent", color: "#e8445a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>

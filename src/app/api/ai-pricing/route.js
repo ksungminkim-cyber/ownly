@@ -2,16 +2,16 @@
 // 상가·토지처럼 월세 실거래가 없는 유형은 매매가 기반 수익률 역산
 //
 // 한도 정책 (서버에서 강제 — 클라이언트 체크는 UX 용):
-//  - 로그인 유저(Authorization: Bearer <supabase access token>): 월 한도 = 얼리 액세스 중 서포터 60회 / 일반 30회,
-//    정식 과금 후 PLANS[plan].limits.aiPricing. 성공 시 ai_usage 에 서버가 기록.
+//  - 로그인 유저(Authorization: Bearer <supabase access token>): 월 한도 = entitlementsOf (플러스 60 · 무료 3 · 기존 가입자 무료 기간 30).
+//    성공 시 ai_usage 에 서버가 기록.
 //  - 비로그인(/diagnose 공개 진단): IP 당 시간당 10회
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { createClient } from "@supabase/supabase-js";
 import { callLLM, extractJson, llmConfigured } from "../../../lib/llm";
-import { PLANS, EARLY_ACCESS_FREE, EARLY_ACCESS_AI_FREE, EARLY_SUPPORTER } from "../../../lib/constants";
-import { paidPlanOf, activePlanOf } from "../../../lib/plan";
+import { PLANS, PAID_PLAN_ID } from "../../../lib/constants";
+import { entitlementsOf } from "../../../lib/plan";
 import { internalHeaders } from "../../../lib/ratelimit";
 
 const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -27,16 +27,14 @@ async function resolveQuota(req) {
   const user = data.user;
 
   const { data: sub } = await sb.from("subscriptions").select("plan,status,current_period_end,kakao_sid,billing_key").eq("user_id", user.id).maybeSingle();
-  const paid = paidPlanOf(sub);          // 결제 수단이 등록된 실제 유료 구독 (얼리 서포터 판정)
-  const plan = activePlanOf(sub);        // 정식 과금 후 기능 게이트 (trial 포함)
-  const limit = EARLY_ACCESS_FREE
-    ? (paid !== "free" ? EARLY_SUPPORTER.aiMonthly : EARLY_ACCESS_AI_FREE)
-    : ((PLANS[plan] || PLANS.free).limits.aiPricing || 0);
+  const ent = entitlementsOf(user, sub); // 플러스 / 무료 / 기존 가입자 무료 기간 — 화면(AppContext)과 같은 판정
+  const plan = ent.plan;
+  const limit = ent.limits.aiPricing || 0;
 
   const now = new Date();
   const { count } = await sb.from("ai_usage").select("id", { count: "exact", head: true })
     .eq("user_id", user.id).eq("feature", "aiPricing").eq("year", now.getFullYear()).eq("month", now.getMonth() + 1);
-  return { user, plan, limit, used: count || 0, supporter: EARLY_ACCESS_FREE && paid !== "free" };
+  return { user, plan, limit, used: count || 0, canUpgrade: !ent.paid };
 }
 
 // MOLIT 접근은 검증된 내부 프록시(/api/market/molit — XML 파싱·키 관리 단일 지점)를 통해서만 한다.
@@ -315,13 +313,13 @@ export async function POST(req) {
     const quota = await resolveQuota(req);
     if (quota) {
       if (quota.limit <= 0) {
-        return Response.json({ error: "AI 임대료 분석은 유료 플랜 기능입니다.", code: "plan_required" }, { status: 403 });
+        return Response.json({ error: `AI 임대료 분석은 플러스 플랜(월 ${PLANS[PAID_PLAN_ID].price.toLocaleString()}원) 기능입니다.`, code: "plan_required" }, { status: 403 });
       }
       if (quota.used >= quota.limit) {
         return Response.json({
-          error: quota.supporter
-            ? `이번 달 AI 분석 ${quota.limit}회를 모두 사용했습니다. 다음 달 1일에 초기화됩니다.`
-            : `이번 달 AI 분석 ${quota.limit}회를 모두 사용했습니다. 얼리 서포터 구독 시 월 ${EARLY_SUPPORTER.aiMonthly}회로 늘어납니다.`,
+          error: quota.canUpgrade
+            ? `이번 달 AI 분석 ${quota.limit}회를 모두 사용했습니다. 플러스 구독 시 월 ${PLANS[PAID_PLAN_ID].limits.aiPricing}회로 늘어납니다.`
+            : `이번 달 AI 분석 ${quota.limit}회를 모두 사용했습니다. 다음 달 1일에 초기화됩니다.`,
           code: "quota_exceeded", used: quota.used, limit: quota.limit,
         }, { status: 429 });
       }

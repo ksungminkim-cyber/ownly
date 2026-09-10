@@ -1,6 +1,6 @@
 "use client";
 import { useApp } from "../context/AppContext";
-import { C } from "../lib/constants";
+import { C, PLANS, PAID_PLAN_ID } from "../lib/constants";
 
 const FEATURE_LABELS = {
   reports:       "수익 리포트",
@@ -40,11 +40,11 @@ export default function PlanGate({ feature, children }) {
       {/* 텍스트 */}
       <div style={{ textAlign: "center", maxWidth: 360 }}>
         <p style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 10 }}>
-          {label}은 유료 플랜 전용이에요
+          {label}은 플러스 플랜 기능이에요
         </p>
         <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.7 }}>
-          플러스 플랜(월 19,900원)부터 모든 기능을<br />
-          제한 없이 사용할 수 있어요.
+          플러스 플랜(월 {PLANS[PAID_PLAN_ID].price.toLocaleString()}원)에서 모든 기능을<br />
+          제한 없이 사용할 수 있어요. 언제든 해지 가능합니다.
         </p>
       </div>
 
@@ -64,13 +64,13 @@ export default function PlanGate({ feature, children }) {
           marginTop: 4,
         }}
       >
-        플랜 업그레이드 →
+        플러스 시작하기 →
       </a>
 
       <p style={{ color: C.muted, fontSize: 12 }}>
         현재 플랜:{" "}
         <strong style={{ color: C.text }}>
-          {userPlan === "free" ? "무료" : userPlan === "plus" ? "플러스" : "프로"}
+          {userPlan === "free" ? "무료" : "플러스"}
         </strong>
       </p>
     </div>

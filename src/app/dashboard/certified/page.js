@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SectionLabel, EmptyState, Modal, toast } from "../../../components/shared";
-import { C, CERTIFIED_DRAFT_KEY, EARLY_SUPPORTER, EARLY_ACCESS_FREE } from "../../../lib/constants";
+import { C, CERTIFIED_DRAFT_KEY, PLANS, PAID_PLAN_ID } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
 import { supabase } from "../../../lib/supabase";
 import PlanGate from "../../../components/PlanGate";
@@ -36,7 +36,7 @@ function FormInput({ label, ...props }) {
 
 function CertifiedContent() {
   const router = useRouter();
-  const { tenants, user, getPlanLimit, isSupporter } = useApp();
+  const { tenants, user, getPlanLimit, paidPlan } = useApp();
   const [history, setHistory]       = useState([]);
   const [loading, setLoading]       = useState(true);
   const [saving, setSaving]         = useState(false);
@@ -49,7 +49,7 @@ function CertifiedContent() {
   const [postMethodInput, setPostMethodInput] = useState("postal");
   // 보너스 발급권(친구 초대 보상, certified_credits) — 월 무료 한도 초과분에 사용
   const [credits, setCredits] = useState(0);
-  // 한도 소진 시 얼리 서포터 안내
+  // 한도 소진 시 플러스 구독 안내
   const [showUpsell, setShowUpsell] = useState(false);
 
   // 폼 상태
@@ -154,7 +154,8 @@ function CertifiedContent() {
     return () => { cancelled = true; };
   }, [user]);
 
-  const goSupporter = () => { track("upsell_click", { from: "certified" }); router.push(`/dashboard/checkout/${EARLY_SUPPORTER.planId}`); };
+  const goPlus = () => { track("upsell_click", { from: "certified" }); router.push(`/dashboard/checkout/${PAID_PLAN_ID}`); };
+  const plus = PLANS[PAID_PLAN_ID];
 
   const monthLimit = getPlanLimit("certified");
   const monthUsed = history.filter(x => (x.created_at || "").slice(0, 7) === new Date().toISOString().slice(0, 7)).length;
@@ -172,7 +173,7 @@ function CertifiedContent() {
 
   const save = async () => {
     if (!form.receiverName.trim()) { toast("수신인(세입자) 이름을 입력하세요", "error"); return; }
-    // 플랜별 월 작성 한도 강제 — 초과 시 보너스 발급권 1장 차감, 없으면 얼리 서포터 안내 (서포터는 한도 없음)
+    // 플랜별 월 작성 한도 강제 — 초과 시 보너스 발급권 1장 차감, 없으면 플러스 구독 안내 (플러스는 한도 없음)
     let viaCredit = false;
     if (!editTarget && hasMonthLimit && monthUsed >= monthLimit) {
       if (credits <= 0) { setShowUpsell(true); return; }
@@ -290,11 +291,11 @@ function CertifiedContent() {
           <h1 style={{ fontSize:24, fontWeight:800, color:"#1a2744" }}>내용증명</h1>
           <p style={{ fontSize:13, color:"#8a8a9a", marginTop:3 }}>
             총 {history.length}건 저장
-            {isSupporter && EARLY_ACCESS_FREE
-              ? <> · <span className="chip chip-success" style={{ fontSize:11 }}>얼리 서포터 · 발급 무제한</span></>
-              : hasMonthLimit && <> · 이번 달 무료 <b style={{ color: monthUsed >= monthLimit ? C.rose : "#1a2744" }}>{Math.min(monthUsed, monthLimit)}/{monthLimit}건</b>
+            {!hasMonthLimit
+              ? <> · <span className="chip chip-success" style={{ fontSize:11 }}>플러스 · 발급 무제한</span></>
+              : <> · 이번 달 <b style={{ color: monthUsed >= monthLimit ? C.rose : "#1a2744" }}>{Math.min(monthUsed, monthLimit)}/{monthLimit}건</b>
                   {credits > 0 && <> · 보너스 발급권 <b style={{ color:"#1a2744" }}>{credits}장</b></>}
-                  {EARLY_ACCESS_FREE && <button onClick={goSupporter} style={{ marginLeft:8, padding:"2px 9px", borderRadius:6, border:`1px solid ${C.indigo}40`, background:"transparent", color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer" }}>무제한으로 →</button>}
+                  {paidPlan !== PAID_PLAN_ID && <button onClick={goPlus} style={{ marginLeft:8, padding:"2px 9px", borderRadius:6, border:`1px solid ${C.indigo}40`, background:"transparent", color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer" }}>무제한으로 →</button>}
                 </>}
           </p>
         </div>
@@ -303,24 +304,23 @@ function CertifiedContent() {
         </button>
       </div>
 
-      {/* 월 무료 한도 소진 — 얼리 서포터 안내 (정기결제, 기존 카카오페이 CID) */}
+      {/* 월 한도 소진 — 플러스 구독 안내 (카카오페이 정기결제) */}
       {showUpsell && (
         <Modal open={showUpsell} onClose={() => setShowUpsell(false)}>
           <div style={{ padding:"4px 0" }}>
-            <h2 style={{ fontSize:18, fontWeight:800, color:"#1a2744", marginBottom:6 }}>이번 달 무료 {monthLimit}건을 모두 사용했어요</h2>
+            <h2 style={{ fontSize:18, fontWeight:800, color:"#1a2744", marginBottom:6 }}>이번 달 {monthLimit}건을 모두 사용했어요</h2>
             <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:14 }}>
-              얼리 서포터로 구독하면 내용증명을 <b style={{ color:"#1a2744" }}>제한 없이</b> 발급하고, 알림톡 월 {EARLY_SUPPORTER.kakaoMonthly}건·AI 분석 월 {EARLY_SUPPORTER.aiMonthly}회로 한도가 늘어납니다.
-              플러스 플랜 정식가의 50%인 <b style={{ color:"#1a2744" }}>월 {EARLY_SUPPORTER.price.toLocaleString()}원</b>이 {EARLY_SUPPORTER.lockMonths}개월 동안 고정됩니다.
+              플러스로 구독하면 내용증명을 <b style={{ color:"#1a2744" }}>제한 없이</b> 발급하고, 카카오 알림톡 월 {plus.limits.kakaoMonthly}건·AI 분석 월 {plus.limits.aiPricing}회에 물건·세입자 무제한까지 전부 열립니다.
             </p>
             <div style={{ background:"#f8f7f4", borderRadius:12, padding:"12px 14px", marginBottom:14, fontSize:12, color:"#6a6a7a", lineHeight:1.8 }}>
-              <div><s style={{ color:"#a0a0b0" }}>월 {EARLY_SUPPORTER.listPrice.toLocaleString()}원</s> → <b style={{ color:"#1a2744", fontSize:15 }}>월 {EARLY_SUPPORTER.price.toLocaleString()}원</b> · 언제든 해지</div>
+              <div><b style={{ color:"#1a2744", fontSize:15 }}>월 {plus.price.toLocaleString()}원</b> · 카카오페이 정기결제 · 언제든 해지</div>
               <div>친구를 초대하면 보너스 발급권 2장도 바로 받을 수 있어요 (설정 → 친구 초대)</div>
             </div>
             <div style={{ display:"flex", gap:10 }}>
               <button onClick={() => setShowUpsell(false)}
                 style={{ flex:1, padding:"12px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>다음 달에</button>
-              <button onClick={goSupporter}
-                style={{ flex:2, padding:"12px", borderRadius:11, background:`linear-gradient(135deg,${C.navy},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>얼리 서포터로 무제한 발급 →</button>
+              <button onClick={goPlus}
+                style={{ flex:2, padding:"12px", borderRadius:11, background:`linear-gradient(135deg,${C.navy},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>플러스로 무제한 발급 →</button>
             </div>
           </div>
         </Modal>

@@ -3,7 +3,7 @@
 // 공식 가이드: https://developers.kakaopay.com/docs/payment/online/common
 
 import { createClient } from "@supabase/supabase-js";
-import { EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../../lib/constants";
+import { PLANS, PAID_PLAN_ID } from "../../../../lib/constants";
 
 export const KAKAOPAY_BASE = "https://open-api.kakaopay.com";
 export const KAKAOPAY_CID = process.env.KAKAOPAY_CID || "CT75680604";
@@ -35,27 +35,20 @@ export function userClientFrom(req) {
   );
 }
 
-// 플랜별 가격 (만원 단위 X, 원 단위)
+// 판매 중인 유료 플랜은 플러스 하나 (원 단위). 가격은 PLANS 에서만 정의한다.
 export const PLAN_PRICE_KRW = {
-  plus: 19900,
-  pro: 32900,
+  [PAID_PLAN_ID]: PLANS[PAID_PLAN_ID].price,
 };
 export const PLAN_NAME = {
-  plus: "온리 플러스 월 구독",
-  pro: "온리 프로 월 구독",
+  [PAID_PLAN_ID]: "온리 플러스 월 구독",
 };
 
-// 얼리 서포터 — 얼리 액세스 기간의 플러스 플랜은 50% 가격(월 9,900원)으로 결제되고 12개월 고정
-export function isSupporterOffer(planId) {
-  return EARLY_ACCESS_FREE && planId === EARLY_SUPPORTER.planId;
-}
-// 이번 주기에 청구할 금액. monthly 기준가 → 연간이면 12개월 20% 할인
+// 이번 주기에 청구할 금액 — 신규 결제는 월간만 받지만, 과거 연간 레코드가 남아 있을 수 있어 크론이 주기별로 계산
 export function cycleAmount(monthly, cycle) {
   return cycle === "annual" ? Math.round(monthly * 12 * 0.8) : monthly;
 }
 export function itemNameFor(planId, cycle) {
-  const base = isSupporterOffer(planId) ? "온리 플러스 얼리 서포터 구독" : PLAN_NAME[planId];
-  return base + (cycle === "annual" ? " (연간)" : "");
+  return (PLAN_NAME[planId] || "온리 구독") + (cycle === "annual" ? " (연간)" : "");
 }
 // 월 더하기 — 말일 오버플로 방지 (1/31 + 1개월 = 2/28, 3/3 아님)
 export function addMonths(from, months) {

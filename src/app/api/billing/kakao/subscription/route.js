@@ -93,10 +93,9 @@ async function handle(req, body) {
     const { data: claimed } = await claim.select("user_id");
     if (!claimed || claimed.length === 0) { results.push({ user_id: sub.user_id, skipped: "already_claimed" }); continue; }
 
-    // 얼리 서포터 가격 고정: price_locked_until 전까지 monthly_amount, 이후 정식가. 결제 주기(연간/월간)도 구독 레코드 기준
+    // 단일 가격: 항상 현재 플랜 가격(PLANS)으로 청구. 결제 주기는 구독 레코드 기준(신규는 월간만, 과거 연간 레코드 호환)
     const cycle = sub.billing_cycle === "annual" ? "annual" : "monthly";
-    const locked = sub.price_locked_until && new Date(sub.price_locked_until) > now;
-    const monthly = locked && sub.monthly_amount ? sub.monthly_amount : PLAN_PRICE_KRW[planId];
+    const monthly = PLAN_PRICE_KRW[planId];
     const amount = cycleAmount(monthly, cycle);
     const orderId = `ownly_renew_${planId}_${sub.user_id.slice(0,8)}_${Date.now()}`;
 
