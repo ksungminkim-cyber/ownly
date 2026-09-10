@@ -330,9 +330,9 @@ function CertifiedContent() {
 
       {/* 우체국 정식 발송 가이드 — 정직한 안내 (외부 연동 없음을 명시) */}
       <div style={{ marginBottom:16, padding:"14px 18px", background:"rgba(232,150,10,0.06)", border:"1px solid rgba(232,150,10,0.2)", borderRadius:12 }}>
-        <p style={{ fontSize:12, fontWeight:800, color:"#c9920a", marginBottom:6 }}>📮 법적 효력 있는 정식 발송 방법</p>
+        <p style={{ fontSize:12, fontWeight:800, color:"#c9920a", marginBottom:6 }}>📮 우체국 내용증명으로 발송하는 방법</p>
         <p style={{ fontSize:12, color:"#6a6a7a", lineHeight:1.7, margin:0 }}>
-          이 페이지는 <b style={{ color:"#1a2744" }}>법적 효력을 가진 내용증명 작성·보관 도구</b>입니다. 정식 발송은 본 서비스 내에서 자동 처리되지 않으니, 작성한 PDF를 가지고 다음 중 한 가지 방법으로 직접 보내주세요.
+          이 페이지는 <b style={{ color:"#1a2744" }}>문서 초안 작성·보관 도구</b>입니다. 우체국 내용증명의 증명력은 실제 접수·발송 절차에서 발생하며, 본 서비스에서 발송을 자동 처리하지는 않습니다. 작성한 PDF를 가지고 다음 방법 중 하나로 직접 접수해 주세요.
         </p>
         <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
           <a href="https://service.epost.go.kr/iservice/usr/postal/usrpst1003.jsp" target="_blank" rel="noopener noreferrer" style={{ padding:"7px 13px", borderRadius:8, background:"#fff", border:"1px solid #c9920a40", color:"#c9920a", fontSize:11, fontWeight:700, textDecoration:"none" }}>📨 우체국 전자내용증명 (24시간 발송)</a>
@@ -347,7 +347,7 @@ function CertifiedContent() {
       {loading ? (
         <div style={{ textAlign:"center", padding:60, color:C.muted }}>불러오는 중...</div>
       ) : history.length === 0 ? (
-        <EmptyState icon="📨" title="작성된 내용증명이 없습니다" desc="내용증명 작성 버튼으로 첫 문서를 작성하세요" hint="내용증명은 법적 효력이 있는 공식 통보 수단입니다" action="+ 내용증명 작성" onAction={openCreate} />
+        <EmptyState icon="📨" title="작성된 내용증명이 없습니다" desc="내용증명 작성 버튼으로 첫 문서 초안을 작성하세요" hint="실제 발송 전에는 우체국 접수 절차와 개별 사안을 확인해 주세요" action="+ 내용증명 작성" onAction={openCreate} />
       ) : (
         <div style={{ background:"#fff", border:"1px solid #ebe9e3", borderRadius:16, overflow:"hidden" }}>
           {history.map((h, i) => {
@@ -519,7 +519,7 @@ function CertifiedContent() {
 
           {/* 안내 */}
           <div style={{ background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:10, padding:"10px 14px" }}>
-            <p style={{ fontSize:12, color:"#0369a1" }}>💡 저장 후 PDF 출력 버튼을 클릭하면 공식 내용증명 서식으로 출력됩니다. 출력 후 우체국에서 내용증명 우편으로 발송하세요.</p>
+            <p style={{ fontSize:12, color:"#0369a1" }}>💡 저장 후 PDF 출력 버튼으로 문서 초안을 출력할 수 있습니다. 출력 후 우체국에서 내용증명 우편으로 접수·발송하세요.</p>
           </div>
 
           <div style={{ display:"flex", gap:10 }}>

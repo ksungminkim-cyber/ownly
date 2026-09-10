@@ -120,7 +120,7 @@ export default function PolicyPage() {
           <p style={{ fontSize: 19, fontWeight: 900, color: "#fff", marginBottom: 8 }}>내 매물은 어디에 해당될까요?</p>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", lineHeight: 1.8, marginBottom: 20 }}>
             매물 주소·유형을 등록하면 위 항목 중 겹치는 것만 골라 대시보드에 표시해 드립니다.<br />
-            지금은 모든 기능 무료 · 카드 등록 불필요
+            기본 관리 기능 무료 · 카드 등록 불필요
           </p>
           <Link href="/login?mode=signup" className="btn btn-lg" style={{ background: "#fff", color: "#1a2744", fontWeight: 800 }}>
             무료로 내 매물 등록하기 →

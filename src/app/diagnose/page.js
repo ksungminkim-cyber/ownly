@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../components/SiteFooter";
 import { PREFILL_ADDR_KEY } from "../../lib/constants";
-import { trackTool, trackToolCta } from "../../lib/track";
+import { trackTool, trackToolAction, trackToolCta } from "../../lib/track";
 
 // 가입 후 대시보드 온보딩이 이 주소를 그대로 이어받아 첫 물건 등록을 1클릭으로 줄인다
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
@@ -35,6 +35,7 @@ export default function DiagnosePage() {
 
   const submit = async () => {
     if (!addr.trim()) { setErr("주소를 입력해주세요"); return; }
+    trackToolAction("diagnose", "analysis_requested", { property_type: pType, has_rent: !!myRent, has_area: !!areaPy });
     setErr(""); setLoading(true); setReport(null);
     try {
       // lawdCd 추출
@@ -61,6 +62,7 @@ export default function DiagnosePage() {
       const score = calcScore(data);
       const grade = scoreToGrade(score);
       setReport({ ...data, score, grade });
+      trackToolAction("diagnose", "analysis_completed", { has_real_data: !!data.hasRealData, grade });
     } catch (e) {
       setErr(e.message || "분석 중 오류가 발생했습니다");
     }
@@ -164,6 +166,9 @@ export default function DiagnosePage() {
                   {report.dataNote}
                 </div>
               )}
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.72)", lineHeight: 1.65, margin: "12px 0 0" }}>
+                이 점수는 최근 실거래 비교·입력 정보·시장 신호를 조합한 참고 지표이며, 감정가·투자 수익 또는 공실을 보장하지 않습니다.
+              </p>
             </section>
 
             {/* 세부 지표 */}
@@ -182,6 +187,13 @@ export default function DiagnosePage() {
                 {report.avgRent && <p style={{ fontSize: 12, color: "#8a8a9a", marginTop: 4 }}>평균 {report.avgRent}만원 · 보증금 {report.avgDeposit?.toLocaleString() || "-"}만원</p>}
               </section>
             )}
+
+            <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "16px 18px", marginBottom: 14 }}>
+              <p style={{ fontSize: 12.5, fontWeight: 800, color: "#1a2744", marginBottom: 6 }}>이 결과를 읽는 방법</p>
+              <p style={{ fontSize: 12, color: "#6a6a7a", lineHeight: 1.7, margin: 0 }}>
+                적정 임대료 범위는 동일 지역·유형의 공개 실거래를 비교한 참고값입니다. 보증금, 면적, 층·관리 상태, 계약 조건에 따라 달라질 수 있으므로 실제 계약 전에는 개별 거래 조건을 확인해 주세요.
+              </p>
+            </section>
 
             {/* 공유 */}
             <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "20px 24px", marginBottom: 14 }}>

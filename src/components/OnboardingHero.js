@@ -106,6 +106,7 @@ export default function OnboardingHero() {
         maintenance: 0, pay_day: 5,
         biz: null, contacts: [], area_pyeong: null, building_id: null,
       });
+      // property_added 는 AppContext.addTenant 가 이미 기록함 — 여기서 다시 쏘면 활성화율이 2배로 집계됨
       toast("🎉 등록 완료! 이제 미납·계약 만료·정책 변화를 온리가 대신 지켜봅니다");
     } catch (e) {
       toast("저장 실패: " + (e?.message || "알 수 없는 오류"), "error");

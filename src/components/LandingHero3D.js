@@ -93,7 +93,7 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
           </motion.h1>
 
           <motion.p {...fadeUp(0.12)} style={{ fontSize: 15.5, color: "#6a6a7a", lineHeight: 1.75, marginBottom: 10, maxWidth: 460 }}>
-            수금·계약·세금·내용증명까지. 엑셀 대신, 임대인 업무를 <b style={{ color: "#1a2744" }}>한 화면에서 자동으로</b> 처리하세요.
+            이번 달 <b style={{ color: "#1a2744" }}>미납과 계약 만료</b>를 먼저 확인하고, 수금·계약·세금 업무를 한곳에서 관리하세요.
           </motion.p>
           <motion.p {...fadeUp(0.16)} style={{ fontSize: 11, color: "#a0a0b0", marginBottom: 26, lineHeight: 1.6 }}>
             ※ 임대 물건 관리 서비스(월 구독) · 부동산 매매·임대·중개와는 무관
@@ -104,11 +104,11 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
             <button onClick={onLogin} className="btn btn-ghost btn-lg">{user ? "로그아웃" : "로그인"}</button>
           </motion.div>
           <motion.span {...fadeUp(0.24)} style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 22 }}>
-            정식 출시 전까지 모든 기능 무료 · 신용카드 불필요
+            기본 관리 기능 무료 · 신용카드 불필요
           </motion.span>
 
           <motion.div {...fadeUp(0.28)} className="hero3d-chips" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {["국토부 실거래가 연동", "은행 수준 암호화 보안", "휴대폰·PC 어디서나"].map((label) => (
+            {["국토부 실거래 기반", "데이터 기준일·표본 공개", "휴대폰·PC 어디서나"].map((label) => (
               <span key={label} className="chip">{label}</span>
             ))}
           </motion.div>

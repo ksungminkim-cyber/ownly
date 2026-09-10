@@ -75,6 +75,11 @@ export function trackToolCta(tool) {
   track("tool_cta_click", { tool });
 }
 
+/** 무료 도구의 핵심 행동을 익명 상태에서도 기록한다. */
+export function trackToolAction(tool, action, props = {}) {
+  track("tool_action", { tool, action, ...props });
+}
+
 /**
  * 유입 경로 캡처 — 첫 방문(first-touch) 기준으로 1회만 저장.
  * utm_* 파라미터와 첫 착지 경로를 localStorage 에 보관했다가
