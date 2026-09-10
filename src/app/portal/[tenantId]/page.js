@@ -79,7 +79,7 @@ export default function TenantPortalPage() {
         {/* 배경 원형 글로우 */}
         <div aria-hidden style={{ position: "absolute", top: -80, right: -60, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,108,255,0.35), transparent 70%)", pointerEvents: "none" }} />
         <div style={{ maxWidth: 520, margin: "0 auto", position: "relative" }}>
-          <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "2px", opacity: .8, marginBottom: 8 }}>ONWLY · 세입자 포털</p>
+          <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "2px", opacity: .8, marginBottom: 8 }}>OWNLY · 세입자 포털</p>
           <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 6, letterSpacing: "-0.5px" }}>{t.name}님, 반갑습니다</h1>
           <p style={{ fontSize: 13, opacity: .85, lineHeight: 1.6 }}>{t.address}</p>
           <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
@@ -116,7 +116,7 @@ export default function TenantPortalPage() {
                 ...(t.maintenance > 0 ? [{ label: "관리비", value: t.maintenance.toLocaleString() + "만원" }] : []),
                 { label: "납부일", value: `매월 ${t.pay_day}일` },
                 { label: "계약 시작", value: t.start_date || "—" },
-                { label: "계약 종료", value: t.contract_end ? `${t.contract_end}${daysLeft !== null ? ` (D-${daysLeft})` : ""}` : "—" },
+                { label: "계약 종료", value: t.contract_end ? `${t.contract_end}${daysLeft !== null ? (daysLeft >= 0 ? ` (D-${daysLeft})` : ` (만료 ${Math.abs(daysLeft)}일 경과)`) : ""}` : "—" },
               ].map((row, i, arr) => (
                 <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < arr.length - 1 ? "1px solid #f0efe9" : "none" }}>
                   <span style={{ fontSize: 12, color: "#8a8a9a", fontWeight: 700 }}>{row.label}</span>

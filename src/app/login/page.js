@@ -20,8 +20,10 @@ export default function AuthPage() {
     if (mode === "signup" || mode === "login") setTab(mode);
     // next 파라미터 → 소셜 로그인·이메일 인증 콜백(/auth/callback)에서도 복귀할 수 있게 보관
     const next = params.get("next");
-    if (next && next.startsWith("/") && !next.startsWith("//")) {
+    if (next && /^\/(?![/\\])/.test(next)) {
       try { localStorage.setItem("ownly_next", next); } catch {}
+    } else {
+      try { localStorage.removeItem("ownly_next"); } catch {} // 예전 방문의 next 가 남아 소셜 로그인 후 엉뚱한 페이지로 가는 것 방지
     }
     // 초대 코드 감지 → localStorage에 저장 (로그인 완료 후 callback에서 적용)
     const ref = params.get("ref");
@@ -63,7 +65,7 @@ export default function AuthPage() {
         track("login", { method: "password" });
         // next 파라미터 있으면 원래 가려던 페이지로 복귀
         const nextParam = new URLSearchParams(window.location.search).get("next");
-        const dest = nextParam && nextParam.startsWith("/") ? nextParam : "/dashboard";
+        const dest = nextParam && /^\/(?![/\\])/.test(nextParam) ? nextParam : "/dashboard"; // "//evil.com" 형태의 외부 리다이렉트 차단
         try { localStorage.removeItem("ownly_next"); } catch {}
         router.push(dest);
       } else {
@@ -243,7 +245,7 @@ export default function AuthPage() {
           </div>
 
           {/* 폼 */}
-          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }} onKeyDown={(e) => { if (e.key === "Enter" && !loading && msg !== "sent") { e.preventDefault(); submit(); } }}>
             {tab === "signup" && (
               <AuthInput label="이름" value={form.name} onChange={set("name")} placeholder="홍길동" error={errors.name} />
             )}
@@ -263,8 +265,8 @@ export default function AuthPage() {
               <label style={{ display:"flex", alignItems:"flex-start", gap:10, cursor:"pointer" }}>
                 <input type="checkbox" checked={form.agree} onChange={set("agree")} style={{ marginTop:2, accentColor:"#1a2744" }} />
                 <span style={{ fontSize:12, color:"#8a8a9a", lineHeight:1.5 }}>
-                  <span style={{ color:"#1a2744", cursor:"pointer", fontWeight:600 }}>이용약관</span> 및{" "}
-                  <span style={{ color:"#1a2744", cursor:"pointer", fontWeight:600 }}>개인정보처리방침</span>에 동의합니다.
+                  <a href="/legal/terms" target="_blank" rel="noopener noreferrer" style={{ color:"#1a2744", fontWeight:600 }}>이용약관</a> 및{" "}
+                  <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" style={{ color:"#1a2744", fontWeight:600 }}>개인정보처리방침</a>에 동의합니다.
                 </span>
                 {errors.agree && <span style={{ fontSize:11, color:"#e8445a" }}>{errors.agree}</span>}
               </label>

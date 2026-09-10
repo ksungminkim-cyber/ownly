@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "../../../lib/supabase";
 
 const CATS = ["도배/장판","배관/수도","전기","에어컨/냉난방","창문/문","주방","욕실","외벽/지붕","기타"];
 const ICONS = {"도배/장판":"🎨","배관/수도":"🔧","전기":"⚡","에어컨/냉난방":"❄️","창문/문":"🚪","주방":"🍳","욕실":"🚿","외벽/지붕":"🏠","기타":"🔨"};
@@ -21,37 +20,39 @@ export default function RepairRequestPage() {
 
   useEffect(() => {
     if (!tenantId) { setNotFound(true); setLoading(false); return; }
-    supabase.from("tenants").select("id, name, address, user_id").eq("id", tenantId).single()
-      .then(({ data, error }) => {
-        if (error || !data) { setNotFound(true); } else { setTenant(data); }
-        setLoading(false);
-      });
+    // 익명 클라이언트로 tenants 를 직접 읽으면 RLS 에 막힌다 → 서버 라우트(service role)로 조회
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/request/${tenantId}`);
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok || !data.tenant) setNotFound(true); else setTenant(data.tenant);
+      } catch { if (!cancelled) setNotFound(true); }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const submit = async () => {
     if (!desc.trim() || submitting) return;
     setSubmitting(true);
     setErrMsg("");
-    const memo = urgent ? "[긴급] " + desc : desc;
-
-    // 1. repairs 테이블에 저장
-    const { error } = await supabase.from("repairs").insert([{
-      tenant_id: tenantId,
-      user_id: tenant.user_id,
-      category: cat,
-      memo,
-      date: new Date().toISOString().slice(0, 10),
-      cost: 0,
-      receipt_yn: false,
-      vendor: "",
-      property_name: tenant.address || "",
-      status: "open",
-      source: "tenant",
-      priority: urgent ? "urgent" : "normal",
-    }]);
-
-    if (error) {
-      setErrMsg(error.message);
+    // 1. 서버 라우트(service role)로 저장 — 익명 insert 는 RLS 에 막힘
+    try {
+      const res = await fetch(`/api/request/${tenantId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: cat, desc, urgent }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setErrMsg(data.error || "접수에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        setSubmitting(false);
+        return;
+      }
+    } catch {
+      setErrMsg("네트워크 오류로 접수하지 못했습니다. 잠시 후 다시 시도해주세요.");
       setSubmitting(false);
       return;
     }

@@ -62,7 +62,7 @@ export default async function sitemap() {
     ...siseRoutes,
     ...blogRoutes,
     ...communityRoutes,
-    { url: `${base}/login`,               lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${base}/pricing`,             lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${base}/legal/faq`,           lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/legal/notice`,        lastModified: now, changeFrequency: "weekly",  priority: 0.5 },
     { url: `${base}/legal/privacy`,       lastModified: now, changeFrequency: "monthly", priority: 0.4 },

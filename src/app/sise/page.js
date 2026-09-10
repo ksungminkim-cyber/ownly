@@ -4,11 +4,11 @@ import { REGIONS, REGION_GROUPS, groupRegions } from "../../lib/regions";
 
 export const metadata = {
   title: "전국 월세 시세 — 국토부 실거래 기반 | 온리",
-  description: "서울·경기·광역시 50개 지역의 월세 시세, 보증금 중위값, 평당 임대료를 국토교통부 실거래 데이터를 집계해 무료로 제공합니다.",
+  description: `서울·경기·광역시 ${REGIONS.length}개 지역의 월세 시세, 보증금 중위값, 평당 임대료를 국토교통부 실거래 데이터를 집계해 무료로 제공합니다.`,
   alternates: { canonical: "https://www.ownly.kr/sise" },
   openGraph: {
     title: "전국 월세 시세 — 국토부 실거래",
-    description: "50개 지역 실거래 기반 월세·보증금·평당 시세 무료 조회",
+    description: `${REGIONS.length}개 지역 실거래 기반 월세·보증금·평당 시세 무료 조회`,
     url: "https://www.ownly.kr/sise",
     type: "website",
   },
@@ -58,7 +58,7 @@ export default function SiseIndexPage() {
             <span style={{ color: "#5b4fcf" }}>지역별 실거래 기반 무료 조회</span>
           </h1>
           <p style={{ fontSize: 15, color: "#6a6a7a", lineHeight: 1.7, maxWidth: 720 }}>
-            국토교통부 실거래가 API의 최근 3개월 데이터를 기반으로, 서울·경기·광역시 <b>50개 시군구</b>의 월세·보증금·평당 시세를 집계했습니다.
+            국토교통부 실거래가 API의 최근 3개월 데이터를 기반으로, 서울·경기·광역시 <b>{REGIONS.length}개 시군구</b>의 월세·보증금·평당 시세를 집계했습니다.
             집계에는 신고·공개 시차가 있을 수 있으므로, 지역별 결과의 기준일과 표본 수를 함께 확인해 주세요.
           </p>
 
@@ -67,7 +67,7 @@ export default function SiseIndexPage() {
             <TrustBadge icon="📊" label="국토부 실거래 API" />
             <TrustBadge icon="ℹ️" label="신고·공개 시차 안내" />
             <TrustBadge icon="💯" label="무료 열람" />
-            <TrustBadge icon="📍" label="50개 지역" />
+            <TrustBadge icon="📍" label={`${REGIONS.length}개 지역`} />
           </div>
         </section>
 

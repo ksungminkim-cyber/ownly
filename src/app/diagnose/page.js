@@ -4,6 +4,7 @@ import Link from "next/link";
 import SiteFooter from "../../components/SiteFooter";
 import { PREFILL_ADDR_KEY } from "../../lib/constants";
 import { trackTool, trackToolAction, trackToolCta } from "../../lib/track";
+import { REGIONS } from "../../lib/regions";
 
 // 가입 후 대시보드 온보딩이 이 주소를 그대로 이어받아 첫 물건 등록을 1클릭으로 줄인다
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
@@ -221,7 +222,7 @@ export default function DiagnosePage() {
             <section style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Link href="/sise" style={{ padding: "14px 16px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, textDecoration: "none", color: "#1a2744" }}>
                 <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>🗺️ 이 지역 전체 시세</p>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#5b4fcf" }}>전국 46개 지역 실거래 →</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#5b4fcf" }}>전국 {REGIONS.length}개 지역 실거래 →</p>
               </Link>
               <Link href="/tools/yield" style={{ padding: "14px 16px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, textDecoration: "none", color: "#1a2744" }}>
                 <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>📊 수익률 계산</p>

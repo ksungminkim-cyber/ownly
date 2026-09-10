@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
 import { trackTool, trackToolCta } from "../../../lib/track";
+import { REGIONS } from "../../../lib/regions";
 
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
@@ -216,7 +217,7 @@ export default function YieldCalcPage() {
               <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <Link href="/sise" style={{ padding: "14px 16px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, textDecoration: "none", color: "#1a2744" }}>
                   <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>이 동네 시세는?</p>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#0fa573" }}>전국 46개 지역 실거래 →</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#0fa573" }}>전국 {REGIONS.length}개 지역 실거래 →</p>
                 </Link>
                 <Link href="/diagnose" style={{ padding: "14px 16px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, textDecoration: "none", color: "#1a2744" }}>
                   <p style={{ fontSize: 11, color: "#8a8a9a", fontWeight: 700, marginBottom: 3 }}>내 물건 등급은?</p>

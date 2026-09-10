@@ -13,7 +13,7 @@ const PLANS = [
     yearlyPrice: 0,
     description: "소규모 임대인을 위한 무료 플랜",
     cta: "무료로 시작",
-    ctaHref: "/dashboard",
+    ctaHref: "/login?mode=signup&next=%2Fdashboard",
     ctaStyle: "outline" as const,
     features: [
       { text: "물건 최대 3개", included: true },
@@ -36,7 +36,7 @@ const PLANS = [
     yearlyPrice: Math.round(19900 * 0.8),
     description: "다수 물건을 체계적으로 관리하는 임대인",
     cta: "지금은 무료로 사용 →",
-    ctaHref: "/dashboard",
+    ctaHref: "/login?mode=signup&next=%2Fdashboard",
     ctaStyle: "primary" as const,
     features: [
       { text: "물건 최대 15개", included: true },
@@ -59,7 +59,7 @@ const PLANS = [
     yearlyPrice: Math.round(32900 * 0.8),
     description: "건물 전체·법인 규모의 전문 임대인",
     cta: "지금은 무료로 사용 →",
-    ctaHref: "/dashboard",
+    ctaHref: "/login?mode=signup&next=%2Fdashboard",
     ctaStyle: "dark" as const,
     features: [
       { text: "물건·세입자 무제한", included: true },
@@ -689,7 +689,7 @@ export default function PricingClient() {
           무료 플랜으로 시작, 언제든 업그레이드 가능
         </p>
         <Link
-          href="/dashboard"
+          href="/login?mode=signup&next=%2Fdashboard"
           style={{
             display: "inline-block",
             padding: "14px 36px",

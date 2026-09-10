@@ -17,7 +17,7 @@ const DISMISS_KEY = "ownly_ea_bar_dismissed";
 
 function EarlyAccessBar() {
   const router = useRouter();
-  const { isSupporter, subscription } = useApp();
+  const { isSupporter, subscription, planLoading } = useApp();
   const [hidden, setHidden] = useState(() => {
     try {
       const v = localStorage.getItem(DISMISS_KEY);
@@ -25,7 +25,7 @@ function EarlyAccessBar() {
     } catch { return false; }
   });
 
-  if (hidden) return null;
+  if (hidden || planLoading) return null; // 구독 정보 로딩 전엔 서포터에게 업셀 CTA 가 잠깐 보이는 깜빡임 방지
 
   const dismiss = () => { try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {} setHidden(true); };
   const goSupporter = () => { track("upsell_click", { from: "dashboard_bar" }); router.push(`/dashboard/checkout/${EARLY_SUPPORTER.planId}`); };

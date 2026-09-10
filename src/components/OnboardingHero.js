@@ -98,7 +98,7 @@ export default function OnboardingHero() {
         addr: addr.trim(),
         dep: 0,
         rent: Number(rent),
-        start_date: today.toISOString().slice(0, 10),
+        start_date: null, /* 계약일 미입력 — 오늘 날짜를 넣으면 전월세신고 기한 경고가 잘못 뜬다 */
         end_date: nextYear.toISOString().slice(0, 10),
         status: "정상",
         color: COLORS[Math.floor(Math.random() * COLORS.length)],

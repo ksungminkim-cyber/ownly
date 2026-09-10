@@ -33,18 +33,21 @@ export async function GET(req) {
       .eq("post_id", id)
       .order("created_at", { ascending: true });
 
-    return NextResponse.json({ post: { ...post, views: (post.views || 0) + 1 }, comments: comments || [] });
+    return NextResponse.json({ post: { ...post, nickname: post.anonymous ? "익명" : (post.author_name || "익명"), like_count: post.likes || 0, views: (post.views || 0) + 1 }, comments: comments || [] });
   }
 
   // 목록 조회
-  let q = admin.from("community_posts").select("id, title, category, nickname, views, like_count, created_at, content").order("created_at", { ascending: false }).limit(limit);
+  let q = admin.from("community_posts").select("id, title, category, author_name, anonymous, views, likes, created_at, content").order("created_at", { ascending: false }).limit(limit);
   if (category && category !== "전체") q = q.eq("category", category);
   const { data, error } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // 각 글 본문은 미리보기만 (200자)
+  // 실제 컬럼(author_name·likes)을 페이지가 기대하는 필드(nickname·like_count)로 매핑 — 컬럼명 불일치로 500 이 나던 버그
   const posts = (data || []).map(p => ({
     ...p,
+    nickname: p.anonymous ? "익명" : (p.author_name || "익명"),
+    like_count: p.likes || 0,
     content: p.content?.length > 200 ? p.content.slice(0, 200) + "..." : p.content,
   }));
   return NextResponse.json({ posts });

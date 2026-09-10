@@ -24,7 +24,7 @@ export default function SetupChecklist() {
 
   const real = tenants.filter(t => !isSampleTenant(t));
   const now = new Date();
-  const paidThisMonth = payments.some(p => p.status === "paid" && (p.year || now.getFullYear()) === now.getFullYear() && p.month === now.getMonth() + 1);
+  const realIds = new Set(real.map(t => t.id)); const paidThisMonth = payments.some(p => realIds.has(p.tid) && p.status === "paid" && (p.year || now.getFullYear()) === now.getFullYear() && p.month === now.getMonth() + 1);
   const stepsDone = [real.length > 0, paidThisMonth, portalShared];
   const doneCount = stepsDone.filter(Boolean).length;
   const allDone = real.length > 0 && doneCount === stepsDone.length;
