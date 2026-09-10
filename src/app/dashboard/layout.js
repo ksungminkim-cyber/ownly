@@ -1,4 +1,4 @@
-"use client"; import { useState, useEffect } from "react"; import { useRouter, usePathname } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast } from "../../components/shared"; import { SearchOverlay } from "../../components/GlobalSearch"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; import SiteFooter from "../../components/SiteFooter";
+"use client"; import { useState, useEffect } from "react"; import { useRouter, usePathname } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast } from "../../components/shared"; import { SearchOverlay } from "../../components/GlobalSearch"; import PwaInstallBanner from "../../components/PwaInstallBanner"; import InstallGuideModal from "../../components/InstallGuide"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; import SiteFooter from "../../components/SiteFooter";
 
 function DashboardShell({ children }) {
   const router = useRouter();
@@ -6,6 +6,7 @@ function DashboardShell({ children }) {
   const { loading, user } = useApp();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false); // 모바일 메뉴 "홈 화면에 추가" → 서랍이 닫혀도 모달은 셸이 들고 있어야 함
   // 한 번 인증되면 영구 true — user 가 일시적으로 null 로 바뀌어도 튕기지 않음
   const [authPassed, setAuthPassed] = useState(false);
 
@@ -57,8 +58,10 @@ function DashboardShell({ children }) {
         </main>
       </div>
       <BottomNav onMore={() => setDrawerOpen(true)} />
-      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onLogout={handleLogout} />
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onLogout={handleLogout} onInstall={() => setInstallOpen(true)} />
+      <InstallGuideModal open={installOpen} onClose={() => setInstallOpen(false)} from="drawer" />
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {authChecked && <PwaInstallBanner />}
       <Toast />
     </div>
   );

@@ -25,6 +25,10 @@
 | `certified_issued` | 내용증명 정식 저장(발급) | `reason`, `viaCredit` |
 | `portal_link_copied` | 세입자 포털 링크 복사 | `from`: tenants·checklist |
 | `sms_parse_used` | 입금 문자 파싱으로 납부 처리 | `matched` |
+| `pwa_guide_open` | 홈 화면 추가 안내 열기 | `from`: dashboard_banner·checklist |
+| `pwa_install_prompt` | 브라우저 네이티브 설치 프롬프트 호출 | `from`: dashboard_banner·settings·checklist·drawer |
+| `pwa_installed` | 브라우저 appinstalled 이벤트 (실제 설치 완료) | — |
+| `pwa_home_added_manual` | iOS 등 수동 안내 후 "추가했어요" 표시 | — |
 | `upsell_click` | 플러스 구독 CTA 클릭 (대시보드 바 · 내용증명 한도 소진 모달) | `from`: dashboard_bar·certified |
 | `checklist_done` | 시작 체크리스트 3/3 완료 | |
 

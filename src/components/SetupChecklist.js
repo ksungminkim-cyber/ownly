@@ -5,14 +5,18 @@ import { useApp } from "../context/AppContext";
 import { isSampleTenant } from "../lib/sampleData";
 import { track } from "../lib/track";
 import { toast } from "./shared";
+import InstallGuideModal from "./InstallGuide";
+import { isInstalled, subscribeInstallState } from "../lib/pwa";
 
 // 첫 물건 등록 이후 "다음 단계" 3개 — 완료되면(3/3) 또는 닫으면 더 이상 표시하지 않는다.
 //  ① 물건 등록        : 샘플이 아닌 물건 1개 이상
 //  ② 이번 달 납부 기록 : 이번 달 paid 납부 1건 이상
 //  ③ 세입자 포털 공유  : 포털 링크를 한 번이라도 복사 (여기서 바로 복사 가능, tenants 페이지 복사도 인정)
+//  ④ 홈 화면에 추가    : 앱처럼 실행 중이거나 설치 이벤트 기록 (src/lib/pwa.js) — 안내 모달에서 "직접 추가했어요"로도 완료 처리
 const PORTAL_SHARED_KEY = "ownly_portal_shared";
 const DISMISS_KEY = "ownly_checklist_dismissed";
 const DONE_KEY = "ownly_checklist_done";
+const HOME_ADDED_KEY = "ownly_home_added"; // 사용자가 직접 추가했다고 표시한 경우
 
 function readFlag(key) { try { return !!localStorage.getItem(key); } catch { return false; } }
 
@@ -21,11 +25,21 @@ export default function SetupChecklist() {
   const { tenants, payments } = useApp();
   const [dismissed, setDismissed] = useState(() => readFlag(DISMISS_KEY) || readFlag(DONE_KEY));
   const [portalShared, setPortalShared] = useState(() => readFlag(PORTAL_SHARED_KEY));
+  const [homeAdded, setHomeAdded] = useState(() => readFlag(HOME_ADDED_KEY));
+  // 홈 화면 추가 단계는 휴대폰·태블릿에서만 — PC 에서는 의미가 약해 3단계로 유지
+  const [isPhone] = useState(() => typeof navigator !== "undefined" && /android|iphone|ipad|ipod/i.test(navigator.userAgent));
+  const [installOpen, setInstallOpen] = useState(false);
+  useEffect(() => {
+    const sync = () => { if (isInstalled()) setHomeAdded(true); };
+    const t = setTimeout(sync, 0);
+    const unsub = subscribeInstallState(sync);
+    return () => { clearTimeout(t); unsub(); };
+  }, []);
 
   const real = tenants.filter(t => !isSampleTenant(t));
   const now = new Date();
   const realIds = new Set(real.map(t => t.id)); const paidThisMonth = payments.some(p => realIds.has(p.tid) && p.status === "paid" && (p.year || now.getFullYear()) === now.getFullYear() && p.month === now.getMonth() + 1);
-  const stepsDone = [real.length > 0, paidThisMonth, portalShared];
+  const stepsDone = isPhone ? [real.length > 0, paidThisMonth, portalShared, homeAdded] : [real.length > 0, paidThisMonth, portalShared];
   const doneCount = stepsDone.filter(Boolean).length;
   const allDone = real.length > 0 && doneCount === stepsDone.length;
 
@@ -52,11 +66,13 @@ export default function SetupChecklist() {
   };
 
   const close = () => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} setDismissed(true); };
+  const markHomeAdded = () => { try { localStorage.setItem(HOME_ADDED_KEY, "1"); } catch {} setHomeAdded(true); setInstallOpen(false); track("pwa_home_added_manual"); };
 
   const steps = [
     { id: "property", label: "첫 물건 등록", done: stepsDone[0], hint: `${real.length}개 등록됨` },
     { id: "payment", label: "이번 달 납부 기록", done: stepsDone[1], hint: "입금 문자를 붙여넣으면 금액·날짜를 자동 인식", go: () => router.push("/dashboard/payments") },
     { id: "portal", label: "세입자에게 포털 링크 보내기", done: stepsDone[2], hint: "세입자가 납부 이력·수리 요청을 직접 확인", go: copyPortal },
+    ...(isPhone ? [{ id: "home", label: "휴대폰 홈 화면에 온리 추가", done: stepsDone[3], hint: "아이콘 하나로 미납·만료를 바로 확인 (앱 설치 불필요)", go: () => { track("pwa_guide_open", { from: "checklist" }); setInstallOpen(true); } }] : []),
   ];
 
   if (allDone) {
@@ -74,7 +90,7 @@ export default function SetupChecklist() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div>
           <p className="section-eyebrow" style={{ margin: 0 }}>시작하기</p>
-          <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", margin: "2px 0 0" }}>3단계만 끝내면 매달 할 일이 사라집니다 <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>{doneCount}/{steps.length}</span></p>
+          <p style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", margin: "2px 0 0" }}>{steps.length}단계만 끝내면 매달 할 일이 사라집니다 <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>{doneCount}/{steps.length}</span></p>
         </div>
         <button onClick={close} aria-label="닫기" style={{ background: "none", border: "none", color: "var(--text-faint)", fontSize: 16, cursor: "pointer" }}>×</button>
       </div>
@@ -90,10 +106,11 @@ export default function SetupChecklist() {
               <p style={{ fontSize: 13, fontWeight: 700, color: s.done ? "var(--text-muted)" : "var(--text)", margin: 0, textDecoration: s.done ? "line-through" : "none" }}>{s.label}</p>
               <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "1px 0 0" }}>{s.hint}</p>
             </div>
-            {!s.done && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", whiteSpace: "nowrap" }}>{s.id === "portal" ? "링크 복사" : "바로가기"} →</span>}
+            {!s.done && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", whiteSpace: "nowrap" }}>{s.id === "portal" ? "링크 복사" : s.id === "home" ? "추가 방법" : "바로가기"} →</span>}
           </div>
         ))}
       </div>
+      <InstallGuideModal open={installOpen} onClose={() => setInstallOpen(false)} from="checklist" onManualDone={markHomeAdded} />
     </div>
   );
 }

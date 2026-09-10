@@ -1,17 +1,79 @@
 {
-  "name": "온리(Ownly) - 임대 자산 관리",
+  "id": "/",
+  "name": "온리(Ownly) - 임대 물건 관리",
   "short_name": "온리",
   "description": "내 임대 물건, 온리 하나로. 수금·계약·세금·내용증명",
-  "start_url": "/",
+  "start_url": "/dashboard?utm_source=pwa",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f5f4f0",
   "theme_color": "#1a2744",
   "orientation": "portrait",
-  "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  "lang": "ko",
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
   ],
-  "categories": ["business", "finance", "productivity"],
-  "lang": "ko"
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "수금 현황",
+      "short_name": "수금",
+      "url": "/dashboard/payments?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "세입자",
+      "short_name": "세입자",
+      "url": "/dashboard/tenants?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "내용증명 작성",
+      "short_name": "내용증명",
+      "url": "/dashboard/certified?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }

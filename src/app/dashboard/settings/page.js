@@ -1,5 +1,5 @@
 // src/app/dashboard/settings/page.js
-"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname"; import ReferralSection from "../../../components/ReferralSection"; import { isSupported as isPushSupported, getPermission as getPushPermission, isEnabled as isPushEnabled, requestPermission as requestPushPermission, setEnabled as setPushEnabled, getCategories as getPushCats, setCategories as setPushCats, notify as pushNotify } from "../../../lib/notifications";
+"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import InstallGuideModal from "../../../components/InstallGuide"; import { isInstalled } from "../../../lib/pwa"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname"; import ReferralSection from "../../../components/ReferralSection"; import { isSupported as isPushSupported, getPermission as getPushPermission, isEnabled as isPushEnabled, requestPermission as requestPushPermission, setEnabled as setPushEnabled, getCategories as getPushCats, setCategories as setPushCats, notify as pushNotify } from "../../../lib/notifications";
 
 // 주간 뉴스레터 구독
 function NewsletterSubscription({ user }) {
@@ -247,6 +247,14 @@ import { exportTenants, exportPayments, exportContracts, exportLedger, exportAll
 export default function SettingsPage() {
   const router = useRouter();
   const { user, tenants, payments, contracts, ledger, resetAllData, userPlan, isLegacyFree } = useApp();
+  // 홈 화면 추가 안내 — 모바일 메뉴의 "홈 화면에 추가"는 #install 해시로 들어와 바로 연다
+  const [installOpen, setInstallOpen] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    Promise.resolve().then(() => { if (cancelled) return; setInstalled(isInstalled()); if (window.location.hash === "#install") setInstallOpen(true); });
+    return () => { cancelled = true; };
+  }, []);
   const currentNickname = user?.user_metadata?.nickname || "";
   const currentPhone = user?.user_metadata?.phone || "";
   const currentLandlordName = user?.user_metadata?.landlord_name || "";
@@ -510,6 +518,22 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* 홈 화면에 추가 */}
+      <div id="install" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 12 }}>📱 홈 화면에 추가</p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>{installed ? "이 기기의 홈 화면에 추가되어 있습니다" : "휴대폰 홈 화면에서 앱처럼 바로 열기"}</p>
+            <p style={{ fontSize: 11, color: "#8a8a9a", margin: "3px 0 0", lineHeight: 1.6 }}>앱스토어 설치 없이 아이콘 하나로 접속 · 로그인 유지 · 전체 화면. iPhone·Android·PC 모두 가능합니다.</p>
+          </div>
+          <button onClick={() => setInstallOpen(true)}
+            style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${C.indigo}`, background: "var(--surface)", color: C.indigo, fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+            {installed ? "추가 방법 다시 보기" : "추가 방법 보기 →"}
+          </button>
+        </div>
+        <InstallGuideModal open={installOpen} onClose={() => setInstallOpen(false)} from="settings" />
       </div>
 
       {/* 앱 정보 */}

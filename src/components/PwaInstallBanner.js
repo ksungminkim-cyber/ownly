@@ -1,158 +1,56 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useApp } from "../context/AppContext";
+import { isSampleTenant } from "../lib/sampleData";
+import { track } from "../lib/track";
+import { isInstalled, subscribeInstallState } from "../lib/pwa";
+import InstallGuideModal from "./InstallGuide";
+
+// 대시보드 하단 "홈 화면에 추가" 배너 — 실제 물건을 등록한 유저에게만, 14일 간격으로 다시 제안.
+// 이미 앱으로 실행 중이거나 설치한 기기에는 나오지 않는다. 안내·설치는 InstallGuideModal 이 담당.
+const SNOOZE_KEY = "ownly_pwa_snoozed_at";
+const SNOOZE_DAYS = 14;
 
 export default function PwaInstallBanner() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [show, setShow] = useState(false);
-  const [isIos, setIsIos] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const { tenants, loading } = useApp();
+  const [visible, setVisible] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
-    // 이미 설치됐거나 dismissed 처리된 경우 표시 안 함
-    if (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true ||
-      localStorage.getItem("pwa-banner-dismissed") === "true"
-    ) return;
-
-    // iOS 감지
-    const isIosDevice = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isInSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
-
-    if (isIosDevice && isInSafari) {
-      setIsIos(true);
-      // 3초 후 표시
-      setTimeout(() => setShow(true), 3000);
-      return;
-    }
-
-    // Android / Chrome - beforeinstallprompt 이벤트
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setTimeout(() => setShow(true), 3000);
+    if (loading) return;
+    const hasReal = tenants.some((t) => !isSampleTenant(t));
+    if (!hasReal) return;
+    const decide = () => {
+      if (isInstalled()) { setVisible(false); return; }
+      try {
+        const at = Number(localStorage.getItem(SNOOZE_KEY) || 0);
+        if (at && Date.now() - at < SNOOZE_DAYS * 86400000) { setVisible(false); return; }
+      } catch {}
+      setVisible(true);
     };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+    const timer = setTimeout(decide, 2500); // 첫 화면이 자리 잡은 뒤에
+    const unsub = subscribeInstallState(decide);
+    return () => { clearTimeout(timer); unsub(); };
+  }, [loading, tenants]);
 
-  const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        setShow(false);
-        localStorage.setItem("pwa-banner-dismissed", "true");
-      }
-      setDeferredPrompt(null);
-    }
-  };
+  if (!visible) return null;
 
-  const handleDismiss = () => {
-    setShow(false);
-    setDismissed(true);
-    localStorage.setItem("pwa-banner-dismissed", "true");
-  };
-
-  if (!show || dismissed) return null;
+  const snooze = () => { try { localStorage.setItem(SNOOZE_KEY, String(Date.now())); } catch {} setVisible(false); };
+  const openGuide = () => { track("pwa_guide_open", { from: "dashboard_banner" }); setGuideOpen(true); };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 72, // 하단 구독 바 위에 뜨도록
-        left: 12,
-        right: 12,
-        zIndex: 1100,
-        background: "#1a2744",
-        borderRadius: 18,
-        padding: "16px 18px",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 14,
-        boxShadow: "0 8px 32px rgba(26,39,68,0.35)",
-        animation: "slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1)",
-      }}
-    >
-      <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(24px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-
-      {/* 아이콘 */}
-      <div
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 12,
-          background: "linear-gradient(145deg, #2d4270, #4f6ab0)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
-          <polygon points="10,2 18,9 15,9 15,18 5,18 5,9 2,9" fill="white" opacity="0.95" />
-          <rect x="7.5" y="12" width="5" height="6" rx="1" fill="rgba(255,255,255,0.4)" />
-        </svg>
+    <>
+      <div className="pwa-banner" style={{ position: "fixed", left: 12, right: 12, zIndex: 480, background: "#1a2744", borderRadius: 16, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 8px 32px rgba(26,39,68,0.35)", maxWidth: 560, margin: "0 auto" }}>
+        <img src="/icon-192.png" alt="" width={40} height={40} style={{ borderRadius: 11, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 13.5, fontWeight: 800, color: "#fff", margin: 0 }}>홈 화면에 온리 추가</p>
+          <p style={{ fontSize: 11.5, color: "rgba(255,255,255,0.65)", margin: "2px 0 0", lineHeight: 1.5, wordBreak: "keep-all" }}>아이콘 하나로 미납·만료 확인 · 로그인 유지 · 전체 화면</p>
+        </div>
+        <button onClick={openGuide} style={{ padding: "8px 13px", borderRadius: 9, background: "#fff", color: "#1a2744", fontWeight: 800, fontSize: 12, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>추가하기</button>
+        <button onClick={snooze} aria-label="14일간 숨기기" style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontSize: 18, cursor: "pointer", padding: "0 2px", lineHeight: 1 }}>×</button>
       </div>
-
-      {/* 텍스트 */}
-      <div style={{ flex: 1 }}>
-        <p style={{ fontSize: 14, fontWeight: 800, color: "#fff", margin: "0 0 3px" }}>
-          온리를 홈 화면에 추가하세요
-        </p>
-        {isIos ? (
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.5 }}>
-            Safari 하단의 <strong style={{ color: "#fff" }}>공유 버튼 →</strong> 홈 화면에 추가
-          </p>
-        ) : (
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1.5 }}>
-            앱처럼 빠르게 실행 · 오프라인에서도 사용 가능
-          </p>
-        )}
-      </div>
-
-      {/* 버튼들 */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-        {!isIos && (
-          <button
-            onClick={handleInstall}
-            style={{
-              padding: "7px 14px",
-              borderRadius: 9,
-              background: "#fff",
-              color: "#1a2744",
-              fontWeight: 800,
-              fontSize: 12,
-              border: "none",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            설치하기
-          </button>
-        )}
-        <button
-          onClick={handleDismiss}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 9,
-            background: "transparent",
-            color: "rgba(255,255,255,0.5)",
-            fontWeight: 600,
-            fontSize: 12,
-            border: "1px solid rgba(255,255,255,0.15)",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-        >
-          닫기
-        </button>
-      </div>
-    </div>
+      <style>{`.pwa-banner{bottom:16px}@media (max-width:767px){.pwa-banner{bottom:76px}}`}</style>
+      <InstallGuideModal open={guideOpen} onClose={() => { setGuideOpen(false); snooze(); }} from="dashboard_banner" />
+    </>
   );
 }
