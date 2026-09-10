@@ -29,12 +29,20 @@ export default function LegalPage({ title, subtitle, effectiveDate, sections }) 
       </div>
 
       {/* 본문 */}
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 24px 80px", display: "grid", gridTemplateColumns: "200px 1fr", gap: 28, alignItems: "start" }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .legal-grid { grid-template-columns: 1fr !important; gap: 18px !important; padding: 20px 16px 60px !important; }
+          .legal-toc { position: static !important; }
+          .legal-toc-list { flex-direction: row !important; flex-wrap: wrap; gap: 6px !important; }
+          .legal-toc-list a { border: 1px solid #e2e0d8 !important; border-radius: 20px !important; padding: 5px 10px !important; background: #fff !important; }
+        }
+      `}</style>
+      <div className="legal-grid" style={{ maxWidth: 860, margin: "0 auto", padding: "32px 24px 80px", display: "grid", gridTemplateColumns: "200px 1fr", gap: 28, alignItems: "start" }}>
 
-        {/* 목차 (좌측 사이드바) */}
-        <div style={{ position: "sticky", top: 24 }}>
+        {/* 목차 (좌측 사이드바 — 모바일에선 상단 칩 목록) */}
+        <div className="legal-toc" style={{ position: "sticky", top: 24 }}>
           <p style={{ fontSize: 10, fontWeight: 800, color: "#8a8a9a", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 12 }}>목차</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div className="legal-toc-list" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {sections.map((s, idx) => (
               <a key={idx} href={"#section-" + idx}
                 onClick={() => setActiveIdx(idx)}

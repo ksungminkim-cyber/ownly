@@ -89,7 +89,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
         {/* 패밀리 서비스 — 임대인 라이프사이클 크로스 링크 (카드형) */}
         <div className="footer-family" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px 12px", marginBottom: 14 }}>
           <span className="footer-family-label" style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", whiteSpace: "nowrap", marginRight: 2 }}>
-            함께 쓰는<br />임대인 도구
+            함께 쓰는{" "}<br className="footer-family-br" />임대인 도구
           </span>
           {[
             {
@@ -158,7 +158,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
             minWidth: 0,
           }}>
             <span>
-              (주)맥클린 · 대표 김성민 · 사업자등록번호 137-81-52231
+              (주)맥클린 · 대표 김성민 · 사업자등록번호 <span style={{ whiteSpace: "nowrap" }}>137-81-52231</span>
               {" · "}
               <a
                 href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=1378152231"
@@ -167,9 +167,9 @@ export default function SiteFooter({ hasFixedBar = false }) {
                 style={{ color: "#8a8a9a", textDecoration: "underline" }}
               >사업자정보확인</a>
               {" · "}
-              통신판매업신고 제2026-경기김포-2785호
+              통신판매업신고 <span style={{ whiteSpace: "nowrap" }}>제2026-경기김포-2785호</span>
             </span>
-            <span>📍 경기도 김포시 양촌읍 유현삭시로241번길 86 · 📞 02-334-2211 · ✉ inquiry@mclean21.com · 고객센터 평일 10:00~18:00 · 카카오톡 채널 <a href="http://pf.kakao.com/_ZBcxhX" target="_blank" rel="noopener noreferrer" style={{ color: "#a0a0b0", textDecoration: "underline" }}>온리_ownly</a> (@온리_ownly)</span>
+            <span>📍 경기도 김포시 양촌읍 유현삭시로241번길 86 · 📞 <span style={{ whiteSpace: "nowrap" }}>02-334-2211</span> · ✉ <span style={{ whiteSpace: "nowrap" }}>inquiry@mclean21.com</span> · 고객센터 평일 <span style={{ whiteSpace: "nowrap" }}>10:00~18:00</span> · 카카오톡 채널 <a href="http://pf.kakao.com/_ZBcxhX" target="_blank" rel="noopener noreferrer" style={{ color: "#a0a0b0", textDecoration: "underline" }}>온리_ownly</a> (@온리_ownly)</span>
           </div>
           <span style={{ fontSize: 11, color: "#b0b0be", whiteSpace: "nowrap", flexShrink: 0 }}>© 2025 McLean Inc.</span>
         </div>
@@ -177,16 +177,17 @@ export default function SiteFooter({ hasFixedBar = false }) {
       </div>
 
       <style>{`
+        /* inline style 보다 우선해야 하므로 !important */
         @media (max-width: 640px) {
           .footer-tagline { display: none; }
-          .footer-top { flex-direction: column; align-items: flex-start; gap: 12px; }
-          .footer-nav { justify-content: flex-start; gap: 6px 14px; width: 100%; }
-          .footer-family { align-items: stretch; }
-          .footer-family-label { width: 100%; margin-right: 0; }
-          .footer-family-label br { display: none; }
+          .footer-top { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+          .footer-nav { justify-content: flex-start !important; gap: 6px 14px !important; width: 100%; }
+          .footer-family { align-items: stretch !important; }
+          .footer-family-label { width: 100%; margin-right: 0 !important; }
+          .footer-family-br { display: none; }
           .footer-family a { flex: 1 1 100%; }
-          .footer-bottom { flex-direction: column; align-items: flex-start; gap: 8px; }
-          .footer-biz { font-size: 10.5px; flex-direction: column; gap: 2px; }
+          .footer-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+          .footer-biz { font-size: 10.5px; flex-direction: column !important; gap: 2px !important; }
         }
         @media (min-width: 1600px) {
           /* 초대형 모니터에서도 넉넉히 퍼지도록 좌우 패딩 유지 */
