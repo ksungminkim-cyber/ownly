@@ -21,6 +21,7 @@
 | `signup_source` | 가입 후 첫 대시보드 진입 (유저당 1회) — 첫 방문 시 저장한 유입 경로 | `utm_source/medium/campaign/content`, `ref`, `landing`, `referrer` |
 | `tool_view` | 무료 도구 조회 (**익명 가능**, 브라우저당 도구별 하루 1회) | `tool`: certified·diagnose·yield, `anon_id` |
 | `tool_cta_click` | 무료 도구에서 가입 CTA 클릭 (**익명 가능**) | `tool`, `anon_id` |
+| `tool_action` | 무료 도구 내 핵심 행동 (**익명 가능**) — 진단: analysis_requested / analysis_completed | `tool`, `action`, 행동별 부가 필드 |
 | `certified_issued` | 내용증명 정식 저장(발급) | `reason`, `viaCredit` |
 | `portal_link_copied` | 세입자 포털 링크 복사 | `from`: tenants·checklist |
 | `sms_parse_used` | 입금 문자 파싱으로 납부 처리 | `matched` |
