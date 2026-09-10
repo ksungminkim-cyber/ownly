@@ -18,7 +18,7 @@ const PG_OPTIONS = [
 export default function CheckoutPage() {
   const router = useRouter();
   const { planId } = useParams();
-  const { user, subscriptionPlan: userPlan } = useApp(); // 얼리 액세스 중 userPlan 은 전원 pro 로 보이므로 실제 구독 플랜 사용
+  const { user, paidPlan: userPlan } = useApp(); // 얼리 액세스 중 userPlan 은 전원 pro 로 보이므로 결제 수단이 등록된 실제 유료 플랜 사용
   const [billingCycle, setBillingCycle] = useState("monthly");
   const [selectedPg, setSelectedPg] = useState("kakao");
   const [waitlistSaved, setWaitlistSaved] = useState(false);

@@ -1,9 +1,11 @@
 // src/app/api/notify/route.js
 // 이메일 알림 API — Resend 기반
-// POST /api/notify  { type: "unpaid" | "expiring" | "monthly_checklist" }
+// GET 크론(매일): 미납 알림·임대인 문자·월간 리포트·만료 다이제스트. (무인증 POST 는 2026-09-10 제거)
 // 미납 발생 즉시, 만료 D-90/60/30, 월초 수금 체크리스트
 
 import crypto from "crypto";
+export const maxDuration = 60;
+
 import { createClient } from "@supabase/supabase-js";
 import { matchPolicies } from "../../../lib/policies";
 
@@ -17,13 +19,27 @@ const FROM = "온리 <noreply@ownly.kr>";
 
 async function sendEmail({ to, subject, html }) {
   if (!RESEND_API_KEY) return { skipped: true };
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
-    body: JSON.stringify({ from: FROM, to: [to], subject, html }),
-  });
-  return res.json();
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
+      body: JSON.stringify({ from: FROM, to: [to], subject, html }),
+    });
+    const json = await res.json().catch(() => ({}));
+    // Resend 는 실패 시 { statusCode, name, message } 를 돌려준다 → 성공 판정은 id 존재 여부로만.
+    // (예전엔 응답을 그대로 반환해 429/422 도 "발송됨"으로 기록되어 3일간 재시도가 막히고 문자만 나갔다)
+    const sent = res.ok && Boolean(json?.id);
+    if (!sent) console.error("[notify] resend failed:", res.status, json?.message || json?.name || "");
+    return { sent, id: json?.id || null, error: sent ? null : (json?.message || `HTTP ${res.status}`) };
+  } catch (e) {
+    console.error("[notify] resend error:", e?.message);
+    return { sent: false, error: e?.message };
+  }
 }
+
+// 샘플 체험 데이터([샘플] 접두어)는 실제 알림 대상에서 제외 — 가짜 세입자로 미납 메일·문자가 나가면 안 된다
+const SAMPLE_MARK = "[샘플]";
+const isSampleRow = (t) => String(t?.name || "").includes(SAMPLE_MARK) || String(t?.address || t?.addr || "").includes(SAMPLE_MARK);
 
 // ── 임대인 본인 문자 (Solapi SMS/LMS, 길이에 따라 자동 판별) ─────────
 // 알림톡은 사전 승인 템플릿이 세입자용뿐이라, 임대인 본인에게는 일반 문자로 보낸다.
@@ -372,30 +388,8 @@ async function sendMonthlyReport(userId, userEmail, tenants, payments) {
   });
 }
 
-// ── 메인 핸들러 ──────────────────────────────────────────────────
-export async function POST(req) {
-  try {
-    const { type, userId, userEmail } = await req.json();
-    if (!userId || !userEmail) return Response.json({ error: "userId, userEmail 필요" }, { status: 400 });
-
-    // 해당 유저 데이터 조회
-    const { data: tenants } = await supabase.from("tenants").select("*").eq("user_id", userId);
-    const { data: payments } = await supabase.from("payments").select("*").in(
-      "tenant_id", (tenants || []).map(t => t.id)
-    );
-
-    let result;
-    if (type === "unpaid")           result = await sendUnpaidNotice(userId, userEmail, tenants || [], payments || []);
-    else if (type === "expiring")    result = await sendExpiringNotice(userId, userEmail, tenants || []);
-    else if (type === "checklist")   result = await sendMonthlyChecklist(userId, userEmail, tenants || []);
-    else return Response.json({ error: "type 오류 (unpaid|expiring|checklist)" }, { status: 400 });
-
-    return Response.json({ success: true, result });
-  } catch (e) {
-    console.error("notify error:", e);
-    return Response.json({ error: e.message }, { status: 500 });
-  }
-}
+// (2026-09-10 제거) 무인증 POST /api/notify — body 의 userId·userEmail 을 신뢰해 임의 이메일로 세입자 명단을 보낼 수 있었음.
+// 호출처(src/lib/notify.js)도 사용되지 않아 함께 삭제. 발송은 아래 GET 크론만 수행한다.
 
 // ── 리텐션 알림 크론 (매일 09:00 KST) ────────────────────────────
 // GET /api/notify  (헤더 x-cron-token 또는 ?token= 로 인증)
@@ -413,12 +407,12 @@ const UNPAID_DEDUP_DAYS = 3;  // 미납 알림
 export async function GET(req) {
   // Vercel Cron 은 CRON_SECRET 미설정 시 Authorization 헤더를 주입하지 않으므로
   // billing/kakao/subscription 과 동일하게 user-agent 폴백 허용 (last_sent_at 5일 dedup 이 남용 방지)
-  const ua = req.headers.get("user-agent") || "";
-  const isVercelCron = /vercel-cron/i.test(ua);
   const authHeader = req.headers.get("authorization") || "";
   const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   const token = bearer || req.headers.get("x-cron-token") || new URL(req.url).searchParams.get("token");
-  if (!isVercelCron && (!CRON_TOKEN || token !== CRON_TOKEN)) {
+  // 시크릿이 설정돼 있으면 토큰만 인정 (Vercel Cron 은 CRON_SECRET 을 Bearer 로 자동 주입). UA 는 위조 가능하므로 시크릿 미설정 배포에서만 폴백.
+  const authorized = CRON_TOKEN ? token === CRON_TOKEN : /vercel-cron/i.test(req.headers.get("user-agent") || "");
+  if (!authorized) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -447,8 +441,9 @@ export async function GET(req) {
           const { data: sub } = await supabase.from("newsletter_subscribers").select("weekly_digest,last_sent_at,sms_unpaid").eq("user_id", u.id).maybeSingle();
           if (sub && sub.weekly_digest === false) { summary.skippedOptOut++; continue; }
 
-          const { data: tenants } = await supabase.from("tenants").select("*").eq("user_id", u.id);
-          if (!tenants || tenants.length === 0) { summary.skippedNothing++; continue; }
+          const { data: tenantsRaw } = await supabase.from("tenants").select("*").eq("user_id", u.id);
+          const tenants = (tenantsRaw || []).filter((t) => !isSampleRow(t));
+          if (tenants.length === 0) { summary.skippedNothing++; continue; }
           const { data: payments } = await supabase.from("payments").select("*").in("tenant_id", tenants.map(t => t.id));
 
           // ① 미납 알림 — 매일 체크, notification_logs 기준 3일 중복 방지

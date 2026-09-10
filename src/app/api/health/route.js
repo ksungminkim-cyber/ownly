@@ -19,12 +19,11 @@ const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || "";
 const ALERT_TO = process.env.HEALTH_ALERT_EMAIL || "k.sungminkim@gmail.com";
 
 function authorized(req) {
-  const ua = req.headers.get("user-agent") || "";
-  if (/vercel-cron/i.test(ua)) return true;
   const auth = req.headers.get("authorization") || "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : null;
   const token = bearer || req.headers.get("x-cron-token") || new URL(req.url).searchParams.get("token");
-  return Boolean(CRON_TOKEN && token === CRON_TOKEN);
+  if (CRON_TOKEN) return token === CRON_TOKEN; // 시크릿이 있으면 토큰만 인정 (Vercel Cron 은 CRON_SECRET 을 Bearer 로 자동 주입)
+  return /vercel-cron/i.test(req.headers.get("user-agent") || ""); // 시크릿 미설정 배포에서만 UA 폴백
 }
 
 async function timed(fn) {

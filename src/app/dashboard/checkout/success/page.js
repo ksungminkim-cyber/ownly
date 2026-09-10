@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PLANS } from "../../../../lib/constants";
 import { supabase } from "../../../../lib/supabase";
+import { useApp } from "../../../../context/AppContext";
 
 // 카카오페이 정기결제 success 콜백 페이지
 // 카카오 인증 완료 후 redirect: ?plan=plus&cycle=monthly&order=ownly_..._...&pg_token=xxxxx
@@ -12,6 +13,7 @@ import { supabase } from "../../../../lib/supabase";
 export default function CheckoutSuccessPage() {
   const params = useSearchParams();
   const router = useRouter();
+  const { refreshSubscription } = useApp();
   const planId = params.get("plan");
   const cycle = params.get("cycle") || "monthly";
   const orderId = params.get("order");
@@ -37,13 +39,15 @@ export default function CheckoutSuccessPage() {
         const res = await fetch("/api/billing/kakao/approve", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify({ pg_token: pgToken, planId, cycle, orderId }),
+          body: JSON.stringify({ pg_token: pgToken, orderId }), // 플랜·주기는 서버가 ready 기록에서 읽음
         });
         const data = await res.json();
         if (cancelled) return;
         if (!res.ok || data.error) throw new Error(data.error || "결제 승인 실패");
         setResult(data);
         setStatus("done");
+        // 대시보드로 돌아갔을 때 서포터 혜택이 바로 반영되도록 구독 상태 재조회
+        try { await refreshSubscription?.(); } catch {}
       } catch (e) {
         if (!cancelled) { setStatus("error"); setErrMsg(e.message); }
       }
@@ -109,7 +113,7 @@ export default function CheckoutSuccessPage() {
           <div style={{ fontSize: 56, marginBottom: 16 }}>⚠️</div>
           <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text)", marginBottom: 8 }}>결제 승인 실패</h1>
           <p style={{ fontSize: 13, color: "#e8445a", marginBottom: 6, lineHeight: 1.7 }}>{errMsg}</p>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24 }}>결제는 진행되지 않았습니다. 다시 시도해주세요.<br />문제가 지속되면 inquiry@mclean21.com 으로 문의해 주세요.</p>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24 }}>설정 → 결제 관리에서 구독 상태를 확인해 주세요. 이미 활성화되어 있다면 다시 결제하지 않으셔도 됩니다.<br />문제가 지속되면 inquiry@mclean21.com 으로 문의해 주세요.</p>
           <button onClick={() => router.push(`/dashboard/checkout/${planId}`)} className="btn btn-fill">
             다시 시도하기
           </button>

@@ -19,9 +19,9 @@ export async function POST(req) {
 
   let body;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "잘못된 요청" }, { status: 400 }); }
-  const { pg_token, planId, cycle = "monthly", orderId } = body;
-  if (!pg_token || !planId || !orderId) {
-    return NextResponse.json({ error: "pg_token / planId / orderId 가 필요합니다" }, { status: 400 });
+  const { pg_token, orderId } = body;
+  if (!pg_token || !orderId) {
+    return NextResponse.json({ error: "pg_token / orderId 가 필요합니다" }, { status: 400 });
   }
 
   const admin = adminClient();
@@ -35,6 +35,18 @@ export async function POST(req) {
     .single();
   if (!pending?.kakao_tid) {
     return NextResponse.json({ error: "결제 준비 정보를 찾을 수 없습니다. 처음부터 다시 시도해주세요." }, { status: 400 });
+  }
+  // 플랜·주기는 URL/본문이 아니라 ready 가 저장한 값만 신뢰 (URL 을 고쳐 월간 결제로 연간 기간을 얻는 우회 차단)
+  const planId = pending.plan;
+  const cycle = pending.billing_cycle === "annual" ? "annual" : "monthly";
+
+  // 멱등: success 페이지 새로고침 등으로 같은 주문을 다시 승인하려는 경우 — 이미 활성화됐으면 그대로 성공 응답
+  if (pending.status === "active" && pending.kakao_sid) {
+    return NextResponse.json({
+      ok: true, alreadyApproved: true, sid: pending.kakao_sid, plan: planId, cycle,
+      amount: cycleAmount(pending.monthly_amount || PLAN_PRICE_KRW[planId], cycle),
+      next_payment_at: pending.next_payment_at, supporter: isSupporterOffer(planId), price_locked_until: pending.price_locked_until || null,
+    });
   }
 
   // 2) 카카오페이 승인 호출

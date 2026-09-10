@@ -16,7 +16,7 @@ const STATUS_LABEL = {
 
 export default function BillingPage() {
   const router = useRouter();
-  const { user, userPlan, subscription } = useApp();
+  const { user, paidPlan: userPlan, subscription } = useApp(); // 얼리 액세스 중 userPlan 은 전원 pro 로 보이므로 실제 결제 플랜 기준으로 표시
   const [history, setHistory] = useState([]);
   const [loadingHist, setLoadingHist] = useState(true);
   const [cancelOpen, setCancelOpen] = useState(false);

@@ -11,6 +11,7 @@ export const maxDuration = 60;
 import { createClient } from "@supabase/supabase-js";
 import { callLLM, extractJson, llmConfigured } from "../../../lib/llm";
 import { PLANS, EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../lib/constants";
+import { paidPlanOf, activePlanOf } from "../../../lib/plan";
 
 const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -24,17 +25,17 @@ async function resolveQuota(req) {
   if (error || !data?.user) return null;
   const user = data.user;
 
-  const { data: sub } = await sb.from("subscriptions").select("plan,status,current_period_end").eq("user_id", user.id).maybeSingle();
-  const active = sub && (sub.status === "active" || sub.status === "trial") && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
-  const plan = active ? (sub.plan || "free") : "free";
+  const { data: sub } = await sb.from("subscriptions").select("plan,status,current_period_end,kakao_sid,billing_key").eq("user_id", user.id).maybeSingle();
+  const paid = paidPlanOf(sub);          // 결제 수단이 등록된 실제 유료 구독 (얼리 서포터 판정)
+  const plan = activePlanOf(sub);        // 정식 과금 후 기능 게이트 (trial 포함)
   const limit = EARLY_ACCESS_FREE
-    ? (plan !== "free" ? EARLY_SUPPORTER.aiMonthly : PLANS.pro.limits.aiPricing)
+    ? (paid !== "free" ? EARLY_SUPPORTER.aiMonthly : PLANS.pro.limits.aiPricing)
     : ((PLANS[plan] || PLANS.free).limits.aiPricing || 0);
 
   const now = new Date();
   const { count } = await sb.from("ai_usage").select("id", { count: "exact", head: true })
     .eq("user_id", user.id).eq("feature", "aiPricing").eq("year", now.getFullYear()).eq("month", now.getMonth() + 1);
-  return { user, plan, limit, used: count || 0, supporter: EARLY_ACCESS_FREE && plan !== "free" };
+  return { user, plan, limit, used: count || 0, supporter: EARLY_ACCESS_FREE && paid !== "free" };
 }
 
 // MOLIT 접근은 검증된 내부 프록시(/api/market/molit — XML 파싱·키 관리 단일 지점)를 통해서만 한다.
