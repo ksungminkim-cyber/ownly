@@ -114,7 +114,7 @@ KAKAOPAY_CID=CT75680604                       # 정기결제 가맹점 코드 (�
 KAKAOPAY_SECRET_KEY=...                       # 카카오페이 파트너어드민에서 발급
 BILLING_RENEWAL_TOKEN=...                     # 매월 자동결제 cron 인증용 임의 토큰
 ```
-**얼리 서포터 (얼리 액세스 기간의 유일한 유료 상품, 2026-09-08)**: 가맹점에 단건결제 CID가 없어(정기결제 CID 만 보유) 건당 결제 대신 정기결제 상품으로 운영합니다. 플러스 플랜 체크아웃이 얼리 액세스 중에는 월 9,900원(정식가 50%)으로 결제되고 `subscriptions.monthly_amount / price_locked_until / billing_cycle` 에 저장되어 갱신 크론이 12개월간 같은 금액을 청구합니다. 서포터 혜택(내용증명 무제한·알림톡 월 100건·AI 월 60회)은 `AppContext.isSupporter` 와 `api/kakao/send` 가 판정합니다. 가격·한도·고정 기간·종료일은 `src/lib/constants.js` 의 `EARLY_SUPPORTER`, `EARLY_ACCESS_CERTIFIED_FREE`, `EARLY_ACCESS_END` 한 곳에서 관리합니다. `certified_credits` 는 친구 초대 보너스 발급권 용도로만 남아 있습니다.
+**얼리 서포터 (얼리 액세스 기간의 유일한 유료 상품, 2026-09-08)**: 가맹점에 단건결제 CID가 없어(정기결제 CID 만 보유) 건당 결제 대신 정기결제 상품으로 운영합니다. 플러스 플랜 체크아웃이 얼리 액세스 중에는 월 9,900원(정식가 50%)으로 결제되고 `subscriptions.monthly_amount / price_locked_until / billing_cycle` 에 저장되어 갱신 크론이 12개월간 같은 금액을 청구합니다. 서포터 혜택은 **플러스 플랜의 정식 한도 그 자체**(`PLANS.plus.limits`: 내용증명 무제한·알림톡 월 100건·AI 월 60회)이며 `EARLY_SUPPORTER.kakaoMonthly/aiMonthly` 는 여기서 파생됩니다 — 플랜 한도를 바꾸면 요금제 화면·서버 판정(`api/kakao/send`·`api/ai-pricing`·`AppContext.limitFor`)·서포터 안내가 함께 바뀝니다. 얼리 액세스 중 무료 유저 한도는 `EARLY_ACCESS_CERTIFIED_FREE / KAKAO_FREE / AI_FREE`(3건·30건·30회), 종료일은 `EARLY_ACCESS_END`. 공개 `/pricing` 의 기능 목록도 `PLANS[*].features` 에서 파생되므로 문구를 두 곳에 쓰지 않습니다. `certified_credits` 는 친구 초대 보너스 발급권 용도로만 남아 있습니다.
 **API 라우트 흐름**:
 1. `/api/billing/kakao/ready`         — 결제 준비 → next_redirect_url 응답
 2. `/api/billing/kakao/approve`       — pg_token 받아 승인 → sid(빌링키) 저장

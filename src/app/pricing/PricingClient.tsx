@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { EARLY_ACCESS_END_LABEL, EARLY_ACCESS_PERK, EARLY_ACCESS_CERTIFIED_FREE, EARLY_SUPPORTER, FREE_TAGLINE } from "../../lib/constants";
+import { PLANS as PLAN_DEFS, EARLY_ACCESS_END_LABEL, EARLY_ACCESS_PERK, EARLY_ACCESS_CERTIFIED_FREE, EARLY_ACCESS_KAKAO_FREE, EARLY_ACCESS_AI_FREE, EARLY_SUPPORTER, FREE_TAGLINE } from "../../lib/constants";
 
 const PLANS = [
   {
@@ -15,17 +15,7 @@ const PLANS = [
     cta: "무료로 시작",
     ctaHref: "/login?mode=signup&next=%2Fdashboard",
     ctaStyle: "outline" as const,
-    features: [
-      { text: "물건 최대 3개", included: true },
-      { text: "세입자 최대 5명", included: true },
-      { text: "수금 현황 관리", included: true },
-      { text: "계약서 기본 관리", included: true },
-      { text: "캘린더", included: true },
-      { text: "내용증명 월 1건", included: true },
-      { text: "리포트 / 세금 관리", included: false },
-      { text: "PDF 내보내기", included: false },
-      { text: "프리미엄 기능 전체", included: false },
-    ],
+    features: PLAN_DEFS.free.features.map((f) => ({ text: f.t, included: f.ok })),
   },
   {
     id: "plus",
@@ -38,17 +28,7 @@ const PLANS = [
     cta: "지금은 무료로 사용 →",
     ctaHref: "/login?mode=signup&next=%2Fdashboard",
     ctaStyle: "primary" as const,
-    features: [
-      { text: "물건 최대 15개", included: true },
-      { text: "세입자 최대 30명", included: true },
-      { text: "수금·계약·캘린더·세금 전체", included: true },
-      { text: "내용증명 월 10건", included: true },
-      { text: "💰 수익률 계산기", included: true },
-      { text: "📊 공실 손실 계산기", included: true },
-      { text: "📋 임대차 3법 체크리스트", included: true },
-      { text: "🤖 AI 분석 월 10회", included: true },
-      { text: "📱 카카오톡 알림", included: false },
-    ],
+    features: PLAN_DEFS.plus.features.map((f) => ({ text: f.t, included: f.ok })),
   },
   {
     id: "pro",
@@ -61,24 +41,14 @@ const PLANS = [
     cta: "지금은 무료로 사용 →",
     ctaHref: "/login?mode=signup&next=%2Fdashboard",
     ctaStyle: "dark" as const,
-    features: [
-      { text: "물건·세입자 무제한", included: true },
-      { text: "플러스 전체 기능", included: true },
-      { text: "내용증명 무제한", included: true },
-      { text: "🗺️ 주변 매물 조회", included: true },
-      { text: "🤖 AI 분석 월 30회", included: true },
-      { text: "📱 카카오톡 수금 알림", included: true },
-      { text: "🏢 멀티 빌딩 관리 (예정)", included: true },
-      { text: "전담 1:1 이메일 지원", included: true },
-      { text: "신기능 최우선 출시", included: true },
-    ],
+    features: PLAN_DEFS.pro.features.map((f) => ({ text: f.t, included: f.ok })),
   },
 ];
 
 const FAQ = [
   {
     q: "정말 전부 무료인가요?",
-    a: `네. 얼리 액세스 기간(${EARLY_ACCESS_END_LABEL}까지 예정)에는 프로 플랜 기능 전체를 무료로 사용할 수 있습니다. 실비가 발생하는 카카오 알림톡(월 30건)·AI 분석(월 30회)·내용증명 정식 발급(월 ${EARLY_ACCESS_CERTIFIED_FREE}건)만 한도가 있습니다. 한도 없이 쓰고 싶다면 얼리 서포터(플러스 플랜 월 ${EARLY_SUPPORTER.price.toLocaleString()}원, ${EARLY_SUPPORTER.lockMonths}개월 가격 고정)로 구독할 수 있고, 유료 전환 시 최소 30일 전에 이메일로 안내드립니다.`,
+    a: `네. 얼리 액세스 기간(${EARLY_ACCESS_END_LABEL}까지 예정)에는 프로 플랜 기능 전체를 무료로 사용할 수 있습니다. 실비가 발생하는 카카오 알림톡(월 ${EARLY_ACCESS_KAKAO_FREE}건)·AI 분석(월 ${EARLY_ACCESS_AI_FREE}회)·내용증명 정식 발급(월 ${EARLY_ACCESS_CERTIFIED_FREE}건)만 한도가 있습니다. 더 필요하면 얼리 서포터(플러스 플랜 월 ${EARLY_SUPPORTER.price.toLocaleString()}원, ${EARLY_SUPPORTER.lockMonths}개월 가격 고정 · 내용증명 무제한 · 알림톡 월 ${EARLY_SUPPORTER.kakaoMonthly}건 · AI 월 ${EARLY_SUPPORTER.aiMonthly}회)로 구독할 수 있고, 유료 전환 시 최소 30일 전에 이메일로 안내드립니다.`,
   },
   {
     q: "무료 플랜은 정말 영구 무료인가요?",

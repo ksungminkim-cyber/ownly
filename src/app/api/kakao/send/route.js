@@ -1,10 +1,8 @@
 // src/app/api/kakao/send/route.js
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
-import { EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../../lib/constants";
+import { PLANS, EARLY_ACCESS_FREE, EARLY_ACCESS_KAKAO_FREE } from "../../../../lib/constants";
 import { paidPlanOf, activePlanOf } from "../../../../lib/plan";
-
-const FREE_KAKAO_MONTHLY_LIMIT = 30; // 무료 기간 유저당 월 알림톡 한도 (Solapi 실비 보호)
 
 const SOLAPI_API_KEY    = process.env.SOLAPI_API_KEY;
 const SOLAPI_API_SECRET = process.env.SOLAPI_API_SECRET;
@@ -138,29 +136,30 @@ async function verifyProUser(req) {
   if (error || !data?.user) return { error: "인증에 실패했습니다. 다시 로그인해주세요.", status: 401 };
   const user = data.user;
 
-  // 얼리 액세스 전면 무료: 플랜 검증 대신 월 발송 한도로 실비 보호
-  if (EARLY_ACCESS_FREE) {
-    // 얼리 서포터(유료 구독 중)는 한도 확대
-    const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan,status,current_period_end,kakao_sid,billing_key").eq("user_id", user.id).maybeSingle();
-    const isSupporter = paidPlanOf(sub) !== "free"; // 결제 수단이 등록된 실제 유료 구독만 (trial·pending 제외)
-    const limit = isSupporter ? EARLY_SUPPORTER.kakaoMonthly : FREE_KAKAO_MONTHLY_LIMIT;
-    // 이번 달 1일 00:00 KST (서버는 UTC — 로컬 기준으로 잡으면 매월 1일 09시 이전 발송분이 전월로 집계됨)
-    const kst = new Date(Date.now() + 9 * 3600000);
-    const monthStart = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), 1) - 9 * 3600000);
-    const { count } = await supabaseAdmin.from("notification_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id).eq("channel", "kakao").in("status", ["sent", "success"]) // logSend 는 "success" 로 기록 — "sent" 만 세면 한도가 영원히 0
-      .gte("sent_at", monthStart.toISOString());
-    if ((count || 0) >= limit) {
-      return { error: isSupporter
-        ? `알림톡은 월 ${limit}건까지 발송할 수 있습니다 (이번 달 ${count}건 사용)`
-        : `무료 기간 알림톡은 월 ${limit}건까지 발송할 수 있습니다 (이번 달 ${count}건 사용). 얼리 서포터 구독 시 월 ${EARLY_SUPPORTER.kakaoMonthly}건`, status: 429 };
-    }
-    return { user };
-  }
-
+  // 월 발송 한도 — 실비(Solapi)가 발생하므로 서버에서 확인. 한도 값은 PLANS[plan].limits.kakaoMonthly / EARLY_ACCESS_KAKAO_FREE 한 곳에서 관리
   const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan,status,current_period_end,kakao_sid,billing_key").eq("user_id", user.id).maybeSingle();
-  if (activePlanOf(sub) !== "pro") return { error: "카카오 알림톡은 프로 플랜 전용 기능입니다", status: 403 };
+  let limit, prefix = "", upsell = "";
+  if (EARLY_ACCESS_FREE) {
+    // 얼리 액세스: 서포터(결제 수단이 등록된 실제 유료 구독 — trial·pending 제외)는 플러스 한도, 그 외는 무료 한도
+    const isSupporter = paidPlanOf(sub) !== "free";
+    limit = isSupporter ? PLANS.plus.limits.kakaoMonthly : EARLY_ACCESS_KAKAO_FREE;
+    if (!isSupporter) { prefix = "무료 기간 "; upsell = ` 얼리 서포터 구독 시 월 ${PLANS.plus.limits.kakaoMonthly}건`; }
+  } else {
+    const plan = activePlanOf(sub);
+    limit = (PLANS[plan] || PLANS.free).limits.kakaoMonthly || 0;
+    if (!limit) return { error: "카카오 알림톡은 플러스 플랜 이상에서 사용할 수 있습니다", status: 403 };
+    if (plan === "plus") upsell = ` 프로 플랜은 월 ${PLANS.pro.limits.kakaoMonthly}건`;
+  }
+  // 이번 달 1일 00:00 KST (서버는 UTC — 로컬 기준으로 잡으면 매월 1일 09시 이전 발송분이 전월로 집계됨)
+  const kst = new Date(Date.now() + 9 * 3600000);
+  const monthStart = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), 1) - 9 * 3600000);
+  const { count } = await supabaseAdmin.from("notification_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id).eq("channel", "kakao").in("status", ["sent", "success"]) // logSend 는 "success" 로 기록 — "sent" 만 세면 한도가 영원히 0
+    .gte("sent_at", monthStart.toISOString());
+  if ((count || 0) >= limit) {
+    return { error: `${prefix}알림톡은 월 ${limit}건까지 발송할 수 있습니다 (이번 달 ${count}건 사용).${upsell}`, status: 429 };
+  }
   return { user };
 }
 

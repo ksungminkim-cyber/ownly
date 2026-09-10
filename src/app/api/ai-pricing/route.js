@@ -10,7 +10,7 @@ export const maxDuration = 60;
 
 import { createClient } from "@supabase/supabase-js";
 import { callLLM, extractJson, llmConfigured } from "../../../lib/llm";
-import { PLANS, EARLY_ACCESS_FREE, EARLY_SUPPORTER } from "../../../lib/constants";
+import { PLANS, EARLY_ACCESS_FREE, EARLY_ACCESS_AI_FREE, EARLY_SUPPORTER } from "../../../lib/constants";
 import { paidPlanOf, activePlanOf } from "../../../lib/plan";
 import { internalHeaders } from "../../../lib/ratelimit";
 
@@ -30,7 +30,7 @@ async function resolveQuota(req) {
   const paid = paidPlanOf(sub);          // 결제 수단이 등록된 실제 유료 구독 (얼리 서포터 판정)
   const plan = activePlanOf(sub);        // 정식 과금 후 기능 게이트 (trial 포함)
   const limit = EARLY_ACCESS_FREE
-    ? (paid !== "free" ? EARLY_SUPPORTER.aiMonthly : PLANS.pro.limits.aiPricing)
+    ? (paid !== "free" ? EARLY_SUPPORTER.aiMonthly : EARLY_ACCESS_AI_FREE)
     : ((PLANS[plan] || PLANS.free).limits.aiPricing || 0);
 
   const now = new Date();
