@@ -33,6 +33,11 @@ export const EARLY_ACCESS_END_LABEL = (() => {
   const d = new Date(EARLY_ACCESS_END + "T00:00:00");
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 })();
+// 랜딩·정책·커뮤니티·요금제 등 공개 화면의 "무료" 한 줄 문구 — 한 곳에서만 관리해 화면마다 다르게 말하지 않는다.
+// 사실 관계: 얼리 액세스 종료일까지 프로 기능 무료(실비 항목만 한도) · 종료 후에도 기본 관리 기능(물건 3개·세입자 5명)은 계속 무료 · 카드 등록 불필요
+export const FREE_TAGLINE = EARLY_ACCESS_FREE
+  ? `${EARLY_ACCESS_END_LABEL}까지 프로 기능 무료 · 이후에도 기본 관리 기능은 계속 무료 · 카드 등록 불필요`
+  : "기본 관리 기능 무료 · 카드 등록 불필요";
 
 // ─── 구독 플랜 정의 ───────────────────────────────────────────────
 export const PLANS = {

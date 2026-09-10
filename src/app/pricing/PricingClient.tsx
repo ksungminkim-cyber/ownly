@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { EARLY_ACCESS_END_LABEL, EARLY_ACCESS_PERK, EARLY_ACCESS_CERTIFIED_FREE, EARLY_SUPPORTER } from "../../lib/constants";
+import { EARLY_ACCESS_END_LABEL, EARLY_ACCESS_PERK, EARLY_ACCESS_CERTIFIED_FREE, EARLY_SUPPORTER, FREE_TAGLINE } from "../../lib/constants";
 
 const PLANS = [
   {
@@ -185,7 +185,7 @@ export default function PricingClient() {
             marginBottom: "36px",
           }}
         >
-          정식 출시 전까지 모든 기능이 무료입니다 · 카드 등록 불필요
+          {FREE_TAGLINE}
         </p>
 
         {/* 얼리 액세스 안내 배너 */}
