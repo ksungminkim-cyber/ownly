@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PLANS, PAID_PLAN_ID, PLAN_COMPARE, fmtLimit, LEGACY_FREE_UNTIL_LABEL, LEGACY_LIMITS } from "../../../lib/constants";
 import { useApp } from "../../../context/AppContext";
+import DotText from "../../../components/DotText";
 
 // 요금제 — 무료 / 플러스(월 9,900원) 두 가지. 카드·비교표·FAQ 의 숫자는 전부 PLANS 에서 읽는다 (공개 /pricing 과 동일 출처).
 const plus = PLANS[PAID_PLAN_ID];
@@ -65,7 +66,7 @@ export default function PricingPage() {
       <div style={{ textAlign: "center", marginBottom: isMobile ? 24 : 36 }}>
         <p style={{ fontSize: 10, fontWeight: 800, color: "#8a8a9a", letterSpacing: "2.5px", textTransform: "uppercase", marginBottom: 10 }}>PRICING</p>
         <h1 style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, color: "var(--text)", lineHeight: 1.2, margin: "0 0 10px", wordBreak: "keep-all" }}>무료로 시작, 필요할 때 플러스</h1>
-        <p style={{ color: "#8a8a9a", fontSize: 13, wordBreak: "keep-all" }}>유료 플랜은 하나뿐입니다. 월 {plus.price.toLocaleString()}원 · 카카오페이 정기결제 · 언제든 해지</p>
+        <p style={{ color: "#8a8a9a", fontSize: 13 }}>유료 플랜은 하나뿐입니다. <DotText text={`월 ${plus.price.toLocaleString()}원 · 카카오페이 정기결제 · 언제든 해지`} /></p>
         {statusNote && (
           <div style={{ maxWidth: 620, margin: "16px auto 0", background: statusNote.tone === "ok" ? "rgba(15,165,115,0.07)" : "rgba(79,70,229,0.06)", border: `1px solid ${statusNote.tone === "ok" ? "rgba(15,165,115,0.3)" : "rgba(79,70,229,0.2)"}`, borderRadius: 12, padding: "11px 16px", fontSize: 12.5, color: "var(--text)", lineHeight: 1.7, textAlign: "left", wordBreak: "keep-all" }}>
             {statusNote.text}
@@ -91,7 +92,7 @@ export default function PricingPage() {
                 {plan.price === 0 ? (
                   <>
                     <span style={{ fontSize: 30, fontWeight: 900, color: "var(--text)" }}>무료</span>
-                    <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 4 }}>기간 제한 없음 · 카드 등록 불필요</p>
+                    <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 4 }}><DotText text="기간 제한 없음 · 카드 등록 불필요" /></p>
                   </>
                 ) : (
                   <>
@@ -100,7 +101,7 @@ export default function PricingPage() {
                       <span style={{ fontSize: 30, fontWeight: 900, color: "var(--text)", letterSpacing: "-1px" }}>{plan.price.toLocaleString()}</span>
                       <span style={{ fontSize: 12, color: "#8a8a9a", fontWeight: 600 }}>/월</span>
                     </div>
-                    <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 4 }}>VAT 포함 · 매월 자동 결제 · 언제든 해지</p>
+                    <p style={{ fontSize: 11, color: "#a0a0b0", marginTop: 4 }}><DotText text="VAT 포함 · 매월 자동 결제 · 언제든 해지" /></p>
                   </>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { FREE_TAGLINE } from "../../lib/constants";
+import DotText from "../../components/DotText";
 
 export const revalidate = 300; // 5분마다 재생성
 
@@ -141,7 +142,7 @@ export default async function PublicCommunityPage() {
           <Link href="/login?mode=signup" style={{ display: "inline-block", padding: "13px 32px", borderRadius: 12, background: "#fff", color: "#1a2744", fontSize: 15, fontWeight: 800, textDecoration: "none" }}>
             무료로 시작하기 →
           </Link>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 12 }}>{FREE_TAGLINE}</p>
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 12 }}><DotText text={FREE_TAGLINE} /></p>
         </div>
       </div>
     </div>

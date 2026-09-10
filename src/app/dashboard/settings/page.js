@@ -366,8 +366,8 @@ export default function SettingsPage() {
         </div>
         <div style={{ marginBottom: 6 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: "#8a8a9a", marginBottom: 6 }}>닉네임 <span style={{ color: "#a0a0b0", fontWeight: 400 }}>(커뮤니티 표시 이름)</span></p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="닉네임을 입력하세요" maxLength={20} style={{ flex: 1, padding: "10px 13px", fontSize: 13, color: "var(--text)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, outline: "none" }} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="닉네임을 입력하세요" maxLength={20} style={{ flex: "1 1 180px", padding: "10px 13px", fontSize: 13, color: "var(--text)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, outline: "none" }} />
             <button onClick={randomNickname} style={{ padding: "10px 14px", borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)", cursor: "pointer", fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap" }}>🎲 랜덤</button>
             <button onClick={saveNickname} disabled={savingNick} style={{ padding: "10px 18px", borderRadius: 10, background: savingNick ? "#94a3b8" : "#1a2744", border: "none", color: "#fff", fontWeight: 700, fontSize: 13, cursor: savingNick ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{savingNick ? "저장 중..." : "저장"}</button>
           </div>

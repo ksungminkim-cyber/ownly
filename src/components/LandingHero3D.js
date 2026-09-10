@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { CountUp } from "./Trendy";
 import { FREE_TAGLINE } from "../lib/constants";
+import DotText from "./DotText";
 
 /**
  * 랜딩 첫 화면 — 3D 인터랙티브 히어로
@@ -105,7 +106,7 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
             <button onClick={onLogin} className="btn btn-ghost btn-lg">{user ? "로그아웃" : "로그인"}</button>
           </motion.div>
           <motion.span {...fadeUp(0.24)} style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 22 }}>
-            {FREE_TAGLINE}
+            <DotText text={FREE_TAGLINE} />
           </motion.span>
 
           <motion.div {...fadeUp(0.28)} className="hero3d-chips" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

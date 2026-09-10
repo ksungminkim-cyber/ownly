@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PLANS, PAID_PLAN_ID, PLAN_COMPARE, fmtLimit, FREE_TAGLINE } from "../../lib/constants";
+import DotText from "../../components/DotText";
 
 // 공개 요금제 — 무료 / 플러스(월 9,900원). 카드·비교표·FAQ 의 숫자는 전부 PLANS 에서 읽는다 (대시보드 요금제와 동일 출처).
 const plus = PLANS[PAID_PLAN_ID];
@@ -86,8 +87,8 @@ export default function PricingClient() {
         <h1 style={{ fontSize: "clamp(28px, 6vw, 42px)", fontWeight: 800, lineHeight: 1.2, marginBottom: "16px", letterSpacing: "-0.02em", wordBreak: "keep-all" }}>
           무료로 시작, 필요할 때 플러스
         </h1>
-        <p style={{ fontSize: "16px", color: "var(--text-secondary, #666)", marginBottom: "8px", wordBreak: "keep-all" }}>{FREE_TAGLINE}</p>
-        <p style={{ fontSize: "13px", color: "var(--text-secondary, #888)", wordBreak: "keep-all" }}>유료 플랜은 하나뿐입니다. 카카오페이 정기결제 · VAT 포함 · 언제든 해지</p>
+        <p style={{ fontSize: "16px", color: "var(--text-secondary, #666)", marginBottom: "8px" }}><DotText text={FREE_TAGLINE} /></p>
+        <p style={{ fontSize: "13px", color: "var(--text-secondary, #888)" }}>유료 플랜은 하나뿐입니다. <DotText text="카카오페이 정기결제 · VAT 포함 · 언제든 해지" /></p>
       </section>
 
       {/* 플랜 카드 */}
@@ -129,7 +130,7 @@ export default function PricingClient() {
                 )}
               </div>
               <p style={{ fontSize: "12px", color: "var(--text-secondary, #888)", marginBottom: "20px" }}>
-                {plan.price === 0 ? "기간 제한 없음 · 카드 등록 불필요" : "월 구독 · VAT 포함 · 언제든 해지"}
+                <DotText text={plan.price === 0 ? "기간 제한 없음 · 카드 등록 불필요" : "월 구독 · VAT 포함 · 언제든 해지"} />
               </p>
 
               <p style={{ fontSize: "13px", color: "var(--text-secondary, #666)", marginBottom: "24px", lineHeight: 1.5, wordBreak: "keep-all" }}>{plan.description}</p>

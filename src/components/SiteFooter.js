@@ -28,7 +28,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
       <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%" }}>
 
         {/* 링크 + 브랜드 */}
-        <div style={{
+        <div className="footer-top" style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -46,7 +46,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
             <span className="footer-tagline" style={{ fontSize: 11, color: "#b0b0be", marginLeft: 2 }}>내 임대 물건, 온리 하나로</span>
           </div>
 
-          <nav style={{
+          <nav className="footer-nav" style={{
             display: "flex",
             alignItems: "center",
             gap: "8px 18px",
@@ -87,8 +87,8 @@ export default function SiteFooter({ hasFixedBar = false }) {
         </div>
 
         {/* 패밀리 서비스 — 임대인 라이프사이클 크로스 링크 (카드형) */}
-        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px 12px", marginBottom: 14 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", whiteSpace: "nowrap", marginRight: 2 }}>
+        <div className="footer-family" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px 12px", marginBottom: 14 }}>
+          <span className="footer-family-label" style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", whiteSpace: "nowrap", marginRight: 2 }}>
             함께 쓰는<br />임대인 도구
           </span>
           {[
@@ -140,7 +140,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
         <div style={{ height: 1, background: "#e2e0d8", marginBottom: 12 }} />
 
         {/* 사업자 정보 — 좌: 사업자, 우: 저작권 */}
-        <div style={{
+        <div className="footer-bottom" style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -179,7 +179,14 @@ export default function SiteFooter({ hasFixedBar = false }) {
       <style>{`
         @media (max-width: 640px) {
           .footer-tagline { display: none; }
-          .footer-biz { font-size: 10px; }
+          .footer-top { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .footer-nav { justify-content: flex-start; gap: 6px 14px; width: 100%; }
+          .footer-family { align-items: stretch; }
+          .footer-family-label { width: 100%; margin-right: 0; }
+          .footer-family-label br { display: none; }
+          .footer-family a { flex: 1 1 100%; }
+          .footer-bottom { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .footer-biz { font-size: 10.5px; flex-direction: column; gap: 2px; }
         }
         @media (min-width: 1600px) {
           /* 초대형 모니터에서도 넉넉히 퍼지도록 좌우 패딩 유지 */

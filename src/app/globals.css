@@ -70,7 +70,12 @@ body {
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 한글은 단어(어절) 단위로만 줄바꿈 — "세\n금"처럼 글자 중간이 잘리지 않게. 한 줄보다 긴 토큰(URL 등)만 강제 분리 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
+/* 입력창 기본 min-width(≈150px) 때문에 좁은 화면에서 flex 행이 카드 밖으로 밀리는 문제 방지 */
+input, select, textarea { min-width: 0; max-width: 100%; }
 
 /* 터치 영역 최소 보장 (모바일) — WCAG AA */
 @media (max-width: 768px) {
