@@ -95,7 +95,7 @@ GROQ_API_KEY=...                  # Groq (openai/gpt-oss-120b). 2026-08-16 llama
 ANTHROPIC_API_KEY=...             # 선택. 설정하면 Claude 가 1순위, Groq 는 폴백. 둘 중 하나만 있어도 동작. 콘솔 플랜이 "평가 액세스"(무료)면 결제 설정 후 사용
 ANTHROPIC_MODEL=claude-opus-5     # 선택. 기본 claude-opus-5, 비용 절감 시 claude-sonnet-5
 ```
-**헬스체크**: `/api/health` 가 매일 07:00 KST(Vercel Cron)에 LLM 1문장 생성·MOLIT 프록시·Supabase 를 점검하고, 하나라도 실패하면 `HEALTH_ALERT_EMAIL`(기본 관리자 메일)로 Resend 알림을 보냅니다. 수동 확인: `curl "https://www.ownly.kr/api/health?token=$CRON_SECRET"`.
+**헬스체크**: `/api/health` 가 매일 07:00 KST(Vercel Cron)에 LLM 1문장 생성·MOLIT 프록시·Supabase 를 점검하고, 실패하면 `HEALTH_ALERT_EMAIL`(기본 관리자 메일)로 Resend 알림을 보냅니다. 단 MOLIT 가 정상 응답하면서 "실거래 0건"만 돌려주는 경우(국토부 새벽 데이터 공백이 잦음)는 이틀 연속일 때만 메일 — 매 실행 결과가 `events(event='health_check')` 에 남고 직전 실행과 비교합니다. HTTP·키·타임아웃 오류는 즉시 메일. 수동 확인: `curl "https://www.ownly.kr/api/health?token=$CRON_SECRET"`.
 AI 호출은 반드시 `src/lib/llm.js` 의 `callLLM` 을 거칩니다 (제공자 폴백·타임아웃·JSON 추출 공통). `/api/ai-pricing` 은 로그인 유저의 월 한도(얼리 서포터 60 · 일반 30 · 정식 과금 후 플랜별)를 **서버에서** 검사하고 성공한 분석만 `ai_usage` 에 기록합니다. 비로그인 호출(/diagnose)은 IP 시간당 10회.
 
 ### 알림
