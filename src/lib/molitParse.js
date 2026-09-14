@@ -27,7 +27,8 @@ export function parseMolitBody(text) {
 }
 
 /**
- * MOLIT 한 페이지 조회 (24h 캐시). 오류 본문이면 캐시를 우회해 1회 재시도하고, 그래도 오류면 errs 에 기록 후 [] 반환.
+ * MOLIT 한 페이지 조회 (24h 캐시). 오류 본문이거나 0건이면 캐시를 우회해 1회 재시도하고, 그래도 오류면 errs 에 기록 후 [] 반환.
+ * (국토부는 새벽에 정상 코드로 빈 결과를 주는 일이 있어, 그 응답이 24시간 캐시에 굳지 않도록 0건도 재확인한다)
  * @param {string} url  serviceKey 포함 완성 URL
  * @param {string[]} [errs]  요청 범위 오류 수집기
  * @param {string} [label]   오류 메시지 접두 (예: "apt_rent 202608")
@@ -41,6 +42,7 @@ export async function fetchMolitRows(url, errs, label = "") {
       const text = await res.text();
       const parsed = parseMolitBody(text);
       if (parsed.error) { if (attempt === 1) errs?.push(`${label}: ${parsed.error}`.trim()); continue; }
+      if (parsed.items.length === 0 && attempt === 0) continue; // 캐시된 빈 결과일 수 있음 → no-store 로 재확인
       return parsed.items;
     } catch (e) {
       if (attempt === 1) errs?.push(`${label}: ${e?.message || "fetch failed"}`.trim());

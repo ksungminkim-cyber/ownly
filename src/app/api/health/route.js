@@ -5,20 +5,20 @@
 // GET /api/health?token=CRON_SECRET  (Vercel Cron 은 user-agent 로 허용)
 // 검사 항목:
 //   llm    — src/lib/llm.js 로 1문장 생성 (AI 분석·코멘트가 쓰는 동일 경로, 비용 수 원)
-//   molit  — /api/market/molit 로 지난달 마포구 아파트 전월세 조회 → 1건 이상 (실패 시 재시도·강남구·전전달로 교차 확인)
+//   molit  — src/lib/molitFetch.js 로 국토부 API 를 직접 조회 (프록시와 같은 함수, 자체 HTTP 호출 없음) — 지난달 마포구 2회 → 강남구 → 전전달 마포구
 //   db     — Supabase events 테이블 head 조회
 // 응답: { ok, checks: { name: { ok, ms, detail, soft? } }, alerted, softOnly }
 //
-// 알림 규칙: llm·db 실패, MOLIT 의 HTTP/키/타임아웃 오류는 즉시 메일.
-//   MOLIT 가 응답은 하는데 "실거래 0건"만 돌려주는 경우(soft)는 국토부 새벽 공백이 잦아 이틀 연속일 때만 메일 —
-//   매 실행 결과를 events(event='health_check') 에 남기고 직전 실행을 비교한다.
+// 알림 규칙: llm·db 실패, MOLIT 의 HTTP/키/타임아웃/형식 불일치 오류는 즉시 메일.
+//   MOLIT 가 정상 코드(000)로 "totalCount 0" 만 돌려주는 경우(soft)는 국토부 새벽 데이터 공백이라 메일을 보내지 않고
+//   events(event='health_check') 에 시도별 증거(코드·totalCount·본문 앞부분)만 남긴다. 관리자 수동 호출 시 응답 JSON 으로 확인.
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { createClient } from "@supabase/supabase-js";
 import { callLLM, llmConfigured, GROQ_MODEL, CLAUDE_MODEL } from "../../../lib/llm";
-import { internalHeaders } from "../../../lib/ratelimit";
+import { fetchMolitPage } from "../../../lib/molitFetch";
 
 const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || "";
 const ALERT_TO = process.env.HEALTH_ALERT_EMAIL || "k.sungminkim@gmail.com";
@@ -66,8 +66,6 @@ async function sendAlert(subject, lines) {
 export async function GET(req) {
   if (!authorized(req)) return Response.json({ error: "unauthorized" }, { status: 401 });
 
-  const host = req.headers.get("host") || "www.ownly.kr";
-  const base = `${host.includes("localhost") ? "http" : "https"}://${host}`;
   const d = new Date(); d.setMonth(d.getMonth() - 1);
   const lastYm = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
 
@@ -79,34 +77,23 @@ export async function GET(req) {
       return `${r.provider}:${r.model} · ${r.text.slice(0, 40)}`;
     }),
     timed(async () => {
-      // 국토부 API 는 새벽에 일시 오류·빈 응답이 잦다 → 지난달 마포구 2회, 강남구 1회, 전전달 마포구 1회까지 교차 확인.
-      // 프록시가 돌려주는 molitError(한도 초과·키 오류 등)는 그대로 메일에 남기고, 전부 "0건"이면 soft 실패로 분류한다.
-      const probe = async (ym, lawdCd) => {
-        const res = await fetch(`${base}/api/market/molit?type=apt_rent&lawdCd=${lawdCd}&dealYm=${ym}&numOfRows=20`, { signal: AbortSignal.timeout(10000), headers: internalHeaders() });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
-        if (data.molitError) throw new Error(`MOLIT 응답 오류: ${data.molitError}`);
-        return Array.isArray(data.items) ? data.items.length : 0;
-      };
+      // 국토부 API 를 직접 호출 (프록시를 HTTP 로 다시 부르지 않음 — 호스트·인증·레이트리밋 변수 제거).
+      // 지난달 마포구 2회 → 강남구 → 전전달 마포구 순으로 교차 확인하고, 시도마다 국토부가 실제로 돌려준 코드·건수·본문 앞부분을 남긴다.
       const d2 = new Date(); d2.setMonth(d2.getMonth() - 2);
       const prevYm = `${d2.getFullYear()}${String(d2.getMonth() + 1).padStart(2, "0")}`;
       const attempts = [[lastYm, "11440", "마포구"], [lastYm, "11440", "마포구"], [lastYm, "11680", "강남구"], [prevYm, "11440", "마포구"]];
       const notes = [];
-      let hardErr = null;
+      let hard = false;
       for (let i = 0; i < attempts.length; i++) {
         const [ym, cd, name] = attempts[i];
-        try {
-          const n = await probe(ym, cd);
-          if (n > 0) return `${n}건 (${ym} ${name}${i > 0 ? `, ${i + 1}차 시도` : ""})`;
-          notes.push(`${i + 1}차 ${ym} ${name}: 0건`);
-        } catch (e) {
-          hardErr = e;
-          notes.push(`${i + 1}차 ${ym} ${name}: ${e?.message || e}`);
-        }
-        if (i < attempts.length - 1) await new Promise((r) => setTimeout(r, 5000));
+        const r = await fetchMolitPage({ type: "apt_rent", lawdCd: cd, dealYm: ym, numOfRows: 20, timeoutMs: 10000 });
+        if (!r.molitError && r.items.length > 0) return `${r.items.length}건/총 ${r.totalCount}건 (${ym} ${name}${i > 0 ? `, ${i + 1}차 시도` : ""}, ${r.ms}ms)`;
+        if (r.molitError) hard = true;
+        notes.push(`${i + 1}차 ${ym} ${name}: ${r.molitError ? r.molitError : `0건 (code ${r.resultCode ?? "-"}, totalCount ${r.totalCount})`}${r.bodyHead ? ` · 본문: ${r.bodyHead.slice(0, 160)}` : ""}`);
+        if (i < attempts.length - 1) await new Promise((res) => setTimeout(res, 5000));
       }
-      const err = new Error((hardErr ? "MOLIT 오류 — " : "실거래 0건 (응답은 정상, 국토부 데이터 공백 가능성) — ") + notes.join(" / "));
-      err.soft = !hardErr; // 전부 0건 = 국토부 새벽 공백일 가능성 → 이틀 연속일 때만 메일
+      const err = new Error((hard ? "MOLIT 오류 — " : "국토부 정상 응답이나 실거래 0건 (새벽 데이터 공백) — ") + notes.join(" / "));
+      err.soft = !hard; // 전부 "정상 코드 + 0건" = 국토부 데이터 공백 → 메일 없이 기록만
       throw err;
     }),
     timed(async () => {
@@ -120,16 +107,16 @@ export async function GET(req) {
   const checks = { llm, molit, db };
   const failed = Object.entries(checks).filter(([, c]) => !c.ok);
 
-  // 직전 실행과 비교 — MOLIT soft 실패는 연속 2회일 때만 알림 대상
+  // MOLIT soft 실패(정상 코드 + 0건)만 실패한 경우는 메일 없이 기록만 — 직전 실행은 참고용으로 함께 저장
   const sbLog = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const prev = await loadPrevRun(sbLog).catch(() => null);
   const prevMolitFailed = prev?.props?.checks?.molit?.ok === false;
-  const softOnly = failed.length === 1 && failed[0][0] === "molit" && Boolean(molit.soft) && !prevMolitFailed;
-  await saveRun(sbLog, { ok: failed.length === 0, softOnly, checks: Object.fromEntries(Object.entries(checks).map(([k, c]) => [k, { ok: c.ok, ms: c.ms, soft: !!c.soft, detail: String(c.detail).slice(0, 300) }])) }).catch(() => {});
+  const softOnly = failed.length === 1 && failed[0][0] === "molit" && Boolean(molit.soft);
+  await saveRun(sbLog, { ok: failed.length === 0, softOnly, checks: Object.fromEntries(Object.entries(checks).map(([k, c]) => [k, { ok: c.ok, ms: c.ms, soft: !!c.soft, detail: String(c.detail).slice(0, 1200) }])) }).catch(() => {});
 
   let alerted = false;
   if (failed.length > 0 && !softOnly) {
-    const lines = failed.map(([name, c]) => `[${name}] FAIL (${c.ms}ms): ${c.detail}${c.soft ? " (직전 실행도 실패 → 연속)" : ""}`);
+    const lines = failed.map(([name, c]) => `[${name}] FAIL (${c.ms}ms): ${c.detail}${name === "molit" && prevMolitFailed ? " (직전 실행도 실패)" : ""}`);
     lines.push("", `참고: LLM 모델 = groq:${GROQ_MODEL} / claude:${CLAUDE_MODEL} (src/lib/llm.js)`);
     lines.push(`확인: https://www.ownly.kr/api/health?token=... · 문서 CLAUDE.md §4 AI`);
     console.error("[health] FAIL", lines.join(" | "));
@@ -137,6 +124,6 @@ export async function GET(req) {
     alerted = !r?.skipped;
   }
 
-  if (softOnly) console.warn("[health] MOLIT soft fail (첫 회 — 메일 생략):", molit.detail);
+  if (softOnly) console.warn("[health] MOLIT soft fail (정상 코드·0건 — 메일 생략):", molit.detail);
   return Response.json({ ok: failed.length === 0, softOnly, checkedAt: new Date().toISOString(), checks, alerted }, { status: failed.length === 0 || softOnly ? 200 : 503 });
 }
