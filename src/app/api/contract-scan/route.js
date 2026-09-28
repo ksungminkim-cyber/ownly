@@ -65,6 +65,15 @@ function toManwon(v, wonThreshold) {
   return Math.round(n * 10) / 10;
 }
 
+// 원 단위 금액(모델이 계약서 숫자를 그대로 옮긴 값) → 만원. 모델은 단위 환산을 자주 틀리므로 환산은 서버가 한다.
+// minWon 미만이면 모델이 이미 만원으로 준 것으로 보고 그대로 둔다 (예: 보증금 12000 → 1억2천만원)
+function wonToManwon(v, minWon) {
+  const n = toNum(v);
+  if (n == null || n < 0) return null;
+  if (n > 0 && n < minWon) return Math.round(n * 10) / 10;
+  return Math.round((n / 10000) * 10) / 10;
+}
+
 function toDate(v) {
   if (!v) return null;
   const m = String(v).trim().match(/^(\d{4})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2})\s*일?$/);
@@ -106,9 +115,10 @@ function normalizeScan(raw) {
     address: toText(o.address, 200),
     property_type: pType,
     sub_type: toText(o.sub_type, 20),
-    deposit_manwon: toManwon(o.deposit_manwon, 1_000_000), // 100억(=1,000,000만원) 이상은 원 단위로 온 값으로 간주 — 저장 전 사용자가 확인
-    monthly_rent_manwon: toManwon(o.monthly_rent_manwon, 100_000), // 월 10억 이상 → 원 단위
-    maintenance_manwon: toManwon(o.maintenance_manwon, 10_000), // 월 1억 이상 → 원 단위
+    // 1순위: 원 단위(*_won) → 서버 환산. 2순위(예전 형식): *_manwon — 비현실적으로 큰 값은 원 단위로 간주. 저장 전 사용자가 확인
+    deposit_manwon: o.deposit_won != null ? wonToManwon(o.deposit_won, 100_000) : toManwon(o.deposit_manwon, 1_000_000),
+    monthly_rent_manwon: o.monthly_rent_won != null ? wonToManwon(o.monthly_rent_won, 10_000) : toManwon(o.monthly_rent_manwon, 100_000),
+    maintenance_manwon: o.maintenance_won != null ? wonToManwon(o.maintenance_won, 10_000) : toManwon(o.maintenance_manwon, 10_000),
     start_date: toDate(o.start_date),
     end_date: toDate(o.end_date),
     pay_day: payDay,
@@ -125,8 +135,8 @@ const SYSTEM = `당신은 한국 주택·상가 임대차 계약서 사진에서
 규칙:
 - 사진에 실제로 보이는 값만 옮깁니다. 읽을 수 없거나 없는 값은 반드시 null. 추측·계산·보완 금지.
 - 주민등록번호, 외국인등록번호, 계좌번호, 사업자등록번호, 서명·도장 내용은 절대 출력하지 마세요(notes 에도 금지).
-- 금액은 모두 "만원" 단위 숫자로 환산합니다. 예: "금 일억원정" → 10000, "금 오천만원" → 5000, "월 550,000원" → 55, "1억 2천만원" → 12000.
-- 전세 계약이면 monthly_rent_manwon 은 0 입니다(월세 칸이 비어 있고 전세라고 적혀 있을 때만).
+- 금액은 계약서에 적힌 그대로 "원" 단위 정수로 옮깁니다. 괄호 안 아라비아 숫자(₩120,000,000 등)가 있으면 그 숫자를 쉼표 없이 그대로 쓰세요. 한글 금액만 있으면 원 단위로 바꿔 적습니다. 예: "금 일억이천만원정 (₩120,000,000)" → 120000000, "월 550,000원" → 550000, "금 오천만원" → 50000000. 단위 환산(만원 등)은 하지 마세요.
+- 전세 계약이면 monthly_rent_won 은 0 입니다(월세 칸이 비어 있고 전세라고 적혀 있을 때만).
 - 날짜는 YYYY-MM-DD. start_date 는 임대차 기간 시작일(인도일), end_date 는 종료일. 계약 체결일과 혼동하지 마세요.
 - tenant_name/tenant_phone 은 "임차인" 칸의 값만. 임대인·중개사 정보는 넣지 마세요.
 - property_type 은 "주거" | "상가" | "토지" 중 하나(상가건물 임대차 표준계약서면 상가).
@@ -136,7 +146,7 @@ const SYSTEM = `당신은 한국 주택·상가 임대차 계약서 사진에서
 - confidence 는 사진 판독 전반에 대한 자신감 0~1. notes 에는 판독이 애매했던 항목을 한국어로 짧게.`;
 
 const PROMPT = `이 임대차 계약서 사진에서 아래 JSON 형식으로만 답하세요.
-{"address":string|null,"property_type":"주거"|"상가"|"토지"|null,"sub_type":string|null,"deposit_manwon":number|null,"monthly_rent_manwon":number|null,"maintenance_manwon":number|null,"start_date":"YYYY-MM-DD"|null,"end_date":"YYYY-MM-DD"|null,"pay_day":number|null,"tenant_name":string|null,"tenant_phone":string|null,"area_m2":number|null,"confidence":number,"notes":string|null}
+{"address":string|null,"property_type":"주거"|"상가"|"토지"|null,"sub_type":string|null,"deposit_won":number|null,"monthly_rent_won":number|null,"maintenance_won":number|null,"start_date":"YYYY-MM-DD"|null,"end_date":"YYYY-MM-DD"|null,"pay_day":number|null,"tenant_name":string|null,"tenant_phone":string|null,"area_m2":number|null,"confidence":number,"notes":string|null}
 계약서가 아니거나 글자를 읽을 수 없으면 모든 값을 null, confidence 0, notes 에 이유를 적으세요.`;
 
 export async function POST(req) {
