@@ -1,6 +1,6 @@
 // src/app/api/notify/route.js
 // 이메일 알림 API — Resend 기반
-// GET 크론(매일): 미납 알림·임대인 문자·월간 리포트·만료 다이제스트. (무인증 POST 는 2026-09-10 제거)
+// GET 크론(매일): 미납 알림·임대인 문자·월간 리포트·만료 다이제스트·물건 0개 가입자 사용 안내(D+1·3·7, src/lib/onboardingEmail.js). (무인증 POST 는 2026-09-10 제거)
 // 미납 발생 즉시, 만료 D-90/60/30, 월초 수금 체크리스트
 
 import crypto from "crypto";
@@ -9,6 +9,7 @@ export const maxDuration = 60;
 import { createClient } from "@supabase/supabase-js";
 import { matchPolicies } from "../../../lib/policies";
 import { internalHeaders } from "../../../lib/ratelimit";
+import { ONBOARDING_STEPS, nextOnboardingStep, onboardingEmail } from "../../../lib/onboardingEmail";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -71,7 +72,7 @@ function unpaidSmsText(month, unpaidTenants) {
   return `[온리] ${month}월 미납 ${unpaidTenants.length}건 · 총 ${total.toLocaleString()}만원\n${first.name} ${(first.rent || 0).toLocaleString()}만원${rest}\n납부 처리·독촉: https://www.ownly.kr/dashboard/payments`;
 }
 
-function baseHtml(title, body) {
+function baseHtml(title, body, cta = { href: "https://ownly.kr/dashboard", label: "대시보드 확인하기 →" }) {
   return `
 <div style="font-family:'Apple SD Gothic Neo',sans-serif;max-width:540px;margin:0 auto;padding:0;background:#f5f4f0;">
   <div style="background:#1a2744;padding:24px 28px 20px;border-radius:12px 12px 0 0;">
@@ -86,8 +87,8 @@ function baseHtml(title, body) {
   <div style="background:#fff;padding:24px 28px;border-radius:0 0 12px 12px;border:1px solid #e8e6e0;border-top:none;">
     ${body}
     <div style="margin-top:24px;padding-top:16px;border-top:1px solid #f0efe9;">
-      <a href="https://ownly.kr/dashboard" style="display:inline-block;padding:11px 22px;background:#1a2744;color:#fff;text-decoration:none;border-radius:9px;font-size:13px;font-weight:700;">
-        대시보드 확인하기 →
+      <a href="${cta.href}" style="display:inline-block;padding:11px 22px;background:#1a2744;color:#fff;text-decoration:none;border-radius:9px;font-size:13px;font-weight:700;">
+        ${cta.label}
       </a>
     </div>
     <p style="margin-top:16px;font-size:11px;color:#b0aead;line-height:1.6;">
@@ -383,7 +384,16 @@ export async function GET(req) {
   const authorized = CRON_TOKEN ? token === CRON_TOKEN : /vercel-cron/i.test(req.headers.get("user-agent") || "");
   if (!authorized) return Response.json({ error: "unauthorized" }, { status: 401 });
 
-  const summary = { processed: 0, unpaidSent: 0, smsSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0, elapsedMs: 0 };
+  // 운영 확인용: ?previewStep=1 → 가입 안내 메일 HTML 미리보기, ?dryRun=1 → 아무것도 보내지 않고 가입 안내 대상만 반환
+  const params = new URL(req.url).searchParams;
+  const previewStep = Number(params.get("previewStep"));
+  if (previewStep) {
+    const m = onboardingEmail(previewStep, { createdAt: params.get("createdAt") || new Date().toISOString() });
+    return new Response(`<!-- ${m.subject} -->` + baseHtml(m.title, m.body, m.cta), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  }
+  const dryRun = params.get("dryRun") === "1";
+
+  const summary = { processed: 0, onboardingSent: 0, unpaidSent: 0, smsSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0, elapsedMs: 0 };
   const started = Date.now();
   const now = new Date();
   const kstNow = new Date(Date.now() + 9 * 3600000);
@@ -422,7 +432,19 @@ export async function GET(req) {
 
         const { data: tenantsRaw } = await supabase.from("tenants").select("*").eq("user_id", u.id);
         const tenants = (tenantsRaw || []).filter((t) => !isSampleRow(t));
-        if (tenants.length === 0) { summary.skippedNothing++; return; }
+        // 물건 0개 — 가입 D+1·3·7 사용 안내 메일 (등록하면 이 분기를 타지 않으므로 자동 중단)
+        if (tenants.length === 0) {
+          if (emailOptOut || !u.email_confirmed_at) { summary.skippedNothing++; return; }
+          const sentAt = ONBOARDING_STEPS.map((x) => [x.step, lastSent.get(`${u.id}|onboarding_${x.step}|email`)]).filter(([, t]) => t);
+          const step = nextOnboardingStep({ createdAt: u.created_at, sentSteps: sentAt.map(([n]) => n), lastSentAt: sentAt.length ? Math.max(...sentAt.map(([, t]) => t)) : null });
+          if (!step) { summary.skippedNothing++; return; }
+          if (dryRun) { (summary.onboardingPreview ||= []).push({ user: u.id.slice(0, 6), step, days: Math.floor((Date.now() - Date.parse(u.created_at)) / dayMs) }); return; }
+          const m = onboardingEmail(step, { createdAt: u.created_at });
+          const result = await sendEmail({ to: email, subject: m.subject, html: baseHtml(m.title, m.body, m.cta) });
+          if (result?.sent) { summary.onboardingSent++; await logSent(u.id, `onboarding_${step}`, "email"); }
+          return;
+        }
+        if (dryRun) return; // 모의 실행에서는 기존 알림을 건드리지 않는다
         const { data: payments } = await supabase.from("payments").select("*").in("tenant_id", tenants.map(t => t.id));
 
         // ① 미납 — 이메일(3일 중복 방지)과 문자(3일 중복 방지)를 독립적으로 판정
