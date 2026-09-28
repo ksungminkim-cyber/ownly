@@ -32,9 +32,11 @@ export default function CheckoutPage() {
   const plan = PLANS[planId];
 
   useEffect(() => {
-    if (user?.user_metadata?.name) setCustomerName(user.user_metadata.name);
-    if (user?.user_metadata?.phone) setCustomerPhone(user.user_metadata.phone);
+    // 이메일 가입자는 이름이 full_name 에 저장된다 — 가입 때 받은 정보를 다시 입력하게 하지 않는다
+    const metaName = user?.user_metadata?.name || user?.user_metadata?.full_name;
+    if (metaName) setCustomerName(metaName);
     else if (user?.email) setCustomerName(user.email.split("@")[0]);
+    if (user?.user_metadata?.phone) setCustomerPhone(user.user_metadata.phone);
   }, [user]);
 
   // 퍼널 계측 — 결제 페이지 진입

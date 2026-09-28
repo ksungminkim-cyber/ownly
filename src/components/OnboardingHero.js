@@ -27,7 +27,9 @@ export default function OnboardingHero() {
 
   const [checking, setChecking] = useState(false);
   const [checked, setChecked] = useState(null); // { market, sigunguName, regulated, failed }
+  const [lease, setLease] = useState("월세"); // 월세 | 전세 — 전세 임대인도 첫 화면에서 바로 등록
   const [rent, setRent] = useState("");
+  const [deposit, setDeposit] = useState("");
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -86,7 +88,8 @@ export default function OnboardingHero() {
 
   // ── ② 물건 저장 ──
   const saveProperty = async () => {
-    if (!rent || Number(rent) <= 0) { toast("월세를 입력해주세요 (전세는 상세 입력에서)", "error"); return; }
+    if (lease === "월세" && (!rent || Number(rent) <= 0)) { toast("월세를 입력해주세요", "error"); return; }
+    if (lease === "전세" && (!deposit || Number(deposit) <= 0)) { toast("전세 보증금을 입력해주세요", "error"); return; }
     setSaving(true);
     try {
       const today = new Date();
@@ -96,8 +99,8 @@ export default function OnboardingHero() {
         phone: "",
         pType: "주거", sub: "아파트",
         addr: addr.trim(),
-        dep: 0,
-        rent: Number(rent),
+        dep: lease === "전세" ? Number(deposit) : 0,
+        rent: lease === "전세" ? 0 : Number(rent),
         start_date: null, /* 계약일 미입력 — 오늘 날짜를 넣으면 전월세신고 기한 경고가 잘못 뜬다 */
         end_date: nextYear.toISOString().slice(0, 10),
         status: "정상",
@@ -180,7 +183,7 @@ export default function OnboardingHero() {
           )}
         </div>
         <button onClick={() => checkAddress()} disabled={checking} className="btn btn-fill" style={{ flexShrink: 0, opacity: checking ? 0.7 : 1 }}>
-          {checking ? "확인 중..." : "시세·정책 바로 보기 →"}
+          {checking ? "확인 중..." : "시세 확인하고 등록하기 →"}
         </button>
       </div>
 
@@ -223,14 +226,21 @@ export default function OnboardingHero() {
 
             {/* ③ 저장 */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
-              <input value={rent} onChange={(e) => setRent(e.target.value.replace(/[^0-9]/g, ""))} placeholder="월세 (만원) *" inputMode="numeric" style={{ ...inputStyle, flex: "1 1 110px", width: "auto" }} />
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                {["월세", "전세"].map((v) => (
+                  <button key={v} type="button" onClick={() => setLease(v)} className={`chip${lease === v ? " is-active" : ""}`}>{v}</button>
+                ))}
+              </div>
+              {lease === "월세"
+                ? <input value={rent} onChange={(e) => setRent(e.target.value.replace(/[^0-9]/g, ""))} placeholder="월세 (만원) *" inputMode="numeric" style={{ ...inputStyle, flex: "1 1 110px", width: "auto" }} />
+                : <input value={deposit} onChange={(e) => setDeposit(e.target.value.replace(/[^0-9]/g, ""))} placeholder="전세 보증금 (만원) *" inputMode="numeric" style={{ ...inputStyle, flex: "1 1 130px", width: "auto" }} />}
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="세입자 이름 (선택)" style={{ ...inputStyle, flex: "1 1 130px", width: "auto" }} />
               <button onClick={saveProperty} disabled={saving} className="btn btn-fill" style={{ flexShrink: 0, opacity: saving ? 0.7 : 1 }}>
                 {saving ? "저장 중..." : "이 주소로 물건 등록 →"}
               </button>
             </div>
             <button onClick={() => router.push("/dashboard/properties")} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 11.5, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 10 }}>
-              보증금·계약기간·전세까지 상세 입력하기
+              보증금·계약기간·상가까지 상세 입력하기
             </button>
           </div>
         </div>

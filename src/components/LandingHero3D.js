@@ -37,7 +37,8 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
   const handleLeave = () => { mx.set(0); my.set(0); };
 
   const fadeUp = (delay) => ({
-    initial: { opacity: 0, y: 26 },
+    // opacity 0 에서 시작하면 서버 HTML 이 투명하게 내려와 JS 로드 전까지(모바일 광고 유입 기준 수 초) 제목·가입 버튼이 안 보인다 — 보이는 상태에서 살짝만 움직인다
+    initial: { opacity: 1, y: 12 },
     animate: { opacity: 1, y: 0 },
     transition: { type: "spring", stiffness: 180, damping: 24, delay },
   });

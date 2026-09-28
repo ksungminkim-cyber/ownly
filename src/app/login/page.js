@@ -55,7 +55,6 @@ export default function AuthPage() {
     if (form.pw.length < 6)        errs.pw    = "6자 이상 입력하세요";
     if (tab === "signup" && !form.name)  errs.name  = "이름을 입력하세요";
     if (tab === "signup" && !form.agree) errs.agree = "약관에 동의해주세요";
-    if (tab === "signup" && !form.phone) errs.phone = "전화번호를 입력하세요";
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setLoading(true); setMsg("");
@@ -72,7 +71,7 @@ export default function AuthPage() {
       } else {
         // ✅ 회원가입 시 닉네임 자동 생성해서 포함
         const autoNickname = generateNickname();
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email: form.email,
           password: form.pw,
           options: {
@@ -85,6 +84,14 @@ export default function AuthPage() {
           },
         });
         if (error) throw error;
+        // Supabase 에서 이메일 인증을 끄면 세션이 바로 발급된다 — 그때는 메일 안내 없이 바로 이동
+        if (signUpData?.session) {
+          track("login", { method: "signup" });
+          let dest = "/dashboard";
+          try { const n = localStorage.getItem("ownly_next"); if (n && /^\/(?![/\\])/.test(n)) dest = n; localStorage.removeItem("ownly_next"); } catch {}
+          router.push(dest);
+          return;
+        }
         setMsg("sent");
       }
     } catch (e) {
@@ -257,7 +264,7 @@ export default function AuthPage() {
               </p>
             )}
             {tab === "signup" && (
-              <AuthInput label="전화번호 *" type="tel" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" error={errors.phone} />
+              <AuthInput label="전화번호 (선택)" type="tel" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" error={errors.phone} />
             )}
             <AuthInput label="비밀번호" type="password" value={form.pw} onChange={set("pw")}
               placeholder={tab === "signup" ? "6자 이상" : "비밀번호"} error={errors.pw} />
@@ -283,7 +290,7 @@ export default function AuthPage() {
                   <p style={{ fontSize:14, fontWeight:800, color:"#0a6b4a" }}>인증 메일을 발송했습니다</p>
                 </div>
                 <p style={{ fontSize:12, color:"#1a6b4a", lineHeight:1.7 }}>
-                  <b>{form.email}</b>로 인증 링크를 보냈습니다.<br/>링크를 클릭하면 자동으로 로그인됩니다.
+                  <b>{form.email}</b>로 인증 링크를 보냈습니다.<br/>이 기기·브라우저에서 링크를 열면 바로 시작됩니다. 다른 기기나 메일 앱 안에서 열었다면 인증 후 이 화면에서 로그인해 주세요.
                 </p>
                 <div style={{ background:"#f5f7ff", border:"1px solid #c7d2fe", borderRadius:10, padding:"10px 12px", display:"flex", gap:8 }}>
                   <span style={{ fontSize:16, flexShrink:0 }}>💡</span>
