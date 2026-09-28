@@ -5,7 +5,7 @@ import { PLANS, PAID_PLAN_ID, PLAN_COMPARE, fmtLimit, LEGACY_FREE_UNTIL_LABEL, L
 import { useApp } from "../../../context/AppContext";
 import DotText from "../../../components/DotText";
 
-// 요금제 — 무료 / 플러스(월 9,900원) 두 가지. 카드·비교표·FAQ 의 숫자는 전부 PLANS 에서 읽는다 (공개 /pricing 과 동일 출처).
+// 요금제 — 무료 / 플러스(월 4,900원) 두 가지. 카드·비교표·FAQ 의 숫자는 전부 PLANS 에서 읽는다 (공개 /pricing 과 동일 출처).
 const plus = PLANS[PAID_PLAN_ID];
 const planList = [PLANS.free, plus];
 

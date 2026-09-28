@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PLANS, PAID_PLAN_ID, PLAN_COMPARE, fmtLimit, FREE_TAGLINE } from "../../lib/constants";
 import DotText from "../../components/DotText";
 
-// 공개 요금제 — 무료 / 플러스(월 9,900원). 카드·비교표·FAQ 의 숫자는 전부 PLANS 에서 읽는다 (대시보드 요금제와 동일 출처).
+// 공개 요금제 — 무료 / 플러스(월 4,900원). 카드·비교표·FAQ 의 숫자는 전부 PLANS 에서 읽는다 (대시보드 요금제와 동일 출처).
 const plus = PLANS[PAID_PLAN_ID];
 const SIGNUP = "/login?mode=signup&next=%2Fdashboard";
 

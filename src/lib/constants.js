@@ -4,7 +4,7 @@ export const INTENT_MAP = { "갱신의향 있음": { c: "#0fa573", bg: "rgba(15,
 export const PAY_MAP = { paid: { label: "납부완료", c: "#0fa573", bg: "rgba(15,165,115,0.1)" }, unpaid: { label: "미납", c: "#e8445a", bg: "rgba(232,68,90,0.1)" }, late: { label: "연체", c: "#e8960a", bg: "rgba(232,150,10,0.1)" }, };
 export const COLORS = ["#1a2744", "#e8960a", "#e8445a", "#1e7fcb", "#5b4fcf", "#0fa573", "#2d4270"];
 
-// ─── 요금제 (2026-09-10 단순화: 무료 / 플러스 월 9,900원) ─────────────
+// ─── 요금제 (2026-09-10 단순화: 무료 / 플러스 · 2026-09-28 월 9,900원 → 4,900원 인하) ─────────────
 // 유료 플랜은 플러스 하나뿐입니다. 한도·가격·기능 문구는 여기서만 정의하고, 요금제 화면(대시보드·공개)·서버 한도 판정
 // (api/kakao/send · api/ai-pricing · AppContext)·안내 문구가 전부 PLANS 를 읽습니다. 숫자를 바꿀 땐 이 파일만 고치면 됩니다.
 export const PAID_PLAN_ID = "plus";
@@ -37,11 +37,11 @@ export const PLANS = {
   plus: {
     id: "plus",
     name: "플러스",
-    price: 9900,
-    priceLabel: "9,900원/월",
+    price: 4900,
+    priceLabel: "4,900원/월",
     color: "#4f46e5",
     emoji: "📊",
-    tagline: "임대 관리에 필요한 전부, 월 9,900원",
+    tagline: "임대 관리에 필요한 전부, 월 4,900원",
     badge: "전체 기능",
     limits: {
       properties: Infinity, tenants: Infinity,
