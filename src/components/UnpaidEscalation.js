@@ -8,7 +8,7 @@ const STAGES = {
     icon: "⏳",
     summary: "착오 입금일 가능성 높음. 친절한 1차 리마인더로 충분",
     steps: [
-      { icon: "💬", text: "카카오 알림톡 자동 발송 (납부 안내 템플릿)", action: "kakao" },
+      { icon: "💬", text: "카카오 알림톡으로 납부 안내 발송 (온리에서 원클릭)", action: "kakao" },
       { icon: "📞", text: "전화로 직접 상황 확인 (2회 이상 미출 시 SMS 병행)" },
       { icon: "🧐", text: "은행 SMS 파싱으로 착오 입금 여부 확인" },
     ],

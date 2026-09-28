@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { getInitial } from "../../../lib/initial"; import { track } from "../../../lib/track"; import { getUnpaidTenantIds } from "../../../lib/unpaid"; import { useApp } from "../../../context/AppContext"; import TenantNotes from "../../../components/TenantNotes"; import RenewalGuide from "../../../components/RenewalGuide"; import RentHistoryChart from "../../../components/RentHistoryChart"; import TenantCreditScore from "../../../components/TenantCreditScore";
+"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { getInitial } from "../../../lib/initial"; import { track } from "../../../lib/track"; import { getUnpaidTenantIds } from "../../../lib/unpaid"; import { useApp } from "../../../context/AppContext"; import TenantNotes from "../../../components/TenantNotes"; import RenewalGuide from "../../../components/RenewalGuide"; import RentHistoryChart from "../../../components/RentHistoryChart"; import TenantCreditScore from "../../../components/TenantCreditScore"; import LeaseReportCard from "../../../components/LeaseReportCard";
 // ✅ ② 갱신 제안서 컴포넌트
 function RenewalProposal({ tenant, onClose }) {
   const endDate = tenant.end_date || tenant.end || "";
@@ -215,6 +215,7 @@ export default function TenantsPage() { const router = useRouter(); const { tena
               <SectionLabel>CONTRACT</SectionLabel>
               {[ ["보증금", (sel.dep / 10000).toFixed(1) + "억원", undefined], ["월세", Number(sel.rent).toLocaleString() + "만원", C.emerald], ["만료일", getEnd(sel), daysLeft(getEnd(sel)) <= 90 ? C.amber : undefined], ["잔여일", "D-" + daysLeft(getEnd(sel)), daysLeft(getEnd(sel)) <= 60 ? C.rose : C.emerald], ].map(([l, v, a]) => ( <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #ebe9e3" }}> <span style={{ fontSize: 12, color: "#8a8a9a" }}>{l}</span> <span style={{ fontSize: 13, fontWeight: 600, color: a || C.text }}>{v}</span> </div> ))}
             </div>
+            <LeaseReportCard tenant={sel} />
             <RentHistoryChart tenant={sel} />
           </div>
         )}

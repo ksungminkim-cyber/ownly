@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
-import { SectionLabel, toast, EmptyState } from "../../../../components/shared";
+import { SectionLabel, toast, EmptyState, Modal } from "../../../../components/shared";
 import { daysLeft } from "../../../../lib/constants";
 
 const FILTERS = [
@@ -24,10 +24,11 @@ function renderMessage(t, suggested) {
 
 export default function RenewalsPage() {
   const router = useRouter();
-  const { tenants, loading } = useApp();
+  const { tenants, loading, addContract, updateTenant } = useApp();
   const [filter, setFilter] = useState(120);
   const [selected, setSelected] = useState({});
   const [capPct, setCapPct] = useState(5);
+  const [confirmT, setConfirmT] = useState(null); // 갱신 확정 모달 대상
 
   const expiring = useMemo(() => {
     return tenants
@@ -162,6 +163,7 @@ export default function RenewalsPage() {
                       <p style={{ fontSize: 12, color: "#8a8a9a" }}>{Number(t.rent).toLocaleString()}만 → <b style={{ color: "#5b4fcf" }}>{sug.toLocaleString()}만</b></p>
                       {inc > 0 && <p style={{ fontSize: 10, color: "#0fa573", fontWeight: 700 }}>+{inc.toLocaleString()}만</p>}
                     </div>
+                    <button onClick={() => setConfirmT(t)} className="btn btn-accent btn-sm" style={{ whiteSpace: "nowrap" }}>갱신 확정</button>
                     <button onClick={() => copySingle(t)}
                       style={{ padding: "6px 10px", borderRadius: 7, background: "rgba(91,79,207,0.08)", border: "1px solid rgba(91,79,207,0.2)", color: "#5b4fcf", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
                       복사
@@ -179,10 +181,144 @@ export default function RenewalsPage() {
               <li>일괄 복사 후 카톡에 붙여넣으면 세입자별로 구분된 메시지 확인 가능</li>
               <li>개별 맞춤이 필요하면 각 행의 '복사' 버튼 사용</li>
               <li>시세 대비 상세 분석은 세입자 관리 → 개별 세입자 → 갱신 가이드 확인</li>
+              <li>협상이 끝나면 &lsquo;갱신 확정&rsquo;으로 새 조건을 저장하세요 — 계약 이력에 갱신 기록이 남고 세입자 월세·보증금·만료일이 바뀝니다</li>
             </ul>
           </div>
         </>
       )}
+
+      <Modal open={!!confirmT} onClose={() => setConfirmT(null)} width={460}>
+        {confirmT && (
+          <RenewalConfirm
+            key={confirmT.id}
+            tenant={confirmT}
+            suggested={suggestedFor(confirmT)}
+            onClose={() => setConfirmT(null)}
+            onSave={async ({ contract, tenantPatch }) => {
+              await addContract(contract);
+              await updateTenant(confirmT.id, tenantPatch);
+              setSelected(s => { const n = { ...s }; delete n[confirmT.id]; return n; });
+              setConfirmT(null);
+            }}
+          />
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "";
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function addYears(dateStr, n) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "";
+  d.setFullYear(d.getFullYear() + n);
+  return d.toISOString().slice(0, 10);
+}
+// 갱신 전후 인상률(%) — 세입자 상세 갱신 제안서와 같은 계산
+function rateOf(prev, next) {
+  return prev > 0 ? Number(((next - prev) / prev * 100).toFixed(1)) : 0;
+}
+
+function RenewalConfirm({ tenant, suggested, onClose, onSave }) {
+  const prevRent = Number(tenant.rent) || 0;
+  const prevDep = Number(tenant.dep) || 0;
+  const end = getEnd(tenant) || "";
+  const newStart = end ? addDays(end, 1) : "";
+  const [rent, setRent] = useState(suggested);
+  const [dep, setDep] = useState(prevDep);
+  const [newEnd, setNewEnd] = useState(() => (end ? addYears(end, 2) : ""));
+  const [rightUsed, setRightUsed] = useState(false);
+  const [registered, setRegistered] = useState(false);
+  const [memo, setMemo] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const rentRate = rateOf(prevRent, Number(rent) || 0);
+  const depRate = rateOf(prevDep, Number(dep) || 0);
+  const over5 = rentRate > 5 || depRate > 5;
+  const capApplies = rightUsed || registered;
+
+  const inputStyle = { width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text)", background: "var(--surface2)" };
+  const labelStyle = { fontSize: 11, color: "var(--text-muted)", fontWeight: 700, marginBottom: 6 };
+
+  const submit = async () => {
+    if (!newEnd) { toast("새 만료일을 입력하세요", "error"); return; }
+    if (newStart && newEnd <= newStart) { toast("새 만료일은 갱신 시작일 이후여야 합니다", "error"); return; }
+    setSaving(true);
+    try {
+      await onSave({
+        contract: {
+          tenant_id: tenant.id,
+          tenant_name: tenant.name || "",
+          type: "갱신",
+          start_date: newStart || null,
+          end_date: newEnd,
+          rent: Number(rent) || 0,
+          deposit: Number(dep) || 0,
+          special_terms: memo,
+          renewal_right_used: rightUsed,
+          prev_rent: prevRent,
+          prev_deposit: prevDep,
+        },
+        tenantPatch: { rent: Number(rent) || 0, dep: Number(dep) || 0, end_date: newEnd },
+      });
+      toast(`✅ ${tenant.name}님 갱신 조건이 저장됐습니다`);
+    } catch (e) {
+      toast(`저장 실패: ${e?.message || "알 수 없는 오류"}`, "error");
+      console.error("[renewals.confirm]", e);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div>
+      <h3 style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>갱신 확정</h3>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>{tenant.name} · 현재 월세 {prevRent.toLocaleString()}만원 · 보증금 {prevDep.toLocaleString()}만원 · 만료 {end || "-"}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <p style={labelStyle}>새 월세 (만원)</p>
+            <input type="number" min="0" value={rent} onChange={e => setRent(e.target.value)} style={inputStyle} />
+            <p className="num" style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>{rentRate > 0 ? "+" : ""}{rentRate}%</p>
+          </div>
+          <div>
+            <p style={labelStyle}>새 보증금 (만원)</p>
+            <input type="number" min="0" value={dep} onChange={e => setDep(e.target.value)} style={inputStyle} />
+            <p className="num" style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>{depRate > 0 ? "+" : ""}{depRate}%</p>
+          </div>
+        </div>
+        <div>
+          <p style={labelStyle}>새 만료일 {newStart ? `(갱신 시작 ${newStart})` : ""}</p>
+          <input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} style={inputStyle} />
+        </div>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: "var(--text)", cursor: "pointer" }}>
+          <input type="checkbox" checked={rightUsed} onChange={e => setRightUsed(e.target.checked)} />
+          세입자가 계약갱신청구권을 사용함
+        </label>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: "var(--text)", cursor: "pointer" }}>
+          <input type="checkbox" checked={registered} onChange={e => setRegistered(e.target.checked)} />
+          <span>등록임대주택(임대사업자 등록 물건) <span style={{ color: "var(--text-faint)" }}>— 경고 판단용, 저장되지 않음</span></span>
+        </label>
+        {over5 && capApplies && (
+          <div className="chip chip-danger" style={{ borderRadius: 10, padding: "8px 12px", whiteSpace: "normal", lineHeight: 1.5, fontSize: 12 }}>⚠️ 인상률이 5%를 넘습니다 (월세 {rentRate}% · 보증금 {depRate}%). {rightUsed ? "계약갱신청구권 행사 시" : "등록임대주택은"} 5% 상한이 적용되어 분쟁·과태료 소지가 있습니다.</div>
+        )}
+        {over5 && !capApplies && (
+          <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.5 }}>인상률이 5%를 넘습니다. 청구권을 쓰지 않은 합의 갱신이고 등록임대가 아니라면 5% 상한이 바로 적용되지 않을 수 있지만, 개별 사정에 따라 다르므로 확인하세요.</p>
+        )}
+        <div>
+          <p style={labelStyle}>특약·메모 (선택)</p>
+          <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
+        </div>
+        <p style={{ fontSize: 10, color: "var(--text-faint)", lineHeight: 1.5 }}>※ 인상률은 월세·보증금을 각각 비교한 단순 계산입니다. 보증금↔월세 전환이 섞이면 법정 전환율로 환산해야 하므로 참고용으로만 보세요 (2026-09 기준 법령 가정, 법률 자문 아님). 금액이 바뀐 갱신 계약은 전월세 신고 대상일 수 있습니다.</p>
+        <div style={{ display: "flex", gap: 9 }}>
+          <button onClick={onClose} className="btn btn-ghost" style={{ flex: 1 }}>취소</button>
+          <button onClick={submit} disabled={saving} className="btn btn-accent" style={{ flex: 2 }}>{saving ? "저장 중..." : "갱신 확정 저장"}</button>
+        </div>
+      </div>
     </div>
   );
 }

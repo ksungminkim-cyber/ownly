@@ -34,6 +34,9 @@ function getPreviewMsg(t, tabKey) {
   const mgt     = (t.maintenance || 0).toLocaleString();
   const total   = ((t.rent || 0) + (t.maintenance || 0)).toLocaleString();
   const payDay  = t.pay_day || 5;
+  // 납부일까지 남은 일수 — 이번 달 납부일이 지났으면 다음 달 납부일 기준 (/api/kakao/send 와 동일)
+  const payDueRaw = payDay - today.getDate();
+  const payDLeft  = payDueRaw >= 0 ? payDueRaw : payDueRaw + new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const dl      = daysLeft(t.end_date || t.end || "");
   const endDate = t.end_date || t.end || "미정";
   const hasMgt  = isOwnerMgt(t) && (t.maintenance || 0) > 0;
@@ -48,7 +51,7 @@ function getPreviewMsg(t, tabKey) {
 ${name}님, 안녕하세요.
 온리(Ownly) 임대관리 서비스입니다.
 
-월세 및 관리비 납부일이 ${payDay}일 남았습니다.
+월세 및 관리비 납부일이 ${payDLeft}일 남았습니다.
 미리 준비해 두시면 감사하겠습니다.
 
 📋 납부 정보
@@ -67,14 +70,14 @@ ${name}님, 안녕하세요.
   // upcoming — 월세 납부 예정 안내
   if (tabKey === "upcoming") {
     return {
-      highlight: `납부 예정일 D-${payDay}`,
+      highlight: `납부 예정일 D-${payDLeft}`,
       body:
 `[온리 납부 안내]
 
 ${name}님, 안녕하세요.
 온리(Ownly) 임대관리 서비스입니다.
 
-월세 납부일이 ${payDay}일 남았습니다.
+월세 납부일이 ${payDLeft}일 남았습니다.
 미리 준비해 두시면 감사하겠습니다.
 
 📋 납부 정보
@@ -263,7 +266,7 @@ function KakaoAlertContent() {
 
   const paidTids = new Set(
     payments
-      .filter(p => p.year === year && p.month === month && p.paid_date)
+      .filter(p => p.year === year && p.month === month && p.status === "paid") // 부분납부는 잔액이 남아 있으므로 미납 목록에 포함
       .map(p => p.tid || p.tenant_id)
   );
 

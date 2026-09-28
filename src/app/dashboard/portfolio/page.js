@@ -22,7 +22,11 @@ export default function PortfolioPage() {
     const totalDeposit = tenants.reduce((s, t) => s + (Number(t.dep) || 0), 0);
     const totalMaintenance = active.reduce((s, t) => s + (Number(t.maintenance) || 0), 0) * 12;
     const vacancyLoss = vacant.reduce((s, t) => s + (Number(t.rent) || 0), 0);
-    const annualYield = totalDeposit > 0 ? (totalAnnual / totalDeposit) * 100 : 0;
+    // 연 임대수익률 (실투자금 기준) = (월세×12) ÷ (매입가 − 보증금) — 매입가를 입력한 물건만 (공실은 월세 0 으로 포함)
+    const priced = tenants.filter(t => Number(t.purchase_price) > 0);
+    const pricedAnnualRent = priced.filter(t => t.status !== "공실").reduce((s, t) => s + (Number(t.rent) || 0), 0) * 12;
+    const pricedEquity = priced.reduce((s, t) => s + Number(t.purchase_price) - (Number(t.dep) || 0), 0);
+    const annualYield = priced.length > 0 && pricedEquity > 0 ? (pricedAnnualRent / pricedEquity) * 100 : null;
 
     // 유형별 분해
     const byType = {};
@@ -68,14 +72,15 @@ export default function PortfolioPage() {
     // YTD 수금률
     const thisYear = new Date().getFullYear();
     const ytdExpected = payments.filter(p => (p.year || thisYear) === thisYear).reduce((s, p) => s + (Number(p.amt || p.amount) || 0), 0) + 0;
-    const ytdPaid = payments.filter(p => p.status === "paid" && (p.year || thisYear) === thisYear).reduce((s, p) => s + (Number(p.amt || p.amount) || 0), 0);
+    // 받은 금액 합계 — 완납(paid) + 부분납부(partial, amount = 실제 받은 금액)
+    const ytdPaid = payments.filter(p => (p.status === "paid" || p.status === "partial") && (p.year || thisYear) === thisYear).reduce((s, p) => s + (Number(p.amt || p.amount) || 0), 0);
 
     return {
       totalTenants: tenants.length,
       activeCount: active.length,
       vacantCount: vacant.length,
       totalMonthly, totalAnnual, totalDeposit, totalMaintenance,
-      vacancyLoss, annualYield,
+      vacancyLoss, annualYield, pricedCount: priced.length,
       byType: Object.values(byType),
       buildingList,
       riskDistribution,
@@ -125,9 +130,22 @@ export default function PortfolioPage() {
               <p style={{ fontSize: 11, opacity: .6, marginTop: 2 }}>{stats.totalTenants}개 물건</p>
             </div>
             <div>
-              <p style={{ fontSize: 11, opacity: .7, marginBottom: 3 }}>연 수익률</p>
-              <p style={{ fontSize: 30, fontWeight: 900, letterSpacing: "-.5px" }}>{stats.annualYield.toFixed(1)}<span style={{ fontSize: 14, fontWeight: 600, marginLeft: 4, opacity: .7 }}>%</span></p>
-              <p style={{ fontSize: 11, opacity: .6, marginTop: 2 }}>보증금 대비</p>
+              <p style={{ fontSize: 11, opacity: .7, marginBottom: 3 }}>연 임대수익률 (실투자금 기준)</p>
+              {stats.annualYield !== null ? (
+                <>
+                  <p style={{ fontSize: 30, fontWeight: 900, letterSpacing: "-.5px" }}>{stats.annualYield.toFixed(1)}<span style={{ fontSize: 14, fontWeight: 600, marginLeft: 4, opacity: .7 }}>%</span></p>
+                  <p style={{ fontSize: 11, opacity: .6, marginTop: 2 }}>월세×12 ÷ (매입가 − 보증금) · 매입가 입력 {stats.pricedCount}/{stats.totalTenants}개 기준 · 세금·비용 제외</p>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: 18, fontWeight: 800, marginTop: 6, opacity: .85 }}>{stats.pricedCount > 0 ? "계산 불가" : "매입가 입력 시 표시"}</p>
+                  <p style={{ fontSize: 11, opacity: .6, marginTop: 4 }}>
+                    {stats.pricedCount > 0 ? "보증금이 매입가 이상이라 실투자금이 0 이하입니다" : (
+                      <span onClick={() => router.push("/dashboard/properties")} role="button" tabIndex={0} style={{ cursor: "pointer", textDecoration: "underline" }}>물건 상세에서 매입가 입력 →</span>
+                    )}
+                  </p>
+                </>
+              )}
             </div>
             <div>
               <p style={{ fontSize: 11, opacity: .7, marginBottom: 3 }}>공실 손실 (월)</p>

@@ -43,6 +43,16 @@ function isOwnerMgt(t) {
   return false;
 }
 
+// 오늘(KST)부터 다음 납부일까지 남은 일수 — 이번 달 납부일이 지났으면 다음 달 납부일 기준
+function daysUntilPayDay(payDay) {
+  const kst = new Date(Date.now() + 9 * 3600000);
+  const y = kst.getUTCFullYear(), m = kst.getUTCMonth(), d = kst.getUTCDate();
+  const today = Date.UTC(y, m, d);
+  let due = Date.UTC(y, m, payDay);
+  if (due < today) due = Date.UTC(y, m + 1, payDay);
+  return Math.round((due - today) / 86400000);
+}
+
 // ✅ 실제 솔라피 템플릿 변수명과 정확히 일치
 function buildVariables(templateKey, t) {
   const todayStr = new Date().toLocaleDateString("ko-KR");
@@ -54,6 +64,7 @@ function buildVariables(templateKey, t) {
   const endDate  = t.end_date || t.end || "\ubbf8\uc815";
   const dLeft    = String(t.daysLeft ?? "");
   const payDay   = String(t.pay_day || 5);
+  const payDLeft = String(daysUntilPayDay(Number(t.pay_day) || 5)); // upcoming 의 D-day 는 계약 만료가 아니라 납부일까지 남은 일수
 
   if (templateKey === "unpaid") {
     return {
@@ -78,7 +89,7 @@ function buildVariables(templateKey, t) {
       "#{\uc774\ub984}": name,
       "#{\uc8fc\uc18c}": addr,
       "#{\uae08\uc561}": rent,
-      "#{D-day}": dLeft,
+      "#{D-day}": payDLeft,
       "#{\ub0a9\ubd80\uc77c}": payDay,
     };
   }
@@ -89,7 +100,7 @@ function buildVariables(templateKey, t) {
       "#{\uae08\uc561}": rent,
       "#{\uad00\ub9ac\ube44}": mgt,
       "#{\ucd1d\uae08\uc561}": total,
-      "#{D-day}": dLeft,
+      "#{D-day}": payDLeft,
       "#{\ub0a9\ubd80\uc77c}": payDay,
     };
   }

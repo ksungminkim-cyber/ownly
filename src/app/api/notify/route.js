@@ -68,8 +68,8 @@ async function sendLandlordSms({ to, text }) {
 function unpaidSmsText(month, unpaidTenants) {
   const first = unpaidTenants[0];
   const rest = unpaidTenants.length > 1 ? ` 외 ${unpaidTenants.length - 1}건` : "";
-  const total = unpaidTenants.reduce((s, t) => s + (Number(t.rent) || 0), 0);
-  return `[온리] ${month}월 미납 ${unpaidTenants.length}건 · 총 ${total.toLocaleString()}만원\n${first.name} ${(first.rent || 0).toLocaleString()}만원${rest}\n납부 처리·독촉: https://www.ownly.kr/dashboard/payments`;
+  const total = unpaidTenants.reduce((s, t) => s + (Number(t.due ?? t.rent) || 0), 0);
+  return `[온리] ${month}월 미납 ${unpaidTenants.length}건 · 총 ${total.toLocaleString()}만원\n${first.name} ${(first.due ?? first.rent ?? 0).toLocaleString()}만원${first.partialPaid ? "(잔액)" : ""}${rest}\n납부 처리·독촉: https://www.ownly.kr/dashboard/payments`;
 }
 
 function baseHtml(title, body, cta = { href: "https://ownly.kr/dashboard", label: "대시보드 확인하기 →" }) {
@@ -110,7 +110,12 @@ function computeUnpaid(tenants, payments) {
     if (!(Number(t.rent) > 0)) return false; // 전세 등 월세 없는 계약 제외
     const payDay = Number(t.pay_day ?? t.payment_day ?? 5);
     if (today <= payDay) return false; // 아직 납부일 전
-    return !payments.find(p => p.tenant_id === t.id && p.month === month && p.year === year && p.status === "paid");
+    // paid 만 완납 — 부분납부(partial)는 잔액이 남았으므로 미납으로 잡는다
+    return !payments.find(p => p.tenant_id === t.id && (p.month || 0) === month && (p.year || year) === year && p.status === "paid");
+  }).map(t => {
+    // 부분납부면 남은 금액만 표시 (due = 이번 달 잔액, 만원)
+    const partial = payments.find(p => p.tenant_id === t.id && (p.month || 0) === month && (p.year || year) === year && p.status === "partial");
+    return { ...t, due: Math.max(0, (Number(t.rent) || 0) - (partial ? Number(partial.amount) || 0 : 0)), partialPaid: Boolean(partial) };
   });
   return { month, year, unpaidTenants };
 }
@@ -126,7 +131,7 @@ async function sendUnpaidNotice(userId, userEmail, tenants, payments) {
     <tr style="border-bottom:1px solid #f0efe9;">
       <td style="padding:10px 12px;font-size:13px;color:#1a2744;font-weight:600;">${t.name}</td>
       <td style="padding:10px 12px;font-size:12px;color:#8a8a9a;">${t.address || t.addr || ""}</td>
-      <td style="padding:10px 12px;font-size:13px;color:#e8445a;font-weight:700;">${(t.rent || 0).toLocaleString()}만원</td>
+      <td style="padding:10px 12px;font-size:13px;color:#e8445a;font-weight:700;">${(t.due ?? t.rent ?? 0).toLocaleString()}만원${t.partialPaid ? " <span style=\"font-size:11px;color:#8a8a9a;font-weight:500;\">(부분납부 잔액)</span>" : ""}</td>
     </tr>
   `).join("");
 
@@ -251,7 +256,7 @@ async function sendMonthlyReport(userId, userEmail, tenants, payments) {
 
   const active = tenants.filter(t => t.status !== "퇴거" && t.status !== "공실");
   const totalRent = active.reduce((s, t) => s + (Number(t.rent) || 0), 0);
-  const prevPaid = payments.filter(p => p.year === prevYear && p.month === prevMonth && p.status === "paid");
+  const prevPaid = payments.filter(p => p.year === prevYear && p.month === prevMonth && (p.status === "paid" || p.status === "partial")); // 부분납부는 받은 금액만큼 수금
   const prevPaidSum = prevPaid.reduce((s, p) => s + (Number(p.amount) || 0), 0);
   const expiring = tenants.filter(t => {
     const end = t.contract_end || t.end_date;

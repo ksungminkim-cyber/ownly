@@ -216,7 +216,7 @@ export default function LandingHero3D({ user, abHeadline, onStart, onLogin }) {
             <motion.div className="hf-card hf-3" style={{ x: f3x, y: f3y }}>
               <div className="hero-float-a" style={{ animationDelay: "-2.5s", background: "#fff", border: "1px solid #f4f1e4", borderRadius: 14, padding: "9px 13px", boxShadow: "0 14px 38px rgba(26,39,68,0.16)", display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 15 }}>💬</span>
-                <p style={{ fontSize: 10.5, fontWeight: 700, color: "#1a2744", margin: 0 }}>미납 알림톡 자동 발송 <span className="pulse-dot" style={{ display: "inline-block", marginLeft: 4, verticalAlign: "middle" }} /></p>
+                <p style={{ fontSize: 10.5, fontWeight: 700, color: "#1a2744", margin: 0 }}>미납 알림톡 원클릭 발송 <span className="pulse-dot" style={{ display: "inline-block", marginLeft: 4, verticalAlign: "middle" }} /></p>
               </div>
             </motion.div>
           </motion.div>

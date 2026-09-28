@@ -245,6 +245,7 @@ export default function OnboardingHero() {
           </div>
         </div>
       )}
+      <button onClick={() => router.push("/dashboard/properties?bulk=1")} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, marginTop: 12 }}>📥 물건이 많다면 엑셀로 여러 개 올리기 →</button>
 
       {/* 샘플 체험 — 보조 경로 */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>

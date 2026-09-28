@@ -136,6 +136,8 @@ export default function TenantPortalPage() {
           const nowD = new Date();
           const curMonthPay = payments.find(p => p.year === nowD.getFullYear() && p.month === nowD.getMonth() + 1);
           const curPaid = curMonthPay?.status === "paid";
+          const curPartial = curMonthPay?.status === "partial"; // 부분납부 — 잔액 = 월세 - 받은 금액
+          const curRemain = Math.max(0, (t.rent || 0) - (Number(curMonthPay?.amount) || 0));
           const totalDue = (t.rent || 0) + (t.maintenance || 0);
           return (
             <>
@@ -151,7 +153,7 @@ export default function TenantPortalPage() {
                       </p>
                     </div>
                     <span className={`chip ${curPaid ? "chip-success" : "chip-warn"}`} style={{ fontSize: 12 }}>
-                      {curPaid ? "✓ 납부 완료" : "납부 대기"}
+                      {curPaid ? "✓ 납부 완료" : curPartial ? `부분납부 · 잔액 ${curRemain.toLocaleString()}만원` : "납부 대기"}
                     </span>
                   </div>
                 </div>
@@ -182,6 +184,7 @@ export default function TenantPortalPage() {
                   </div>
                 ) : history.map((row, i) => {
                   const paid = row.p?.status === "paid";
+                  const partial = row.p?.status === "partial";
                   return (
                     <div key={row.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < history.length - 1 ? "1px solid var(--border)" : "none", transition: "background var(--t-fast) var(--ease)" }}>
                       <div>
@@ -190,7 +193,7 @@ export default function TenantPortalPage() {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span className="num" style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>{(row.p?.amount || t.rent || 0).toLocaleString()}만원</span>
-                        <span className={`chip ${paid ? "chip-success" : "chip-danger"}`} style={{ fontSize: 10 }}>{paid ? "✓ 납부" : "미납"}</span>
+                        <span className={`chip ${paid ? "chip-success" : partial ? "chip-warn" : "chip-danger"}`} style={{ fontSize: 10 }}>{paid ? "✓ 납부" : partial ? `부분납부 · 잔액 ${Math.max(0, (t.rent || 0) - (Number(row.p.amount) || 0)).toLocaleString()}만원` : "미납"}</span>
                       </div>
                     </div>
                   );

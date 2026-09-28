@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { toast } from "./shared";
+import { uploadPrivateFile, openPrivateFile, deletePrivateFile } from "../lib/files";
 
 const TYPE_CONFIG = {
   call:      { icon: "📞", label: "전화",    color: "#3b5bdb", bg: "rgba(59,91,219,0.08)" },
@@ -59,11 +60,9 @@ export default function TenantNotes({ tenantId, userId }) {
       if (file) {
         setUploadingFile(true);
         const ext = (file.name.split(".").pop() || "bin").toLowerCase();
-        const path = `tenant-notes/${tenantId}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("community-images").upload(path, file, { cacheControl: "3600", upsert: false });
-        if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from("community-images").getPublicUrl(path);
-        file_url = pub?.publicUrl;
+        // 계약서·신분증 사진이 올라올 수 있으므로 비공개 버킷에 저장하고 경로만 기록 (열람은 서명 URL)
+        const up = await uploadPrivateFile(file, "notes");
+        file_url = up.path;
         file_name = file.name;
         file_type = file.type.startsWith("image/") ? "image" : ext === "pdf" ? "pdf" : "other";
         setUploadingFile(false);
@@ -95,8 +94,10 @@ export default function TenantNotes({ tenantId, userId }) {
 
   const handleDelete = async (id) => {
     if (!confirm("이 기록을 삭제할까요?")) return;
+    const target = notes.find((n) => n.id === id);
     const { error } = await supabase.from("tenant_notes").delete().eq("id", id);
     if (error) { toast("삭제 실패: " + error.message, "error"); return; }
+    if (target?.file_url) deletePrivateFile(target.file_url).catch(() => {});
     toast("삭제됐습니다", "warning");
     load();
   };
@@ -190,16 +191,10 @@ export default function TenantNotes({ tenantId, userId }) {
                 <p style={{ fontSize: 12, color: "#3a3a4e", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{n.content}</p>
                 {n.file_url && (
                   <div style={{ marginTop: 6 }}>
-                    {n.file_type === "image" ? (
-                      <a href={n.file_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block" }}>
-                        <img src={n.file_url} alt={n.file_name || "첨부"} style={{ maxWidth: 160, maxHeight: 120, borderRadius: 6, border: "1px solid #ebe9e3", cursor: "pointer" }} />
-                      </a>
-                    ) : (
-                      <a href={n.file_url} target="_blank" rel="noopener noreferrer"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 6, fontSize: 11, color: "#5b4fcf", fontWeight: 600, textDecoration: "none" }}>
-                        📎 {n.file_name || "첨부 파일"}
-                      </a>
-                    )}
+                    <button type="button" onClick={() => openPrivateFile(n.file_url).catch((e) => toast(e.message, "error"))}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 6, fontSize: 11, color: "#5b4fcf", fontWeight: 600, cursor: "pointer" }}>
+                      {n.file_type === "image" ? "🖼" : "📎"} {n.file_name || "첨부 파일"} · 열기
+                    </button>
                   </div>
                 )}
               </div>

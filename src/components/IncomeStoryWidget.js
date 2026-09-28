@@ -12,13 +12,13 @@ export default function IncomeStoryWidget({ tenants = [], payments = [], onNavig
 
   const expectedThisMonth = activeTenants.reduce((s, t) => s + (Number(t.rent) || 0), 0);
   const paidThisMonth = payments
-    .filter(p => p.status === "paid" && (p.year || year) === year && p.month === month)
+    .filter(p => (p.status === "paid" || p.status === "partial") && (p.year || year) === year && p.month === month)
     .reduce((s, p) => s + (Number(p.amt ?? p.amount) || 0), 0);
 
   const prevMonth = month === 1 ? 12 : month - 1;
   const prevYear  = month === 1 ? year - 1 : year;
   const paidLastMonth = payments
-    .filter(p => p.status === "paid" && (p.year || prevYear) === prevYear && p.month === prevMonth)
+    .filter(p => (p.status === "paid" || p.status === "partial") && (p.year || prevYear) === prevYear && p.month === prevMonth)
     .reduce((s, p) => s + (Number(p.amt ?? p.amount) || 0), 0);
 
   const change = paidLastMonth > 0 ? Math.round(((paidThisMonth - paidLastMonth) / paidLastMonth) * 100) : null;

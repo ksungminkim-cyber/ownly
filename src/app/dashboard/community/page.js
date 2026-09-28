@@ -37,7 +37,7 @@ function getFeatureNudge(post) {
   }
   // 세입자 관리
   if (cat === "세입자관리" || /만료|갱신\s*의향/.test(text)) {
-    return { icon:"📅", color:"#5b4fcf", title:"계약 만료 알림 + 갱신 의향 관리", desc:"D-60 이내 만료 임박 물건을 자동 알림으로 받고 세입자 의향을 추적하세요.", href:"/dashboard/renewal" };
+    return { icon:"📅", color:"#5b4fcf", title:"계약 만료 알림 + 갱신 의향 관리", desc:"만료 90일 이내 물건을 매주 이메일로 받고 세입자 의향을 추적하세요.", href:"/dashboard/renewal" };
   }
   return null;
 }

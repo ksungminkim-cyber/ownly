@@ -60,7 +60,7 @@ export default function AnnualTaxReportPage() {
   const yearLedger = ledger.filter(l => new Date(l.date).getFullYear() === year);
 
   const rentIncomeByTenant = tenants.map(t => {
-    const paid = yearPayments.filter(p => p.tid === t.id && p.status === "paid");
+    const paid = yearPayments.filter(p => p.tid === t.id && (p.status === "paid" || p.status === "partial")); // 부분납부는 받은 금액만큼
     const monthly = Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
       return paid.filter(p => p.month === m).reduce((s, p) => s + (p.amt || p.amount || 0), 0);

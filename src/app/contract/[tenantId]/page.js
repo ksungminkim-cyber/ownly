@@ -1,4 +1,4 @@
-"use client"; import { useState, useEffect } from "react"; import { useParams } from "next/navigation"; import { supabase } from "../../../lib/supabase";
+"use client"; import { useState, useEffect } from "react"; import { useParams } from "next/navigation";
 
 export default function ContractViewPage() {
   const params = useParams();
@@ -10,14 +10,12 @@ export default function ContractViewPage() {
   useEffect(() => {
     const load = async () => {
       if (!tenantId) { setNotFound(true); setLoading(false); return; }
-      // ✅ 올바른 DB 컬럼명 사용
-      const { data: tenant, error } = await supabase
-        .from("tenants")
-        .select("id, name, address, p_type, sub_type, rent, deposit, maintenance, start_date, contract_end, pay_day")
-        .eq("id", tenantId)
-        .single();
-      if (error || !tenant) { setNotFound(true); setLoading(false); return; }
-      setData(tenant);
+      // 세입자는 로그인하지 않으므로 RLS 에 막힌다 — 포털과 같은 서버 API(service role, URL 의 UUID 가 토큰)로 조회
+      const res = await fetch(`/api/portal/${tenantId}`).catch(() => null);
+      const json = res && res.ok ? await res.json().catch(() => null) : null;
+      const tenant = json?.tenant;
+      if (!tenant) { setNotFound(true); setLoading(false); return; }
+      setData({ ...tenant, sub_type: tenant.sub });
       setLoading(false);
     };
     load();

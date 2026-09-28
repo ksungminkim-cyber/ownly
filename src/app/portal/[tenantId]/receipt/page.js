@@ -26,7 +26,7 @@ export default function PaymentReceiptPage() {
   }, [tenantId]);
 
   const years = useMemo(() => {
-    const ys = new Set((data?.payments || []).filter(p => p.status === "paid").map(p => p.year));
+    const ys = new Set((data?.payments || []).filter(p => (p.status === "paid" || p.status === "partial")).map(p => p.year));
     return [...ys].sort((a, b) => b - a);
   }, [data]);
 
@@ -34,7 +34,7 @@ export default function PaymentReceiptPage() {
 
   const rows = useMemo(() => {
     return (data?.payments || [])
-      .filter(p => p.status === "paid" && p.year === activeYear)
+      .filter(p => (p.status === "paid" || p.status === "partial") && p.year === activeYear) // 납부확인서는 실제 받은 금액 기준 (부분납부 포함)
       .sort((a, b) => a.month - b.month);
   }, [data, activeYear]);
 

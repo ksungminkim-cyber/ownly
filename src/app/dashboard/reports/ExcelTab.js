@@ -85,7 +85,7 @@ async function buildXlsx({year,tenants,payments,repairs,ledger}){
   wb.creator="온리(Ownly)";wb.created=new Date();
   const yp=(payments||[]).filter(p=>(p.year||new Date().getFullYear())===year);
   const yr=(repairs||[]).filter(x=>new Date(x.date||x.created_at||"").getFullYear()===year);
-  const totalPaid=yp.filter(p=>p.status==="paid").reduce((s,p)=>s+(p.amount||0),0);
+  const totalPaid=yp.filter(p=>(p.status==="paid"||p.status==="partial")).reduce((s,p)=>s+(p.amount||0),0);
   const totalExp=yr.reduce((s,r)=>s+(r.cost||0),0);
   const totalAnnual=tenants.reduce((s,t)=>s+(t.rent||0)*12,0);
 
@@ -110,7 +110,7 @@ async function buildXlsx({year,tenants,payments,repairs,ledger}){
   [...yp].sort((a,b)=>(a.month||0)-(b.month||0)).forEach((p,i)=>{
     const t2=tenants.find(t=>t.id===p.tenant_id)||{};
     const isPaid=p.status==="paid";
-    dataRow(w2,r2,[{v:i+1,align:"center"},{v:`${p.month||""}월`,align:"center"},{v:t2.name||""},{v:t2.addr||t2.address||""},{v:p.amount||0,align:"right",numFmt:'#,##0"만"'},{v:isPaid?"납부":"미납",align:"center",bgColor:isPaid?"FFE8F7F2":"FFFEF2F4",color:isPaid?P.green.argb:P.red.argb,bold:true},{v:p.paid_at?p.paid_at.slice(0,10):"",align:"center"}]);
+    dataRow(w2,r2,[{v:i+1,align:"center"},{v:`${p.month||""}월`,align:"center"},{v:t2.name||""},{v:t2.addr||t2.address||""},{v:p.amount||0,align:"right",numFmt:'#,##0"만"'},{v:isPaid?"납부":p.status==="partial"?"부분납부":"미납",align:"center",bgColor:isPaid?"FFE8F7F2":"FFFEF2F4",color:isPaid?P.green.argb:P.red.argb,bold:true},{v:p.paid_at?p.paid_at.slice(0,10):"",align:"center"}]);
     r2++;
   });
   sumRow(w2,r2,[{v:"수금합계",align:"right"},{v:""},{v:""},{v:""},{v:totalPaid,align:"right",numFmt:'#,##0"만"',color:P.green.argb},{v:""},{v:""}]);
@@ -154,7 +154,7 @@ export default function ExcelTab(){
   const [loading,setLoading]=useState(false);
   const yp=(payments||[]).filter(p=>(p.year||new Date().getFullYear())===year);
   const yr=(repairs||[]).filter(x=>new Date(x.date||x.created_at||"").getFullYear()===year);
-  const totalPaid=yp.filter(p=>p.status==="paid").reduce((s,p)=>s+(p.amount||0),0);
+  const totalPaid=yp.filter(p=>(p.status==="paid"||p.status==="partial")).reduce((s,p)=>s+(p.amount||0),0);
   const totalExp=yr.reduce((s,r)=>s+(r.cost||0),0);
   const totalAnnual=tenants.reduce((s,t)=>s+(t.rent||0)*12,0);
   async function handleExport(){

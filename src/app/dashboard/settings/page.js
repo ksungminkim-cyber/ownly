@@ -246,7 +246,26 @@ import { exportTenants, exportPayments, exportContracts, exportLedger, exportAll
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, tenants, payments, contracts, ledger, resetAllData, userPlan, isLegacyFree } = useApp();
+  const { user, tenants, payments, contracts, ledger, repairs, buildings, vacancies, resetAllData, userPlan, isLegacyFree } = useApp();
+  // 전체 내보내기 — 내용증명·세입자 메모는 전역 상태에 없어 누를 때 직접 조회
+  const [exportingAll, setExportingAll] = useState(false);
+  const handleExportAll = async () => {
+    if (!user) return;
+    setExportingAll(true);
+    try {
+      const [mailRes, notesRes] = await Promise.all([
+        supabase.from("certified_mail").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("tenant_notes").select("*").eq("user_id", user.id).order("occurred_at", { ascending: false }),
+      ]);
+      if (mailRes.error || notesRes.error) toast("내용증명·세입자 메모 일부를 불러오지 못해 빈 파일로 내려받습니다", "warning");
+      const n = exportAll({ tenants, payments, contracts, ledger, repairs, buildings, vacancies, certifiedMail: mailRes.data || [], tenantNotes: notesRes.data || [] });
+      toast(`CSV ${n}개 파일을 내려받는 중입니다. 브라우저가 여러 파일 다운로드 허용을 물으면 허용해주세요`);
+    } catch (e) {
+      toast(`내보내기 실패: ${e?.message || "알 수 없는 오류"}`, "error");
+    } finally {
+      setExportingAll(false);
+    }
+  };
   // 홈 화면 추가 안내 — 모바일 메뉴의 "홈 화면에 추가"는 #install 해시로 들어와 바로 연다
   const [installOpen, setInstallOpen] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -575,10 +594,10 @@ export default function SettingsPage() {
         <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 14, lineHeight: 1.6 }}>등록된 데이터를 CSV 파일(엑셀 호환)로 내려받아 백업하거나 세무사에게 전달할 수 있습니다.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
           {[
-            { icon: "👤", label: "세입자 목록", count: tenants.length, action: () => exportTenants(tenants), color: "#5b4fcf" },
+            { icon: "👤", label: "세입자 목록", count: tenants.length, action: () => exportTenants(tenants, buildings), color: "#5b4fcf" },
             { icon: "💰", label: "수금 이력", count: payments.length, action: () => exportPayments(payments, tenants), color: "#0fa573" },
             { icon: "📝", label: "계약서 목록", count: (contracts || []).length, action: () => exportContracts(contracts, tenants), color: "#e8960a" },
-            { icon: "📊", label: "장부 (수입·지출)", count: (ledger || []).length, action: () => exportLedger(ledger), color: "#0d9488" },
+            { icon: "📊", label: "장부 (수입·지출)", count: (ledger || []).length, action: () => exportLedger(ledger, tenants), color: "#0d9488" },
           ].map(({ icon, label, count, action, color }) => (
             <button key={label} onClick={action} disabled={count === 0}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 11, border: `1px solid ${count > 0 ? color + "40" : "var(--border)"}`, background: count > 0 ? color + "08" : "var(--surface2)", cursor: count > 0 ? "pointer" : "not-allowed", textAlign: "left", opacity: count === 0 ? 0.5 : 1 }}>
@@ -590,12 +609,13 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
-        {tenants.length > 0 && (
-          <button onClick={() => exportAll({ tenants, payments, contracts, ledger })}
-            style={{ marginTop: 12, width: "100%", padding: "12px", borderRadius: 11, border: "1px solid #1a2744", background: "#1a2744", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-            📦 전체 일괄 다운로드 (4개 파일)
+        {tenants.length > 0 && (<>
+          <button onClick={handleExportAll} disabled={exportingAll}
+            style={{ marginTop: 12, width: "100%", padding: "12px", borderRadius: 11, border: "1px solid #1a2744", background: "#1a2744", color: "#fff", fontSize: 13, fontWeight: 800, cursor: exportingAll ? "wait" : "pointer", opacity: exportingAll ? 0.7 : 1 }}>
+            {exportingAll ? "준비 중..." : "📦 전체 일괄 다운로드 (9개 파일)"}
           </button>
-        )}
+          <p style={{ fontSize: 11, color: "#8a8a9a", marginTop: 6, lineHeight: 1.6 }}>세입자·수금·계약·장부·수리·건물·공실·내용증명·세입자 메모. 영수증·첨부 파일 자체는 포함되지 않고 첨부 여부만 표시됩니다.</p>
+        </>)}
       </div>
 
       {/* 위험 구역 */}

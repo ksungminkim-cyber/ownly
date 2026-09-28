@@ -1,35 +1,15 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { SectionLabel, EmptyState, Modal, AuthInput, toast, ConfirmDialog, Badge } from "../../../../components/shared";
-import { C, STATUS_MAP, COLORS, daysLeft } from "../../../../lib/constants";
+import { C, STATUS_MAP, daysLeft } from "../../../../lib/constants";
 import { useApp } from "../../../../context/AppContext";
-
-// /exceljs.min.js (이미 public에 존재) 로딩
-async function loadExcelJS() {
-  if (typeof window === "undefined") return null;
-  if (window.ExcelJS) return window.ExcelJS;
-  await new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "/exceljs.min.js";
-    s.onload = resolve;
-    s.onerror = reject;
-    document.body.appendChild(s);
-  });
-  return window.ExcelJS;
-}
-
-const BULK_COLUMNS = ["호실", "유형", "세부유형", "월세(만)", "보증금(만)", "관리비(만)", "계약시작", "계약만료", "세입자", "전화", "공실여부"];
-const BULK_EXAMPLES = [
-  ["1층", "상가", "1층 상가", 500, 8000, 80, "2025-03-01", "2027-02-28", "GS25", "010-1234-5678", ""],
-  ["2층", "상가", "2층 이상", 300, 5000, 60, "", "", "", "", "Y"],
-  ["3층", "상가", "2층 이상", 300, 5000, 60, "", "", "", "", "Y"],
-];
+import BulkUploadModal from "../../../../components/BulkUploadModal";
 
 export default function BuildingDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { buildings, tenants, addTenant, updateBuilding, deleteBuilding, loading } = useApp();
+  const { buildings, tenants, updateBuilding, deleteBuilding, loading } = useApp();
   const building = buildings.find(b => b.id === params.id);
   const units = useMemo(() => tenants.filter(t => t.building_id === params.id), [tenants, params.id]);
 
@@ -194,233 +174,11 @@ export default function BuildingDetailPage() {
       </Modal>
 
       {/* 일괄 업로드 모달 */}
-      <BulkUploadModal open={bulkOpen} onClose={() => setBulkOpen(false)} building={building} addTenant={addTenant} />
+      <BulkUploadModal open={bulkOpen} onClose={() => setBulkOpen(false)} building={building} />
 
       <ConfirmDialog open={confirmDelete} title="건물 삭제"
         desc={`${building.name || building.address}을(를) 삭제하시겠습니까? 소속 호실(${units.length}개)은 건물 연결만 해제되며, 호실 자체는 유지됩니다.`}
         onConfirm={handleDeleteBuilding} onCancel={() => setConfirmDelete(false)} danger />
     </div>
-  );
-}
-
-// ── 엑셀 일괄 업로드 모달 ────────────────────────────────────
-function BulkUploadModal({ open, onClose, building, addTenant }) {
-  const [rows, setRows] = useState([]);
-  const [errors, setErrors] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
-
-  const parseFile = async (file) => {
-    try {
-      const ExcelJS = await loadExcelJS();
-      if (!ExcelJS) { toast("엑셀 라이브러리 로드 실패", "error"); return; }
-      const wb = new ExcelJS.Workbook();
-      const buf = await file.arrayBuffer();
-      if (file.name.toLowerCase().endsWith(".csv")) {
-        const text = new TextDecoder("utf-8").decode(buf);
-        const parsed = text.split(/\r?\n/).filter(l => l.trim()).map(l => l.split(",").map(c => c.trim()));
-        processRows(parsed);
-      } else {
-        await wb.xlsx.load(buf);
-        const ws = wb.worksheets[0];
-        if (!ws) { toast("시트를 찾을 수 없습니다", "error"); return; }
-        const raw = [];
-        const rowCount = ws.rowCount || ws.lastRow?.number || 1;
-        for (let r = 1; r <= rowCount; r++) {
-          const row = ws.getRow(r);
-          const cells = [];
-          for (let c = 1; c <= BULK_COLUMNS.length; c++) {
-            const cell = row.getCell(c);
-            let v = cell.value;
-            // ExcelJS는 날짜·공식·링크 등을 객체로 반환할 수 있어서 정규화
-            if (v && typeof v === "object") {
-              if (v instanceof Date) v = v.toISOString().slice(0, 10);
-              else if ("text" in v) v = v.text;
-              else if ("result" in v) v = v.result;
-              else if ("richText" in v) v = v.richText.map(t => t.text).join("");
-              else v = String(v);
-            }
-            cells.push(v == null ? "" : String(v));
-          }
-          // 모든 셀이 빈 행은 스킵
-          if (cells.every(c => !c.trim())) continue;
-          raw.push(cells);
-        }
-        if (raw.length === 0) { toast("읽을 행이 없습니다. 템플릿 형식이 맞는지 확인해주세요", "error"); return; }
-        processRows(raw);
-      }
-    } catch (e) {
-      toast("파일 파싱 오류: " + (e.message || ""), "error");
-    }
-  };
-
-  const processRows = (raw) => {
-    if (raw.length === 0) { setErrors(["빈 파일입니다"]); setRows([]); return; }
-    // 첫 줄이 헤더인 경우 스킵 (한국어/영어)
-    const header = raw[0].map(c => String(c).trim());
-    const hasHeader = BULK_COLUMNS.some(col => header.some(h => h.includes(col.split("(")[0])));
-    const dataRows = hasHeader ? raw.slice(1) : raw;
-    const errs = [];
-    const parsed = dataRows.map((r, i) => {
-      const rowNum = hasHeader ? i + 2 : i + 1;
-      // 배열 인덱스로 명시적 접근 — destructure 시 undefined 전파 방지
-      const unit = String(r[0] || "").trim();
-      const pType = String(r[1] || "상가").trim();
-      const sub = String(r[2] || "").trim();
-      const rent = r[3];
-      const dep = r[4];
-      const mgt = r[5];
-      const start = String(r[6] || "").trim();
-      const end = String(r[7] || "").trim();
-      const name = String(r[8] || "").trim();
-      const phone = String(r[9] || "").trim();
-      const vacantFlag = String(r[10] || "").trim().toLowerCase();
-      // 완전 빈 행 스킵 (호실·월세·이름 모두 비어있으면)
-      if (!unit && !rent && !name) return null;
-      const isVacant = ["y", "yes", "공실", "o", "1", "true"].includes(vacantFlag);
-      const rentN = Number(String(rent || "0").replace(/,/g, "").replace(/\D/g, "").slice(0, 10)) || 0;
-      const depN = Number(String(dep || "0").replace(/,/g, "").replace(/\D/g, "").slice(0, 10)) || 0;
-      const mgtN = Number(String(mgt || "0").replace(/,/g, "").replace(/\D/g, "").slice(0, 10)) || 0;
-      if (!rentN && !isVacant) errs.push(`행 ${rowNum}: 월세가 없습니다 (공실이면 공실여부에 Y)`);
-      if (!unit) errs.push(`행 ${rowNum}: 호실 번호가 없습니다`);
-      return {
-        unit,
-        pType,
-        sub,
-        rent: rentN,
-        dep: depN,
-        mgt: mgtN,
-        start,
-        end,
-        name: name || (isVacant ? "공실" : ""),
-        phone,
-        isVacant,
-        rowNum,
-      };
-    }).filter(Boolean);
-    setRows(parsed);
-    setErrors(errs);
-  };
-
-  const handleUpload = async () => {
-    if (rows.length === 0) return;
-    setUploading(true);
-    let success = 0;
-    const failRows = [];
-    for (const r of rows) {
-      try {
-        await addTenant({
-          building_id: building.id,
-          name: r.name || (r.isVacant ? "공실" : ""),
-          phone: r.phone,
-          pType: r.pType,
-          sub: r.sub,
-          addr: `${building.address} ${r.unit}`.trim(),
-          dep: r.dep,
-          rent: r.rent,
-          start_date: r.start || null,
-          end_date: r.end || (r.isVacant ? null : "2027-12-31"),
-          status: r.isVacant ? "공실" : "정상",
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
-          intent: r.isVacant ? "공실" : "미확인",
-          maintenance: r.mgt,
-          pay_day: 5,
-          biz: null,
-          contacts: [],
-          area_pyeong: null,
-        });
-        success++;
-      } catch (e) {
-        console.error("bulk row fail:", r, e);
-        failRows.push(`행 ${r.rowNum}(${r.unit}): ${e.message || "오류"}`);
-      }
-    }
-    setUploading(false);
-    if (failRows.length > 0) {
-      toast(`성공 ${success}건 · 실패 ${failRows.length}건`, "error");
-      setErrors(failRows);
-      // 성공한 행만 미리보기에서 제거
-      if (success > 0) setRows([]);
-    } else {
-      toast(`🎉 ${success}건 일괄 등록 완료!`);
-      setRows([]);
-      setErrors([]);
-      onClose();
-    }
-  };
-
-  const downloadTemplate = async () => {
-    const ExcelJS = await loadExcelJS();
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("호실 일괄 등록");
-    ws.columns = BULK_COLUMNS.map(c => ({ header: c, key: c, width: 14 }));
-    ws.getRow(1).font = { bold: true };
-    BULK_EXAMPLES.forEach(ex => ws.addRow(ex));
-    const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "호실_일괄등록_템플릿.xlsx";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <Modal open={open} onClose={onClose} width={720}>
-      <h2 style={{ fontSize: 18, fontWeight: 800, color: "#1a2744", marginBottom: 6 }}>📥 호실 일괄 업로드</h2>
-      <p style={{ fontSize: 12, color: "#8a8a9a", marginBottom: 14 }}>
-        <b>{building?.name || building?.address}</b>에 호실을 한 번에 등록합니다. 엑셀(.xlsx) 또는 CSV 파일.
-      </p>
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-        <button onClick={() => fileInputRef.current?.click()}
-          style={{ padding: "9px 16px", borderRadius: 9, border: `1px solid ${C.indigo}40`, background: C.indigo + "10", color: C.indigo, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📎 파일 선택</button>
-        <button onClick={downloadTemplate}
-          style={{ padding: "9px 16px", borderRadius: 9, border: "1px solid #ebe9e3", background: "#fff", color: "#1a2744", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📄 템플릿 다운로드</button>
-        <input ref={fileInputRef} type="file" accept=".xlsx,.csv" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); }} />
-      </div>
-
-      <div style={{ fontSize: 11, color: "#8a8a9a", background: "#f8f7f4", borderRadius: 8, padding: "10px 12px", marginBottom: 14, lineHeight: 1.7 }}>
-        컬럼 순서: <b>{BULK_COLUMNS.join(" | ")}</b><br/>
-        공실 등록: 월세·세입자 비워두고 <b>공실여부</b>에 <b>Y</b> 입력. 주소는 자동으로 &quot;건물 주소 + 호실&quot;로 구성됩니다.
-      </div>
-
-      {errors.length > 0 && (
-        <div style={{ background: "rgba(232,68,90,0.06)", border: "1px solid rgba(232,68,90,0.2)", borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 12, color: "#e8445a" }}>
-          {errors.map((er, i) => <p key={i}>{er}</p>)}
-        </div>
-      )}
-
-      {rows.length > 0 && (
-        <div style={{ border: "1px solid #ebe9e3", borderRadius: 10, overflow: "hidden", marginBottom: 14, maxHeight: 300, overflowY: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "#f8f7f4" }}>
-                {["호실", "유형", "월세", "보증금", "공실"].map(h => <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontWeight: 700, color: "#8a8a9a", fontSize: 10, textTransform: "uppercase" }}>{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i} style={{ borderTop: "1px solid #f0efe9" }}>
-                  <td style={{ padding: "7px 10px", color: "#1a2744", fontWeight: 600 }}>{r.unit}</td>
-                  <td style={{ padding: "7px 10px", color: "#8a8a9a" }}>{r.sub || r.pType}</td>
-                  <td style={{ padding: "7px 10px", color: "#1a2744" }}>{r.rent.toLocaleString()}만</td>
-                  <td style={{ padding: "7px 10px", color: "#8a8a9a" }}>{r.dep.toLocaleString()}만</td>
-                  <td style={{ padding: "7px 10px" }}>{r.isVacant ? <span style={{ color: "#e8445a", fontWeight: 700 }}>🚪 공실</span> : <span style={{ color: "#0fa573" }}>{r.name}</span>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "1px solid #ebe9e3", background: "transparent", color: "#8a8a9a", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>취소</button>
-        <button onClick={handleUpload} disabled={uploading || rows.length === 0} style={{ flex: 2, padding: "11px", borderRadius: 10, border: "none", background: rows.length === 0 ? "#e0e0e0" : `linear-gradient(135deg,${C.indigo},${C.purple})`, color: rows.length === 0 ? "#aaa" : "#fff", fontWeight: 700, fontSize: 13, cursor: rows.length === 0 ? "not-allowed" : "pointer", opacity: uploading ? 0.7 : 1 }}>
-          {uploading ? "업로드 중..." : `${rows.length}건 일괄 등록`}
-        </button>
-      </div>
-    </Modal>
   );
 }

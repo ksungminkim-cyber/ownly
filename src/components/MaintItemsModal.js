@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { C } from "../lib/constants";
 import { toast } from "./shared";
+import { useApp } from "../context/AppContext";
 
 // 기본 관리비 항목
 const DEFAULT_ITEMS = [
@@ -14,35 +15,64 @@ const DEFAULT_ITEMS = [
   { id: "etc", label: "기타", icon: "📦", amount: 0, paid: false },
 ];
 
-const STORAGE_KEY = (tenantId, year, month) => `maint_items_${tenantId}_${year}_${month}`;
+// 저장 위치: tenants.maintenance_items (jsonb) = { "2026-9": [항목...], ... } — 월별 키 `${year}-${month}`
+// 예전엔 브라우저 localStorage(maint_items_{tenantId}_{year}_{month})에만 있었음 → 발견 시 DB 로 1회 이전 후 삭제
+const LS_PREFIX = (tenantId) => `maint_items_${tenantId}_`;
+const STORAGE_KEY = (tenantId, year, month) => `${LS_PREFIX(tenantId)}${year}_${month}`;
+const MONTH_KEY = (year, month) => `${year}-${month}`;
+
+/** 이 세입자의 localStorage 관리비 항목 전부 → { "연-월": items } */
+function readLocal(tenantId) {
+  const out = {};
+  if (typeof window === "undefined") return out;
+  try {
+    const prefix = LS_PREFIX(tenantId);
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(prefix)) continue;
+      const [y, m] = k.slice(prefix.length).split("_");
+      try { const v = JSON.parse(localStorage.getItem(k)); if (Array.isArray(v)) out[MONTH_KEY(y, m)] = v; } catch {}
+    }
+  } catch {}
+  return out;
+}
+
+function removeLocal(tenantId, monthKeys) {
+  try { for (const mk of monthKeys) { const [y, m] = mk.split("-"); localStorage.removeItem(STORAGE_KEY(tenantId, y, m)); } } catch {}
+}
+
+const dbMapOf = (t) => (t?.maintenance_items && typeof t.maintenance_items === "object" && !Array.isArray(t.maintenance_items) ? t.maintenance_items : {});
+
+// 같은 세입자에 대해 이전 작업이 겹치거나(요약 버튼·모달 동시 마운트) 실패 시 무한 재시도하지 않도록
+const migrating = new Set();
+const migrateFailed = new Set();
 
 export function MaintItemsModal({ tenant, year, month, onClose }) {
-  const key = STORAGE_KEY(tenant.id, year, month);
-  const [items, setItems] = useState([]);
+  const { tenants, updateTenant } = useApp();
+  const mk = MONTH_KEY(year, month);
+  // DB 값 우선, DB 에 없는 달은 아직 이전 안 된 localStorage 값으로 보충
+  const [all, setAll] = useState(() => ({ ...readLocal(tenant.id), ...dbMapOf(tenants.find(t => t.id === tenant.id) || tenant) }));
   const [newLabel, setNewLabel] = useState("");
+  const items = all[mk] || DEFAULT_ITEMS;
 
-  useEffect(() => {
+  const persist = async (updated) => {
+    const next = { ...all, [mk]: updated };
+    setAll(next);
     try {
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        setItems(JSON.parse(saved));
-      } else {
-        // 기존 maintenance 금액을 기반으로 초기값 설정
-        const base = Number(tenant.maintenance || 0);
-        setItems(DEFAULT_ITEMS.map(item => ({ ...item, amount: 0 })));
-      }
-    } catch {
-      setItems(DEFAULT_ITEMS.map(item => ({ ...item, amount: 0 })));
+      await updateTenant(tenant.id, { maintenance_items: next });
+      removeLocal(tenant.id, Object.keys(next));
+    } catch (e) {
+      // DB 저장 실패(예: 마이그레이션 전) 시 이 브라우저에라도 남겨 데이터 유실 방지
+      try { localStorage.setItem(STORAGE_KEY(tenant.id, year, month), JSON.stringify(updated)); } catch {}
+      console.warn("[maint_items] DB 저장 실패 — 브라우저에 임시 저장:", e?.message);
+      toast("관리비 항목을 서버에 저장하지 못해 이 브라우저에만 임시 저장했습니다", "warning");
     }
-  }, [key]);
-
-  const save = (updated) => {
-    setItems(updated);
-    localStorage.setItem(key, JSON.stringify(updated));
   };
+  const save = (updated) => { persist(updated); };
 
+  // 금액 입력은 타이핑마다 저장하지 않고 입력칸을 벗어날 때(onBlur) 저장
   const updateAmount = (id, val) => {
-    save(items.map(i => i.id === id ? { ...i, amount: Number(val) || 0 } : i));
+    setAll(a => ({ ...a, [mk]: (a[mk] || DEFAULT_ITEMS).map(i => i.id === id ? { ...i, amount: Number(val) || 0 } : i) }));
   };
 
   const togglePaid = (id) => {
@@ -111,6 +141,7 @@ export function MaintItemsModal({ tenant, year, month, onClose }) {
                 type="number"
                 value={item.amount || ""}
                 onChange={e => updateAmount(item.id, e.target.value)}
+                onBlur={() => save(items)}
                 placeholder="0"
                 style={{
                   width: "100%", padding: "6px 10px", borderRadius: 8,
@@ -194,15 +225,29 @@ export function MaintItemsModal({ tenant, year, month, onClose }) {
 
 // 수금 현황 카드에서 관리비 항목 요약 표시용
 export function MaintItemsSummary({ tenant, year, month, onClick }) {
-  const key = STORAGE_KEY(tenant.id, year, month);
-  const [items, setItems] = useState([]);
+  const { tenants, updateTenant } = useApp();
+  const dbMap = dbMapOf(tenants.find(t => t.id === tenant.id) || tenant);
+  const mk = MONTH_KEY(year, month);
+  const items = dbMap[mk] || readLocal(tenant.id)[mk] || [];
 
+  // 최초 로드 시 localStorage 에 남은 예전 항목을 DB 로 1회 이전 (DB 값이 있는 달은 DB 우선) 후 localStorage 삭제
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(key);
-      if (saved) setItems(JSON.parse(saved));
-    } catch {}
-  }, [key]);
+    const local = readLocal(tenant.id);
+    const keys = Object.keys(local);
+    if (!keys.length || migrating.has(tenant.id) || migrateFailed.has(tenant.id)) return;
+    migrating.add(tenant.id);
+    (async () => {
+      try {
+        await updateTenant(tenant.id, { maintenance_items: { ...local, ...dbMap } });
+        removeLocal(tenant.id, keys);
+      } catch (e) {
+        migrateFailed.add(tenant.id);
+        console.warn("[maint_items] localStorage → DB 이전 실패:", e?.message);
+      } finally {
+        migrating.delete(tenant.id);
+      }
+    })();
+  }, [tenant.id, dbMap, updateTenant]);
 
   const total = items.reduce((s, i) => s + (i.amount || 0), 0);
   const paidTotal = items.filter(i => i.paid).reduce((s, i) => s + (i.amount || 0), 0);
