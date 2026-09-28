@@ -19,6 +19,11 @@ export const GROQ_VISION_MODEL = "qwen/qwen3.8-27b";
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || "";
 const GROQ_KEY = process.env.GROQ_API_KEY || "";
 
+/** 키 설정 여부만 (값은 노출하지 않음) — 헬스체크 진단용 */
+export function llmKeys() {
+  return { anthropic: Boolean(ANTHROPIC_KEY), groq: Boolean(GROQ_KEY) };
+}
+
 export function llmConfigured() {
   return Boolean(ANTHROPIC_KEY || GROQ_KEY);
 }
@@ -97,9 +102,11 @@ export async function callLLM({ system, user, json = false, maxTokens = 2000, ef
   if (chain.length === 0) throw new Error("AI API 키가 설정되지 않았습니다 (ANTHROPIC_API_KEY 또는 GROQ_API_KEY)");
 
   let lastErr;
+  // 앞 순위 제공자가 실패하고 폴백으로 성공하면 실패 사유를 결과에 남긴다 (조용한 폴백 진단용 — 헬스체크가 표시)
+  const failed = [];
   for (const attempt of chain) {
-    try { return await attempt(); }
-    catch (e) { lastErr = e; console.error("[llm] provider failed:", e?.message); }
+    try { return { ...(await attempt()), failed }; }
+    catch (e) { lastErr = e; failed.push(String(e?.message || e).slice(0, 160)); console.error("[llm] provider failed:", e?.message); }
   }
   throw lastErr;
 }
@@ -190,9 +197,10 @@ export async function callVisionLLM({ system, prompt, imageBase64, mediaType, js
   if (chain.length === 0) throw new Error("AI API 키가 설정되지 않았습니다 (ANTHROPIC_API_KEY 또는 GROQ_API_KEY)");
 
   let lastErr;
+  const failed = [];
   for (const attempt of chain) {
-    try { return await attempt(); }
-    catch (e) { lastErr = e; console.error("[llm] vision provider failed:", e?.message); }
+    try { return { ...(await attempt()), failed }; }
+    catch (e) { lastErr = e; failed.push(String(e?.message || e).slice(0, 160)); console.error("[llm] vision provider failed:", e?.message); }
   }
   throw lastErr;
 }

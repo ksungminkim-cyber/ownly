@@ -17,7 +17,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { createClient } from "@supabase/supabase-js";
-import { callLLM, llmConfigured, GROQ_MODEL, CLAUDE_MODEL } from "../../../lib/llm";
+import { callLLM, llmConfigured, llmKeys, GROQ_MODEL, CLAUDE_MODEL } from "../../../lib/llm";
 import { fetchMolitPage } from "../../../lib/molitFetch";
 
 const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || "";
@@ -74,7 +74,8 @@ export async function GET(req) {
       if (!llmConfigured()) throw new Error("AI API 키 미설정 (GROQ_API_KEY / ANTHROPIC_API_KEY)");
       const r = await callLLM({ system: "Reply with exactly one short Korean sentence.", user: "온리 헬스체크입니다. 정상이라고 한 문장으로 답하세요.", maxTokens: 60, effort: "low", temperature: 0 });
       if (!r.text) throw new Error("빈 응답");
-      return `${r.provider}:${r.model} · ${r.text.slice(0, 40)}`;
+      const k = llmKeys();
+      return `${r.provider}:${r.model} · ${r.text.slice(0, 40)} · 키[anthropic=${k.anthropic ? "있음" : "없음"}, groq=${k.groq ? "있음" : "없음"}]${r.failed?.length ? ` · 폴백 전 실패: ${r.failed.join(" / ")}` : ""}`;
     }),
     timed(async () => {
       // 국토부 API 를 직접 호출 (프록시를 HTTP 로 다시 부르지 않음 — 호스트·인증·레이트리밋 변수 제거).
