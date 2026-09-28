@@ -14,7 +14,7 @@ export default function DashboardError({ error, reset }) {
       <div className="surface-card" style={{ maxWidth: 420, width: "100%", padding: 28, textAlign: "center" }}>
         <p style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>화면을 불러오지 못했어요</p>
         <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 20 }}>
-          일시적인 오류입니다. 다시 시도해도 계속되면 설정 페이지의 문의하기로 알려주세요. 입력해 두신 데이터는 안전하게 저장되어 있습니다.
+          일시적인 오류입니다. 다시 시도해도 계속되면 inquiry@mclean21.com 으로 알려주세요. 이미 저장된 데이터에는 영향이 없습니다.
         </p>
         <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
           <button className="btn btn-accent" onClick={() => reset()}>다시 시도</button>

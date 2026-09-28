@@ -1,5 +1,6 @@
 "use client";
 // 전역 오류 경계 — 공개 페이지(도구·시세·포털 등)에서 렌더 예외가 나도 흰 화면 대신 복구 화면
+// client_error 기록은 로그인 유저만 남는다 (events RLS 가 익명은 tool_* 만 허용)
 import { useEffect } from "react";
 import { track } from "../lib/track";
 
