@@ -68,7 +68,7 @@ export default function LedgerPage() {
       onImport={async (rows) => {
         let ok = 0;
         for (const row of rows) {
-          try { await addLedger({ date:row.date, type:row.type, category:row.category, memo:row.memo, amount:Number(row.amount), auto:false }); ok++; } catch {}
+          try { await addLedgerEntry({ date:row.date, type:row.type, category:row.category, memo:row.memo, amount:Number(row.amount), auto_generated:false }); ok++; } catch {}
         }
         toast(`✅ ${ok}건 가져오기 완료`);
         setShowCsvImport(false);
