@@ -5,7 +5,7 @@ import { useState, useRef } from "react";
 import { Modal } from "./shared";
 import { supabase } from "../lib/supabase";
 
-const MAX_SIDE = 2000; // 긴 변 기준 축소 — 글자 판독엔 충분하고 업로드(서버 함수 본문 한도)·토큰을 아낌
+const MAX_SIDE = 1600; // 긴 변 기준 축소 — 계약서 글자 판독엔 충분. 이미지 토큰을 줄여 Groq 분당 한도(ITPM) 여유 확보
 
 // 브라우저에서 JPEG 로 다시 그려 용량을 줄이고 HEIC 등도 (브라우저가 열 수 있으면) JPEG 로 바꾼다
 async function toJpeg(file) {

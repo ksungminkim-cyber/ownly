@@ -185,6 +185,9 @@ export async function POST(req) {
       llm = await callVisionLLM({ system: SYSTEM, prompt: PROMPT, imageBase64: buf.toString("base64"), mediaType, json: true, maxTokens: 1200 });
     } catch (e) {
       console.error("[contract-scan] vision failed:", e?.message);
+      if (/rate limit/i.test(e?.message || "")) {
+        return Response.json({ error: "지금 사진 분석 요청이 몰려 있어요. 1분쯤 뒤에 다시 시도하거나 직접 입력해주세요.", ...(debug ? { detail: String(e.message).slice(0, 300) } : {}) }, { status: 503 });
+      }
       return Response.json({ error: "AI 분석 서버가 응답하지 않았어요. 잠시 후 다시 시도하거나 직접 입력해주세요.", ...(debug ? { detail: String(e?.message || e).slice(0, 300) } : {}) }, { status: 502 });
     }
 

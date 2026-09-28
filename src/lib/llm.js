@@ -127,7 +127,19 @@ async function callClaudeVision({ system, prompt, imageBase64, mediaType, maxTok
   return { text, provider: "anthropic", model: CLAUDE_MODEL };
 }
 
-async function callGroqVision({ system, prompt, imageBase64, mediaType, maxTokens, json, temperature }) {
+// Groq 무료(on_demand) 티어는 비전 모델 분당 입력 토큰 한도(ITPM 7000)가 작아 사진 1장(약 2~3천 토큰)씩 연속 호출하면 즉시 거절된다.
+// 거절 메시지의 "try again in Ns" 가 짧으면(≤25초) 그만큼 기다렸다 한 번만 재시도한다.
+async function callGroqVision(args) {
+  try { return await callGroqVisionOnce(args); }
+  catch (e) {
+    const wait = Number(String(e?.message || "").match(/try again in ([\d.]+)s/i)?.[1]);
+    if (!/rate limit/i.test(e?.message || "") || !(wait > 0) || wait > 25) throw e;
+    await new Promise((r) => setTimeout(r, Math.ceil(wait * 1000) + 500));
+    return callGroqVisionOnce(args);
+  }
+}
+
+async function callGroqVisionOnce({ system, prompt, imageBase64, mediaType, maxTokens, json, temperature }) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 45_000);
   try {
