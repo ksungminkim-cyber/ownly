@@ -12,6 +12,7 @@ import { internalHeaders } from "../../../lib/ratelimit";
 import { ONBOARDING_STEPS, nextOnboardingStep, onboardingEmail } from "../../../lib/onboardingEmail";
 import { autoAlimtalkTargets, sendTenantAlimtalk, kakaoUsedThisMonth } from "../../../lib/alimtalk";
 import { entitlementsOf } from "../../../lib/plan";
+import { dueCycle } from "../../../lib/unpaid";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -106,19 +107,19 @@ function computeUnpaid(tenants, payments) {
   const kst = new Date(Date.now() + 9 * 3600000);
   const month = kst.getUTCMonth() + 1;
   const year = kst.getUTCFullYear();
-  const today = kst.getUTCDate();
-  const unpaidTenants = tenants.filter(t => {
-    if (t.status === "퇴거" || t.status === "공실") return false;
-    if (!(Number(t.rent) > 0)) return false; // 전세 등 월세 없는 계약 제외
-    const payDay = Number(t.pay_day ?? t.payment_day ?? 5);
-    if (today <= payDay) return false; // 아직 납부일 전
+  // 판정 회차는 src/lib/unpaid.js dueCycle 과 동일 (납부일이 월말이면 지난달 몫). 서버는 UTC 라 KST 날짜를 로컬 날짜로 옮겨 넘긴다
+  const kstLocal = new Date(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate(), 12);
+  const unpaidTenants = tenants.map(t => {
+    if (t.status === "퇴거" || t.status === "공실") return null;
+    if (!(Number(t.rent) > 0)) return null; // 전세 등 월세 없는 계약 제외
+    const c = dueCycle(t, kstLocal);
+    if (!c) return null; // 아직 납부일 전
+    const rec = (st) => payments.find(p => p.tenant_id === t.id && (p.month || 0) === c.month && (p.year || c.year) === c.year && p.status === st);
     // paid 만 완납 — 부분납부(partial)는 잔액이 남았으므로 미납으로 잡는다
-    return !payments.find(p => p.tenant_id === t.id && (p.month || 0) === month && (p.year || year) === year && p.status === "paid");
-  }).map(t => {
-    // 부분납부면 남은 금액만 표시 (due = 이번 달 잔액, 만원)
-    const partial = payments.find(p => p.tenant_id === t.id && (p.month || 0) === month && (p.year || year) === year && p.status === "partial");
-    return { ...t, due: Math.max(0, (Number(t.rent) || 0) - (partial ? Number(partial.amount) || 0 : 0)), partialPaid: Boolean(partial) };
-  });
+    if (rec("paid")) return null;
+    const partial = rec("partial");
+    return { ...t, due: Math.max(0, (Number(t.rent) || 0) - (partial ? Number(partial.amount) || 0 : 0)), partialPaid: Boolean(partial), dueMonth: c.month };
+  }).filter(Boolean);
   return { month, year, unpaidTenants };
 }
 
@@ -131,7 +132,7 @@ async function sendUnpaidNotice(userId, userEmail, tenants, payments) {
 
   const rows = unpaidTenants.map(t => `
     <tr style="border-bottom:1px solid #f0efe9;">
-      <td style="padding:10px 12px;font-size:13px;color:#1a2744;font-weight:600;">${t.name}</td>
+      <td style="padding:10px 12px;font-size:13px;color:#1a2744;font-weight:600;">${t.name}${t.dueMonth && t.dueMonth !== month ? ` <span style="font-size:11px;color:#8a8a9a;font-weight:500;">(${t.dueMonth}월분)</span>` : ""}</td>
       <td style="padding:10px 12px;font-size:12px;color:#8a8a9a;">${t.address || t.addr || ""}</td>
       <td style="padding:10px 12px;font-size:13px;color:#e8445a;font-weight:700;">${(t.due ?? t.rent ?? 0).toLocaleString()}만원${t.partialPaid ? " <span style=\"font-size:11px;color:#8a8a9a;font-weight:500;\">(부분납부 잔액)</span>" : ""}</td>
     </tr>
