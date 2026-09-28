@@ -12,6 +12,9 @@ import Anthropic from "@anthropic-ai/sdk";
 // 기본 claude-opus-5. 비용을 낮추려면 Vercel 환경변수 ANTHROPIC_MODEL=claude-sonnet-5 로 재배포 없이 전환 가능
 export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
 export const GROQ_MODEL = "openai/gpt-oss-120b"; // llama-3.3-70b-versatile 공식 후속 (Groq 프로덕션 티어)
+// 비전(이미지 입력) 전용 — gpt-oss 는 이미지를 받지 못함. 2026-09-28 console.groq.com/docs/vision 에서 확인한 유일한 비전 모델
+// (qwen/qwen3.6-27b 가 2026-09-14 종료되며 후속으로 지정됨). 종료 공지가 나오면 이 한 줄만 바꾼다.
+export const GROQ_VISION_MODEL = "qwen/qwen3.8-27b";
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || "";
 const GROQ_KEY = process.env.GROQ_API_KEY || "";
@@ -97,6 +100,87 @@ export async function callLLM({ system, user, json = false, maxTokens = 2000, ef
   for (const attempt of chain) {
     try { return await attempt(); }
     catch (e) { lastErr = e; console.error("[llm] provider failed:", e?.message); }
+  }
+  throw lastErr;
+}
+
+// ── 비전 (이미지 1장 + 텍스트) ─────────────────────────────────────
+// 이미지는 base64 로 요청 본문에만 실어 보내며 이 계층은 어디에도 저장하지 않는다.
+async function callClaudeVision({ system, prompt, imageBase64, mediaType, maxTokens, effort, json }) {
+  const client = new Anthropic({ apiKey: ANTHROPIC_KEY, timeout: 50_000, maxRetries: 1 });
+  const res = await client.messages.create({
+    model: CLAUDE_MODEL,
+    max_tokens: maxTokens,
+    system: json ? `${system}\n\nRespond with a single valid JSON object only. No markdown, no code fences, no commentary.` : system,
+    messages: [{
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
+        { type: "text", text: prompt },
+      ],
+    }],
+    output_config: { effort },
+  });
+  if (res.stop_reason === "refusal") throw new Error("모델이 요청을 거절했습니다");
+  const text = res.content.filter((b) => b.type === "text").map((b) => b.text).join("").trim();
+  if (!text) throw new Error("빈 응답");
+  return { text, provider: "anthropic", model: CLAUDE_MODEL };
+}
+
+async function callGroqVision({ system, prompt, imageBase64, mediaType, maxTokens, json, temperature }) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 45_000);
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_KEY}` },
+      body: JSON.stringify({
+        model: GROQ_VISION_MODEL,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+          ] },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+        reasoning_effort: "none", // 추출 작업이라 사고 토큰 불필요 (qwen3.x 는 none/default/low/medium/high 지원)
+        ...(json ? { response_format: { type: "json_object" } } : {}),
+      }),
+    });
+    const raw = await res.text();
+    let data;
+    try { data = JSON.parse(raw); } catch { throw new Error(`Groq 응답 파싱 실패: ${raw.slice(0, 200)}`); }
+    if (!res.ok) throw new Error(data?.error?.message || `Groq HTTP ${res.status}`);
+    const text = data?.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error("빈 응답");
+    return { text, provider: "groq", model: GROQ_VISION_MODEL };
+  } finally { clearTimeout(timer); }
+}
+
+/**
+ * 비전 LLM 호출 — callLLM 과 같은 순서(Claude 키 있으면 1순위 → Groq 비전 모델)로 시도하고 실패 시 폴백.
+ * @param {object} o
+ * @param {string} o.system
+ * @param {string} o.prompt        이미지와 함께 보낼 사용자 지시
+ * @param {string} o.imageBase64   base64 (data: 접두어 없이)
+ * @param {"image/jpeg"|"image/png"|"image/webp"} o.mediaType
+ * @param {boolean} [o.json]
+ * @returns {Promise<{text:string, provider:string, model:string}>}
+ */
+export async function callVisionLLM({ system, prompt, imageBase64, mediaType, json = false, maxTokens = 1500, effort = "low", temperature = 0 }) {
+  const args = { system, prompt, imageBase64, mediaType, maxTokens, effort, json, temperature };
+  const chain = [];
+  if (ANTHROPIC_KEY) chain.push(() => callClaudeVision(args));
+  if (GROQ_KEY) chain.push(() => callGroqVision(args));
+  if (chain.length === 0) throw new Error("AI API 키가 설정되지 않았습니다 (ANTHROPIC_API_KEY 또는 GROQ_API_KEY)");
+
+  let lastErr;
+  for (const attempt of chain) {
+    try { return await attempt(); }
+    catch (e) { lastErr = e; console.error("[llm] vision provider failed:", e?.message); }
   }
   throw lastErr;
 }

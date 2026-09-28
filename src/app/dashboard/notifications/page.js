@@ -7,6 +7,8 @@ const TYPE_CONFIG = {
   monthly:  { icon:"📊", label:"월간 리포트",   color:"#1a2744",  bg:"rgba(26,39,68,0.06)" },
   kakao:    { icon:"💬", label:"카카오 알림톡", color:"#f5c52e",  bg:"rgba(245,197,46,0.12)" },
   manual:   { icon:"✉️", label:"직접 발송",     color:"#3b5bdb",  bg:"rgba(59,91,219,0.08)" },
+  auto_upcoming: { icon:"🤖", label:"자동 · 납부 안내", color:"#0fa573", bg:"rgba(15,165,115,0.08)" },
+  auto_unpaid:   { icon:"🤖", label:"자동 · 미납 안내", color:"#e8445a", bg:"rgba(232,68,90,0.08)" },
 };
 
 const TEMPLATE_LABELS = {

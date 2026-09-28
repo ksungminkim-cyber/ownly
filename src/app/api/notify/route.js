@@ -10,6 +10,8 @@ import { createClient } from "@supabase/supabase-js";
 import { matchPolicies } from "../../../lib/policies";
 import { internalHeaders } from "../../../lib/ratelimit";
 import { ONBOARDING_STEPS, nextOnboardingStep, onboardingEmail } from "../../../lib/onboardingEmail";
+import { autoAlimtalkTargets, sendTenantAlimtalk, kakaoUsedThisMonth } from "../../../lib/alimtalk";
+import { entitlementsOf } from "../../../lib/plan";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -398,7 +400,7 @@ export async function GET(req) {
   }
   const dryRun = params.get("dryRun") === "1";
 
-  const summary = { processed: 0, onboardingSent: 0, unpaidSent: 0, smsSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0, elapsedMs: 0 };
+  const summary = { processed: 0, onboardingSent: 0, autoKakaoSent: 0, autoKakaoFailed: 0, autoKakaoSkippedLimit: 0, unpaidSent: 0, smsSent: 0, digestSent: 0, monthlySent: 0, skippedOptOut: 0, skippedRecent: 0, skippedNothing: 0, errors: 0, elapsedMs: 0 };
   const started = Date.now();
   const now = new Date();
   const kstNow = new Date(Date.now() + 9 * 3600000);
@@ -408,6 +410,15 @@ export async function GET(req) {
 
   try {
     // ── 프리페치: 구독 설정 + 최근 발송 이력 (유저별 반복 조회 제거)
+    // 세입자 자동 알림톡용: 구독(한도 판정)·최근 자동 발송 이력
+    const [planRes, kakaoLogRes] = await Promise.all([
+      supabase.from("subscriptions").select("user_id,plan,status,current_period_end,kakao_sid,billing_key"),
+      supabase.from("notification_logs").select("user_id,tenant_id,type,sent_at").in("type", ["auto_upcoming", "auto_unpaid"]).eq("status", "success").gte("sent_at", new Date(Date.now() - 45 * dayMs).toISOString()),
+    ]);
+    const planMap = new Map((planRes.data || []).map((r) => [r.user_id, r]));
+    const autoLogs = new Map();
+    for (const l of kakaoLogRes.data || []) (autoLogs.get(l.user_id) || autoLogs.set(l.user_id, []).get(l.user_id)).push(l);
+
     const [subsRes, logsRes] = await Promise.all([
       supabase.from("newsletter_subscribers").select("user_id,weekly_digest,last_sent_at,sms_unpaid"),
       supabase.from("notification_logs").select("user_id,type,channel,sent_at").gte("sent_at", new Date(Date.now() - MONTHLY_DEDUP_DAYS * dayMs).toISOString()),
@@ -433,7 +444,9 @@ export async function GET(req) {
         const sub = subMap.get(u.id);
         const emailOptOut = sub && sub.weekly_digest === false; // 이메일 수신 거부 — 문자 옵트인과는 별개
         const smsOptIn = Boolean(sub?.sms_unpaid);
-        if (emailOptOut && !smsOptIn) { summary.skippedOptOut++; return; }
+        const autoSettings = u.user_metadata?.auto_alimtalk || null; // 설정 > 세입자 자동 알림톡 (기본 꺼짐)
+        const autoOn = Boolean(autoSettings?.upcoming || autoSettings?.unpaid);
+        if (emailOptOut && !smsOptIn && !autoOn) { summary.skippedOptOut++; return; }
 
         const { data: tenantsRaw } = await supabase.from("tenants").select("*").eq("user_id", u.id);
         const tenants = (tenantsRaw || []).filter((t) => !isSampleRow(t));
@@ -449,8 +462,25 @@ export async function GET(req) {
           if (result?.sent) { summary.onboardingSent++; await logSent(u.id, `onboarding_${step}`, "email"); }
           return;
         }
-        if (dryRun) return; // 모의 실행에서는 기존 알림을 건드리지 않는다
         const { data: payments } = await supabase.from("payments").select("*").in("tenant_id", tenants.map(t => t.id));
+
+        // ⓪ 세입자 자동 알림톡 — 임대인이 켠 경우만, 플랜의 월 알림톡 한도(수동 발송과 공유) 안에서
+        if (autoOn) {
+          const limit = entitlementsOf(u, planMap.get(u.id)).limits.kakaoMonthly || 0;
+          if (limit > 0) {
+            const appTenants = tenants.map((t) => ({ id: t.id, name: t.name, phone: t.phone, addr: t.address, pType: t.p_type, sub: t.sub_type, rent: t.rent, maintenance: t.maintenance, pay_day: t.pay_day, status: t.status, end_date: t.contract_end }));
+            const targets = autoAlimtalkTargets({ tenants: appTenants, payments: payments || [], logs: autoLogs.get(u.id) || [], settings: autoSettings });
+            let used = targets.length ? await kakaoUsedThisMonth(supabase, u.id) : 0;
+            for (const x of targets) {
+              if (used >= limit) { summary.autoKakaoSkippedLimit++; continue; }
+              if (dryRun) { (summary.autoKakaoPreview ||= []).push({ user: u.id.slice(0, 6), tenant: String(x.tenant.id).slice(0, 6), tab: x.tab, due: `${x.due.year}-${x.due.month}`, remain: x.remain ?? null }); used++; continue; }
+              const tenant = x.tab === "unpaid" ? { ...x.tenant, rent: x.remain } : x.tenant; // 부분납부면 잔액을 금액으로
+              const r = await sendTenantAlimtalk({ admin: supabase, userId: u.id, tenant, tab: x.tab, logType: x.logType });
+              if (r.ok) { summary.autoKakaoSent++; used++; } else summary.autoKakaoFailed++;
+            }
+          }
+        }
+        if (dryRun) return; // 모의 실행에서는 아래 이메일·문자 알림을 건드리지 않는다
 
         // ① 미납 — 이메일(3일 중복 방지)과 문자(3일 중복 방지)를 독립적으로 판정
         const { month, unpaidTenants } = computeUnpaid(tenants, payments || []);

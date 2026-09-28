@@ -1,34 +1,13 @@
 // src/app/api/kakao/send/route.js
-import crypto from "crypto";
+// 세입자 알림톡 수동 발송 — 템플릿·변수·Solapi 호출·발송 기록은 src/lib/alimtalk.js (크론 자동 발송과 공용)
 import { createClient } from "@supabase/supabase-js";
 import { PLANS, PAID_PLAN_ID } from "../../../../lib/constants";
 import { entitlementsOf } from "../../../../lib/plan";
-
-const SOLAPI_API_KEY    = process.env.SOLAPI_API_KEY;
-const SOLAPI_API_SECRET = process.env.SOLAPI_API_SECRET;
-const SOLAPI_PFID       = process.env.SOLAPI_PFID;
-const SOLAPI_FROM       = process.env.SOLAPI_FROM || "";
+import { sendTenantAlimtalk, kakaoUsedThisMonth } from "../../../../lib/alimtalk";
 
 const supabaseAdmin = (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
   ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
   : null;
-
-function getSolapiAuthHeader() {
-  const date      = new Date().toISOString();
-  const salt      = crypto.randomBytes(16).toString("hex");
-  const hmac      = crypto.createHmac("sha256", SOLAPI_API_SECRET);
-  hmac.update(date + salt);
-  const signature = hmac.digest("hex");
-  return `HMAC-SHA256 apiKey=${SOLAPI_API_KEY}, date=${date}, salt=${salt}, signature=${signature}`;
-}
-
-const TEMPLATE_MAP = {
-  unpaid:            "KA01TP260319022413946WEFCauw7bu",
-  unpaid_with_mgt:   "KA01TP260319044202504A6snqzyf3sN",
-  upcoming:          "KA01TP260319022623914XEsARo3VO2y",
-  upcoming_with_mgt: "KA01TP260319044259656FmFUnv2CZOa",
-  expiring:          "KA01TP260319022807781m78Wss6h4dA",
-};
 
 // tab → notification_logs.type 매핑
 const TAB_TO_TYPE = {
@@ -36,106 +15,6 @@ const TAB_TO_TYPE = {
   upcoming: "unpaid",
   expiring: "expiry",
 };
-
-function isOwnerMgt(t) {
-  if (t.pType === "\uc0c1\uac00") return true;
-  if (t.pType === "\uc8fc\uac70") return !["\uc544\ud30c\ud2b8", "\uc624\ud53c\uc2a4\ud154"].includes(t.sub);
-  return false;
-}
-
-// 오늘(KST)부터 다음 납부일까지 남은 일수 — 이번 달 납부일이 지났으면 다음 달 납부일 기준
-function daysUntilPayDay(payDay) {
-  const kst = new Date(Date.now() + 9 * 3600000);
-  const y = kst.getUTCFullYear(), m = kst.getUTCMonth(), d = kst.getUTCDate();
-  const today = Date.UTC(y, m, d);
-  let due = Date.UTC(y, m, payDay);
-  if (due < today) due = Date.UTC(y, m + 1, payDay);
-  return Math.round((due - today) / 86400000);
-}
-
-// ✅ 실제 솔라피 템플릿 변수명과 정확히 일치
-function buildVariables(templateKey, t) {
-  const todayStr = new Date().toLocaleDateString("ko-KR");
-  const rent     = String(t.rent || 0);
-  const mgt      = String(t.maintenance || 0);
-  const total    = String((t.rent || 0) + (t.maintenance || 0));
-  const addr     = t.addr || "\ud574\ub2f9 \ubb3c\uac74";
-  const name     = t.name || "\uc784\ucc28\uc778";
-  const endDate  = t.end_date || t.end || "\ubbf8\uc815";
-  const dLeft    = String(t.daysLeft ?? "");
-  const payDay   = String(t.pay_day || 5);
-  const payDLeft = String(daysUntilPayDay(Number(t.pay_day) || 5)); // upcoming 의 D-day 는 계약 만료가 아니라 납부일까지 남은 일수
-
-  if (templateKey === "unpaid") {
-    return {
-      "#{\uc774\ub984}": name,
-      "#{\uc8fc\uc18c}": addr,
-      "#{\uae08\uc561}": rent,
-      "#{\ub0a0\uc9dc}": todayStr,
-    };
-  }
-  if (templateKey === "unpaid_with_mgt") {
-    return {
-      "#{\uc774\ub984}": name,
-      "#{\uc8fc\uc18c}": addr,
-      "#{\uae08\uc561}": rent,
-      "#{\uad00\ub9ac\ube44}": mgt,
-      "#{\ucd1d\uae08\uc561}": total,
-      "#{\ub0a0\uc9dc}": todayStr,
-    };
-  }
-  if (templateKey === "upcoming") {
-    return {
-      "#{\uc774\ub984}": name,
-      "#{\uc8fc\uc18c}": addr,
-      "#{\uae08\uc561}": rent,
-      "#{D-day}": payDLeft,
-      "#{\ub0a9\ubd80\uc77c}": payDay,
-    };
-  }
-  if (templateKey === "upcoming_with_mgt") {
-    return {
-      "#{\uc774\ub984}": name,
-      "#{\uc8fc\uc18c}": addr,
-      "#{\uae08\uc561}": rent,
-      "#{\uad00\ub9ac\ube44}": mgt,
-      "#{\ucd1d\uae08\uc561}": total,
-      "#{D-day}": payDLeft,
-      "#{\ub0a9\ubd80\uc77c}": payDay,
-    };
-  }
-  if (templateKey === "expiring") {
-    return {
-      "#{\uc774\ub984}": name,
-      "#{\uc8fc\uc18c}": addr,
-      "#{\ub9cc\ub8cc\uc77c}": endDate,
-      "#{D-day}": dLeft,
-    };
-  }
-  return {};
-}
-
-// 발송 로그 기록 (실패해도 요청 자체는 실패시키지 않음)
-async function logSend({ userId, tenant, type, templateKey, variables, status, errorMessage, messageId }) {
-  if (!supabaseAdmin || !userId) return;
-  try {
-    const preview = Object.entries(variables).map(([k, v]) => `${k}=${v}`).join(", ");
-    await supabaseAdmin.from("notification_logs").insert({
-      user_id: userId,
-      tenant_id: tenant?.id || null,
-      type,
-      channel: "kakao",
-      template_key: templateKey,
-      message: preview,
-      status,
-      error_message: errorMessage || null,
-      provider_message_id: messageId || null,
-      sent_at: new Date().toISOString(),
-    });
-  } catch (e) {
-    console.error("notification_logs insert failed:", e);
-  }
-}
 
 // 인증 + 플랜 검증 — 알림톡은 실비(Solapi)가 발생하므로 반드시 서버에서 확인
 async function verifyProUser(req) {
@@ -147,21 +26,15 @@ async function verifyProUser(req) {
   if (error || !data?.user) return { error: "인증에 실패했습니다. 다시 로그인해주세요.", status: 401 };
   const user = data.user;
 
-  // 월 발송 한도 — 실비(Solapi)가 발생하므로 서버에서 확인. 한도는 entitlementsOf(PLANS · 기존 가입자 LEGACY_LIMITS) 한 곳에서 판정
+  // 월 발송 한도 — 한도는 entitlementsOf(PLANS · 기존 가입자 LEGACY_LIMITS) 한 곳에서 판정. 자동 발송분도 같은 한도에 포함
   const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan,status,current_period_end,kakao_sid,billing_key").eq("user_id", user.id).maybeSingle();
   const ent = entitlementsOf(user, sub);
   const limit = ent.limits.kakaoMonthly || 0;
   const plusLimit = PLANS[PAID_PLAN_ID].limits.kakaoMonthly;
   if (!limit) return { error: `카카오 알림톡은 플러스 플랜(월 ${PLANS[PAID_PLAN_ID].price.toLocaleString()}원)에서 사용할 수 있습니다`, status: 403 };
   const upsell = ent.legacy ? ` 플러스 구독 시 월 ${plusLimit}건까지 늘어납니다.` : "";
-  // 이번 달 1일 00:00 KST (서버는 UTC — 로컬 기준으로 잡으면 매월 1일 09시 이전 발송분이 전월로 집계됨)
-  const kst = new Date(Date.now() + 9 * 3600000);
-  const monthStart = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), 1) - 9 * 3600000);
-  const { count } = await supabaseAdmin.from("notification_logs")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id).eq("channel", "kakao").in("status", ["sent", "success"]) // logSend 는 "success" 로 기록 — "sent" 만 세면 한도가 영원히 0
-    .gte("sent_at", monthStart.toISOString());
-  if ((count || 0) >= limit) {
+  const count = await kakaoUsedThisMonth(supabaseAdmin, user.id);
+  if (count >= limit) {
     return { error: `알림톡은 월 ${limit}건까지 발송할 수 있습니다 (이번 달 ${count}건 사용).${upsell}`, status: 429 };
   }
   return { user };
@@ -178,66 +51,9 @@ export async function POST(req) {
     return Response.json({ error: "invalid json" }, { status: 400 });
   }
   const { tab, tenant } = body || {};
-  const userId = auth.user.id; // 클라이언트가 보낸 userId 대신 검증된 값 사용
+  if (!tenant?.phone) return Response.json({ error: "전화번호 없음" }, { status: 400 });
 
-  if (!tenant?.phone) {
-    return Response.json({ error: "\uc804\ud654\ubc88\ud638 \uc5c6\uc74c" }, { status: 400 });
-  }
-
-  const hasMgt = isOwnerMgt(tenant) && (tenant.maintenance || 0) > 0;
-  let templateKey = tab;
-  if (tab === "unpaid"   && hasMgt) templateKey = "unpaid_with_mgt";
-  if (tab === "upcoming" && hasMgt) templateKey = "upcoming_with_mgt";
-
-  const templateId = TEMPLATE_MAP[templateKey];
-  const logType = TAB_TO_TYPE[tab] || "kakao";
-
-  if (!templateId) {
-    await logSend({ userId, tenant, type: logType, templateKey, variables: {}, status: "failed", errorMessage: "\ud15c\ud50c\ub9bf \uc5c6\uc74c: " + templateKey });
-    return Response.json({ error: "\ud15c\ud50c\ub9bf \uc5c6\uc74c: " + templateKey }, { status: 400 });
-  }
-
-  const variables = buildVariables(templateKey, tenant);
-  const to = tenant.phone.replace(/-/g, "");
-
-  const sendBody = {
-    message: {
-      to,
-      from: SOLAPI_FROM,
-      kakaoOptions: {
-        pfId:       SOLAPI_PFID,
-        templateId,
-        variables,
-        disableSms: false,
-      },
-    },
-  };
-
-  try {
-    const res = await fetch("https://api.solapi.com/messages/v4/send", {
-      method:  "POST",
-      headers: {
-        "Content-Type":  "application/json",
-        "Authorization": getSolapiAuthHeader(),
-      },
-      body: JSON.stringify(sendBody),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || data.errorCode) {
-      console.error("\uc194\ub77c\ud53c \uc5d0\ub7ec:", JSON.stringify(data));
-      const errMsg = data.errorMessage || JSON.stringify(data);
-      await logSend({ userId, tenant, type: logType, templateKey, variables, status: "failed", errorMessage: errMsg });
-      return Response.json({ error: errMsg }, { status: 500 });
-    }
-
-    const messageId = data.messageId || data.groupId;
-    await logSend({ userId, tenant, type: logType, templateKey, variables, status: "success", messageId });
-    return Response.json({ success: true, messageId });
-  } catch (e) {
-    console.error("kakao send error:", e);
-    await logSend({ userId, tenant, type: logType, templateKey, variables, status: "failed", errorMessage: e.message });
-    return Response.json({ error: e.message }, { status: 500 });
-  }
+  const r = await sendTenantAlimtalk({ admin: supabaseAdmin, userId: auth.user.id, tenant, tab, logType: TAB_TO_TYPE[tab] || "kakao" });
+  if (!r.ok) return Response.json({ error: r.error }, { status: r.error?.startsWith("템플릿 없음") ? 400 : 500 });
+  return Response.json({ success: true, messageId: r.messageId });
 }

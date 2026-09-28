@@ -1,5 +1,5 @@
 // src/app/dashboard/settings/page.js
-"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import InstallGuideModal from "../../../components/InstallGuide"; import { isInstalled } from "../../../lib/pwa"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname"; import ReferralSection from "../../../components/ReferralSection"; import { isSupported as isPushSupported, getPermission as getPushPermission, isEnabled as isPushEnabled, requestPermission as requestPushPermission, setEnabled as setPushEnabled, getCategories as getPushCats, setCategories as setPushCats, notify as pushNotify } from "../../../lib/notifications";
+"use client"; import { useState, useEffect } from "react"; import { useRouter } from "next/navigation"; import InstallGuideModal from "../../../components/InstallGuide"; import AutoAlimtalkSettings from "../../../components/AutoAlimtalkSettings"; import { isInstalled } from "../../../lib/pwa"; import { SectionLabel, Modal, toast } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import { generateNickname } from "../../../lib/nickname"; import ReferralSection from "../../../components/ReferralSection"; import { isSupported as isPushSupported, getPermission as getPushPermission, isEnabled as isPushEnabled, requestPermission as requestPushPermission, setEnabled as setPushEnabled, getCategories as getPushCats, setCategories as setPushCats, notify as pushNotify } from "../../../lib/notifications";
 
 // 주간 뉴스레터 구독
 function NewsletterSubscription({ user }) {
@@ -488,6 +488,7 @@ export default function SettingsPage() {
       <ReferralSection />
       <BrowserNotificationSettings />
       <NewsletterSubscription user={user} />
+      <AutoAlimtalkSettings />
 
       {/* 결제 관리 */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 18 }}>
