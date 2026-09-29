@@ -109,7 +109,7 @@ function NewsletterSubscription({ user }) {
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>미납 발생 시 내 휴대폰으로 문자</p>
           <p style={{ fontSize: 11, color: "#8a8a9a", margin: "3px 0 0", lineHeight: 1.6 }}>
-            납부일이 지나도 입금이 없으면 미납 이메일과 함께 문자 1통 (3일에 한 번까지)<br/>
+            납부일이 지나도 입금이 없으면 미납 이메일과 함께 문자 1통 (미납이 이어지면 5일에 한 번까지)<br/>
             수신 번호: <b style={{ color: "var(--text)" }}>{myPhone || "미등록 — 아래 임대인 정보에서 저장"}</b>
           </p>
         </div>

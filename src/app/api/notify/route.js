@@ -372,7 +372,9 @@ async function sendMonthlyReport(userId, userEmail, tenants, payments) {
 // 유저당 DB 왕복 2회(tenants·payments) 로 줄여 수백 명까지 maxDuration(60s) 안에 끝난다.
 const CRON_TOKEN = process.env.CRON_SECRET || process.env.CRON_TOKEN || process.env.BILLING_RENEWAL_TOKEN || "";
 const DEDUP_DAYS = 5;         // 만료 다이제스트
-const UNPAID_DEDUP_DAYS = 3;  // 미납 알림 (이메일·문자 각각)
+const UNPAID_DEDUP_DAYS = 5;  // 미납 알림 (이메일·문자 각각) — 2026-09-29 3일 → 5일
+const UNPAID_DEDUP_DAYS_DORMANT = 7; // 최근 30일 로그인·대시보드 방문이 없는 임대인은 주 1회로 제한
+const DORMANT_AFTER_DAYS = 30;
 const MONTHLY_DEDUP_DAYS = 25;
 const CONCURRENCY = 5;
 
@@ -417,6 +419,13 @@ export async function GET(req) {
       supabase.from("notification_logs").select("user_id,tenant_id,type,sent_at").in("type", ["auto_upcoming", "auto_unpaid"]).eq("status", "success").gte("sent_at", new Date(Date.now() - 45 * dayMs).toISOString()),
     ]);
     const planMap = new Map((planRes.data || []).map((r) => [r.user_id, r]));
+    // 활동 여부: last_sign_in_at 은 자동 로그인 유지 중엔 갱신되지 않으므로 최근 대시보드 방문 이벤트와 함께 본다
+    const { data: recentVisits } = await supabase.from("events").select("user_id").eq("event", "dashboard_view").gte("created_at", new Date(Date.now() - DORMANT_AFTER_DAYS * dayMs).toISOString());
+    const activeUsers = new Set((recentVisits || []).map((r) => r.user_id));
+    const unpaidGapDays = (u) => {
+      const signedIn = u.last_sign_in_at && Date.now() - Date.parse(u.last_sign_in_at) < DORMANT_AFTER_DAYS * dayMs;
+      return signedIn || activeUsers.has(u.id) ? UNPAID_DEDUP_DAYS : UNPAID_DEDUP_DAYS_DORMANT;
+    };
     const autoLogs = new Map();
     for (const l of kakaoLogRes.data || []) (autoLogs.get(l.user_id) || autoLogs.set(l.user_id, []).get(l.user_id)).push(l);
 
@@ -488,13 +497,13 @@ export async function GET(req) {
         let unpaidSentNow = false;
         if (unpaidTenants.length > 0) {
           if (!emailOptOut) {
-            if (recent(u.id, "unpaid", "email", UNPAID_DEDUP_DAYS)) summary.skippedRecent++;
+            if (recent(u.id, "unpaid", "email", unpaidGapDays(u))) summary.skippedRecent++;
             else {
               const result = await sendUnpaidNotice(u.id, email, tenants, payments || []);
               if (result?.sent) { summary.unpaidSent++; unpaidSentNow = true; await logSent(u.id, "unpaid", "email"); }
             }
           }
-          if (smsOptIn && !recent(u.id, "unpaid", "sms", UNPAID_DEDUP_DAYS)) {
+          if (smsOptIn && !recent(u.id, "unpaid", "sms", unpaidGapDays(u))) {
             const phone = u.user_metadata?.phone || u.phone;
             const sms = await sendLandlordSms({ to: phone, text: unpaidSmsText(month, unpaidTenants) });
             if (sms?.sent) { summary.smsSent++; await logSent(u.id, "unpaid", "sms", { provider_message_id: sms.messageId || null }); }
