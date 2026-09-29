@@ -356,6 +356,8 @@ export async function POST(req) {
         system: "You are a Korean real estate pricing expert. Output ONLY valid JSON. No markdown. All rent/deposit in 만원 units. All text in Korean.",
         user: buildPricingPrompt(address, propertyType, marketStats, { myRent, areaPyeong }),
         json: true, maxTokens: 2500, effort: "medium", temperature: 0.3,
+        // 비로그인(/diagnose 공개 진단)은 무료 제공자(Groq)만 — 광고·봇 트래픽이 유료 Claude 비용으로 이어지지 않게. 운영 진단(x-debug-token)은 로그인과 같은 경로
+        freeOnly: !quota && !diag,
       });
     } catch (e) {
       console.error("[ai-pricing] llm failed:", e?.message);

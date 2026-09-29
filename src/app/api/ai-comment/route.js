@@ -1,12 +1,21 @@
 // 자연어 AI 인사이트 코멘트 생성 API
 // 벤치마크·갱신·위험도 데이터 → 2~3문장 전문가 코멘트
 // LLM 호출은 src/lib/llm.js (Claude 우선, Groq 폴백). 클라이언트가 24시간 캐시하므로 호출량은 적음.
-// 비로그인 위젯에서도 호출되므로 IP 당 시간당 한도로 비용 남용 방지.
+// 호출처는 로그인 후 대시보드 위젯(BenchmarkWidget)뿐 — 로그인 필수 + IP 시간당 한도로 비용 남용 방지 (2026-09-29: Claude 유료 전환에 맞춰 비로그인 차단)
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+import { createClient } from "@supabase/supabase-js";
 import { callLLM, llmConfigured } from "../../../lib/llm";
+
+async function signedIn(req) {
+  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) return false;
+  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const { data, error } = await admin.auth.getUser(token);
+  return !error && Boolean(data?.user);
+}
 
 const RATE_LIMIT = 30;                  // IP당 시간당 허용 횟수
 const RATE_WINDOW_MS = 60 * 60 * 1000;
@@ -79,6 +88,7 @@ export async function POST(req) {
   try {
     const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
     if (isRateLimited(ip)) return Response.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
+    if (!(await signedIn(req))) return Response.json({ error: "로그인이 필요합니다" }, { status: 401 });
 
     const { type, context } = await req.json();
     if (!type || !context) return Response.json({ error: "type·context 필수" }, { status: 400 });

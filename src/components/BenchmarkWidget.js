@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { findRegionFromAddr, LAWD_MAP } from "../lib/regions";
+import { supabase } from "../lib/supabase";
 
 const AI_CACHE_KEY = "ownly_ai_benchmark_cache";
 const AI_TTL = 24 * 60 * 60 * 1000; // 24h
@@ -158,9 +159,10 @@ export default function BenchmarkWidget({ tenants = [] }) {
     (async () => {
       setAiLoading(true);
       try {
+        const { data: sess } = await supabase.auth.getSession(); // AI 코멘트는 로그인 필수 (Claude 유료 호출)
         const r = await fetch("/api/ai-comment", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess?.session?.access_token || ""}` },
           body: JSON.stringify({
             type: "benchmark",
             context: {

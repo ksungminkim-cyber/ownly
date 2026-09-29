@@ -93,11 +93,12 @@ async function callGroq({ system, user, maxTokens, json, temperature }) {
  * @param {number} [o.maxTokens]
  * @param {"low"|"medium"|"high"} [o.effort]  Claude 추론 깊이
  * @param {number} [o.temperature]            Groq 온도
+ * @param {boolean} [o.freeOnly]  true 면 유료 제공자(Claude)를 건너뛰고 Groq 만 — 비로그인 공개 기능의 비용 노출 차단
  * @returns {Promise<{text:string, provider:string, model:string}>}
  */
-export async function callLLM({ system, user, json = false, maxTokens = 2000, effort = "low", temperature = 0.3 }) {
+export async function callLLM({ system, user, json = false, maxTokens = 2000, effort = "low", temperature = 0.3, freeOnly = false }) {
   const chain = [];
-  if (ANTHROPIC_KEY) chain.push(() => callClaude({ system, user, maxTokens, effort, json }));
+  if (ANTHROPIC_KEY && !freeOnly) chain.push(() => callClaude({ system, user, maxTokens, effort, json }));
   if (GROQ_KEY) chain.push(() => callGroq({ system, user, maxTokens, json, temperature }));
   if (chain.length === 0) throw new Error("AI API 키가 설정되지 않았습니다 (ANTHROPIC_API_KEY 또는 GROQ_API_KEY)");
 
