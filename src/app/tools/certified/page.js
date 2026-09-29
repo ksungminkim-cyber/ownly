@@ -5,6 +5,7 @@ import SiteFooter from "../../../components/SiteFooter";
 import { REASON_TEMPLATES } from "../../../lib/certifiedTemplates";
 import { PLANS, PAID_PLAN_ID, CERTIFIED_DRAFT_KEY as DRAFT_KEY } from "../../../lib/constants";
 import { trackTool, trackToolCta } from "../../../lib/track";
+import SignupGate from "../../../components/SignupGate";
 
 // 가입 후 복귀 경로 — 대시보드 내용증명 페이지가 ?draft=1 을 보고 localStorage 초안을 불러온다
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard/certified?draft=1")}`;
@@ -44,8 +45,11 @@ export default function CertifiedToolPage() {
   useEffect(() => { trackTool("certified"); }, []);
 
   // 가입 CTA — 작성 중인 초안을 보관해 가입 후 그대로 이어서 정식 발급
-  const onSignupCta = () => {
+  const saveDraft = () => {
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...form, savedAt: Date.now() })); } catch {}
+  };
+  const onSignupCta = () => {
+    saveDraft();
     trackToolCta("certified");
   };
 
@@ -95,7 +99,7 @@ export default function CertifiedToolPage() {
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
             <span className="chip">사유별 법적 근거 자동 표기</span>
             <span className="chip">우체국 발송 가이드</span>
-            <span className="chip">로그인 불필요</span>
+            <span className="chip">작성·미리보기 로그인 불필요</span>
           </div>
         </div>
 
@@ -159,9 +163,17 @@ export default function CertifiedToolPage() {
 
             <Field label="이행 기한 (일)" hint="수령일로부터" inputMode="numeric" value={form.deadlineDays} onChange={set("deadlineDays")} />
 
-            <button onClick={() => window.print()} className="btn btn-fill" style={{ width: "100%" }}>
-              🖨️ 미리보기 인쇄 (워터마크 포함)
-            </button>
+            <SignupGate
+              tool="certified"
+              title="인쇄·PDF 출력은 무료 가입 후 이용할 수 있습니다"
+              items={["작성한 내용 그대로 이어서 발급 (다시 입력할 필요 없음)", `워터마크 없는 PDF 출력본 월 ${PLANS.free.limits.certified}건 무료`, "발송 이력·등기번호 기록"]}
+              next="/dashboard/certified?draft=1"
+              onSignup={saveDraft}
+            >
+              <button onClick={() => window.print()} className="btn btn-fill" style={{ width: "100%" }}>
+                🖨️ 미리보기 인쇄 (워터마크 포함)
+              </button>
+            </SignupGate>
             <p style={{ fontSize: 11, color: "#a0a0b0", textAlign: "center", margin: 0 }}>입력 내용은 서버에 저장되지 않습니다 — 브라우저에서만 처리됩니다</p>
           </div>
 
@@ -255,7 +267,7 @@ export default function CertifiedToolPage() {
               { q: "내용증명은 법적 효력이 있나요?", a: "내용증명 자체가 강제력을 갖지는 않지만, '언제·어떤 내용을·누구에게' 통보했는지를 우체국이 공적으로 증명합니다. 이후 소송·지급명령에서 핵심 증거가 되고, 계약 해지 등 의사표시의 도달을 입증하는 표준 수단입니다." },
               { q: "월세를 몇 개월 밀리면 계약을 해지할 수 있나요?", a: "주택은 2기(2개월분), 상가는 3기 임대료 연체 시 해지 사유가 됩니다. 해지 전에 미납 사실과 납부 기한을 명시한 내용증명을 보내 두면 이후 절차에서 유리합니다." },
               { q: "변호사 없이 보내도 되나요?", a: "네. 내용증명은 형식 요건만 갖추면 누구나 직접 작성·발송할 수 있습니다. 다만 소송으로 이어질 수 있는 복잡한 사안은 전문가 상담을 권장합니다." },
-              { q: "이 생성기는 정말 무료인가요?", a: `네, 작성과 미리보기·워터마크 인쇄는 회원가입 없이 무료입니다. 워터마크 없는 PDF 출력본은 무료 가입 후 월 ${PLANS.free.limits.certified}건까지 무료이고, 그 이상은 플러스 구독(월 ${PLANS[PAID_PLAN_ID].price.toLocaleString()}원, 언제든 해지)에서 무제한입니다.` },
+              { q: "이 생성기는 정말 무료인가요?", a: `네, 작성과 미리보기는 회원가입 없이 무료이고, 인쇄는 무료 가입 후 이용할 수 있습니다. 워터마크 없는 PDF 출력본은 무료 가입 후 월 ${PLANS.free.limits.certified}건까지 무료이고, 그 이상은 플러스 구독(월 ${PLANS[PAID_PLAN_ID].price.toLocaleString()}원, 언제든 해지)에서 무제한입니다.` },
             ].map((f) => (
               <details key={f.q} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "14px 18px" }}>
                 <summary style={{ fontSize: 13.5, fontWeight: 800, color: NAVY, cursor: "pointer" }}>{f.q}</summary>

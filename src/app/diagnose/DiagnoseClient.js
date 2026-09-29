@@ -5,6 +5,7 @@ import SiteFooter from "../../components/SiteFooter";
 import { PREFILL_ADDR_KEY } from "../../lib/constants";
 import { trackTool, trackToolAction, trackToolCta } from "../../lib/track";
 import { REGIONS } from "../../lib/regions";
+import SignupGate from "../../components/SignupGate";
 
 // 가입 후 대시보드 온보딩이 이 주소를 그대로 이어받아 첫 물건 등록을 1클릭으로 줄인다
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
@@ -32,8 +33,13 @@ export default function DiagnoseClient() {
     trackTool("diagnose");
     // 공유 링크·시세 페이지(/diagnose?addr=...)로 들어오면 주소를 미리 채운다
     try {
-      const a = new URLSearchParams(window.location.search).get("addr");
-      if (a) Promise.resolve().then(() => setAddr(a.slice(0, 80)));
+      const q = new URLSearchParams(window.location.search);
+      const a = q.get("addr");
+      if (a) Promise.resolve().then(() => {
+        const o = { addr: a.slice(0, 80), pType: TYPES.some((t) => t.v === q.get("t")) ? q.get("t") : "주거", myRent: (q.get("rent") || "").replace(/\D/g, ""), areaPy: (q.get("area") || "").replace(/\D/g, "") };
+        setAddr(o.addr); setPType(o.pType); setMyRent(o.myRent); setAreaPy(o.areaPy);
+        if (q.get("auto") === "1") submit(o); // 가입 후 돌아오면 같은 조건으로 다시 진단해 전체 결과를 바로 보여준다
+      });
     } catch {}
   }, []);
   const onSignupCta = () => {
@@ -41,9 +47,12 @@ export default function DiagnoseClient() {
     trackToolCta("diagnose");
   };
 
-  const submit = async () => {
-    if (!addr.trim()) { setErr("주소를 입력해주세요"); return; }
-    trackToolAction("diagnose", "analysis_requested", { property_type: pType, has_rent: !!myRent, has_area: !!areaPy });
+  // o: 가입 후 복귀 시 URL 로 복원한 입력 (state 반영 전이라 직접 받는다). 버튼 클릭 이벤트 객체가 와도 무시된다
+  const submit = async (o = {}) => {
+    const A = typeof o.addr === "string" ? o.addr : addr, PT = o.pType || pType;
+    const R = typeof o.myRent === "string" ? o.myRent : myRent, AR = typeof o.areaPy === "string" ? o.areaPy : areaPy;
+    if (!A.trim()) { setErr("주소를 입력해주세요"); return; }
+    trackToolAction("diagnose", "analysis_requested", { property_type: PT, has_rent: !!R, has_area: !!AR });
     setErr(""); setLoading(true); setReport(null);
     try {
       // lawdCd 추출
@@ -52,7 +61,7 @@ export default function DiagnoseClient() {
         const geoRes = await fetch("/api/geocode", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address: addr.trim() }),
+          body: JSON.stringify({ address: A.trim() }),
         });
         const geoData = await geoRes.json();
         if (geoData.sigunguCode) lawdCd = geoData.sigunguCode;
@@ -61,7 +70,7 @@ export default function DiagnoseClient() {
       const res = await fetch("/api/ai-pricing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: addr.trim(), propertyType: pType, lawdCd, myRent, areaPyeong: areaPy }),
+        body: JSON.stringify({ address: A.trim(), propertyType: PT, lawdCd, myRent: R, areaPyeong: AR }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.error) throw new Error(data.error || "분석 서버가 잠시 응답하지 않습니다. 잠시 후 다시 시도해주세요.");
@@ -111,7 +120,7 @@ export default function DiagnoseClient() {
           <p style={{ fontSize: 11, fontWeight: 800, color: "#5b4fcf", letterSpacing: "1.5px", marginBottom: 6 }}>FREE DIAGNOSIS</p>
           <h1 style={{ fontSize: 26, fontWeight: 900, color: "#1a2744", lineHeight: 1.3 }}>내 물건 등급 즉시 진단</h1>
           <p style={{ fontSize: 13, color: "#6a6a7a", marginTop: 6, lineHeight: 1.7 }}>
-            주소만 넣으면 국토부 실거래 + AI 분석으로 <b>입지 등급(A~D)</b>·시장 포지션·공실 리스크를 즉시 확인합니다.
+            주소만 넣으면 국토부 실거래 + AI 분석으로 <b>입지 등급(A~D)</b>과 점수를 즉시 확인합니다. 적정 월세 범위·시장 포지션·공실 리스크는 무료 가입 후 볼 수 있어요.
             카카오톡 공유로 친구와 비교해보세요.
           </p>
         </section>
@@ -146,7 +155,7 @@ export default function DiagnoseClient() {
                 style={{ width: "100%", padding: "11px 13px", fontSize: 14, color: "#1a2744", background: "#f8f7f4", border: "1px solid #ebe9e3", borderRadius: 9, outline: "none", boxSizing: "border-box" }} />
             </div>
           </div>
-          <button onClick={submit} disabled={loading}
+          <button onClick={() => submit()} disabled={loading}
             style={{ width: "100%", padding: "13px", borderRadius: 10, background: loading ? "#8a8a9a" : "linear-gradient(135deg,#1a2744,#5b4fcf)", color: "#fff", fontSize: 14, fontWeight: 800, border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
             {loading ? "⏳ 실거래 + AI 분석 중..." : "🎯 지금 진단받기"}
           </button>
@@ -179,29 +188,38 @@ export default function DiagnoseClient() {
               </p>
             </section>
 
-            {/* 세부 지표 */}
-            <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
-              <InfoCard label="시장 포지션" value={report.marketPosition || "적정"} color={positionColor(report.marketPosition)} />
-              <InfoCard label="공실 리스크" value={report.vacancyRisk || "보통"} color={riskColor(report.vacancyRisk)} />
-              <InfoCard label="가격 추세" value={report.priceTrend || "보합"} color="#5b4fcf" />
-            </section>
-
-            {report.rentRange && (
-              <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "18px 22px", marginBottom: 14 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 800, color: "#1a2744", marginBottom: 10 }}>💰 적정 월세 범위</h3>
-                <p style={{ fontSize: 22, fontWeight: 900, color: "#1a2744" }}>
-                  {report.rentRange.min}~{report.rentRange.max}<span style={{ fontSize: 14, color: "#8a8a9a", fontWeight: 600, marginLeft: 4 }}>만원/월</span>
-                </p>
-                {report.avgRent && <p style={{ fontSize: 12, color: "#8a8a9a", marginTop: 4 }}>평균 {report.avgRent}만원 · 보증금 {report.avgDeposit?.toLocaleString() || "-"}만원</p>}
+            {/* 세부 지표·적정 월세 범위 — 비로그인은 등급·점수까지만, 전체는 무료 가입 후 (2026-09-29) */}
+            <SignupGate tool="diagnose" title="적정 월세 범위·공실 위험 전체 보기"
+              items={["이 지역 적정 월세 범위와 평균 보증금", "시장 포지션(저평가·적정·고평가)", "공실 리스크와 가격 추세"]}
+              next={`/diagnose?addr=${encodeURIComponent(addr)}&t=${encodeURIComponent(pType)}&rent=${myRent}&area=${areaPy}&auto=1`}
+              onSignup={() => { try { if (addr.trim()) localStorage.setItem(PREFILL_ADDR_KEY, addr.trim()); } catch {} }}>
+              <>
+              {/* 세부 지표 */}
+              <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
+                <InfoCard label="시장 포지션" value={report.marketPosition || "적정"} color={positionColor(report.marketPosition)} />
+                <InfoCard label="공실 리스크" value={report.vacancyRisk || "보통"} color={riskColor(report.vacancyRisk)} />
+                <InfoCard label="가격 추세" value={report.priceTrend || "보합"} color="#5b4fcf" />
               </section>
-            )}
 
-            <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "16px 18px", marginBottom: 14 }}>
-              <p style={{ fontSize: 12.5, fontWeight: 800, color: "#1a2744", marginBottom: 6 }}>이 결과를 읽는 방법</p>
-              <p style={{ fontSize: 12, color: "#6a6a7a", lineHeight: 1.7, margin: 0 }}>
-                적정 임대료 범위는 동일 지역·유형의 공개 실거래를 비교한 참고값입니다. 보증금, 면적, 층·관리 상태, 계약 조건에 따라 달라질 수 있으므로 실제 계약 전에는 개별 거래 조건을 확인해 주세요.
-              </p>
-            </section>
+              {report.rentRange && (
+                <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "18px 22px", marginBottom: 14 }}>
+                  <h3 style={{ fontSize: 13, fontWeight: 800, color: "#1a2744", marginBottom: 10 }}>💰 적정 월세 범위</h3>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: "#1a2744" }}>
+                    {report.rentRange.min}~{report.rentRange.max}<span style={{ fontSize: 14, color: "#8a8a9a", fontWeight: 600, marginLeft: 4 }}>만원/월</span>
+                  </p>
+                  {report.avgRent && <p style={{ fontSize: 12, color: "#8a8a9a", marginTop: 4 }}>평균 {report.avgRent}만원 · 보증금 {report.avgDeposit?.toLocaleString() || "-"}만원</p>}
+                </section>
+              )}
+
+              <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "16px 18px", marginBottom: 14 }}>
+                <p style={{ fontSize: 12.5, fontWeight: 800, color: "#1a2744", marginBottom: 6 }}>이 결과를 읽는 방법</p>
+                <p style={{ fontSize: 12, color: "#6a6a7a", lineHeight: 1.7, margin: 0 }}>
+                  적정 임대료 범위는 동일 지역·유형의 공개 실거래를 비교한 참고값입니다. 보증금, 면적, 층·관리 상태, 계약 조건에 따라 달라질 수 있으므로 실제 계약 전에는 개별 거래 조건을 확인해 주세요.
+                </p>
+              </section>
+
+              </>
+            </SignupGate>
 
             {/* 공유 */}
             <section style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 14, padding: "20px 24px", marginBottom: 14 }}>

@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
 import { trackTool, trackToolCta } from "../../../lib/track";
+import SignupGate from "../../../components/SignupGate";
 
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
@@ -37,6 +38,18 @@ export default function CommercialToolPage() {
   const [deposit, setDeposit] = useState("");
   const [rent, setRent] = useState("");
 
+  // 가입 후 돌아왔을 때 입력 복원 — next 쿼리(?region=seoul&deposit=5000&rent=300)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const rg = q.get("region"), d = q.get("deposit") || "", r = q.get("rent") || "";
+    if (!/^[0-9]*$/.test(d) || !/^[0-9]*$/.test(r) || (!d && !r)) return;
+    Promise.resolve().then(() => {
+      if (REGION_LIMITS.some((x) => x.key === rg)) setRegion(rg);
+      setDeposit(d);
+      setRent(r);
+    });
+  }, []);
+
   const result = useMemo(() => {
     const dep = Number(deposit || 0);
     const r = Number(rent || 0);
@@ -66,7 +79,7 @@ export default function CommercialToolPage() {
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
             <span className="chip">상가임대차보호법 시행령 기준</span>
-            <span className="chip">로그인 불필요</span>
+            <span className="chip">판정 결과 로그인 불필요</span>
           </div>
         </div>
 
@@ -92,11 +105,18 @@ export default function CommercialToolPage() {
               ) : (
                 <p style={{ fontSize: 13, fontWeight: 800, color: "#b8860b", margin: 0 }}>⚠️ 지역 기준({fmt(result.limit)}) 초과 — <u>일부 조항만 적용</u></p>
               )}
+              <SignupGate
+                tool="commercial"
+                title="적용·미적용 조항 상세는 무료 가입 후 볼 수 있습니다"
+                items={["이 계약에 적용되는 보호 조항 목록", "기준 초과 시 적용되지 않는 조항"]}
+                next={`/tools/commercial?region=${region}&deposit=${deposit}&rent=${rent}`}
+              >
               <p style={{ fontSize: 11.5, color: "#6a6a7a", lineHeight: 1.8, margin: "8px 0 0" }}>
                 {result.protectedFull
                   ? "임대료 인상 5% 상한 · 우선변제권 · 묵시적 갱신 등 법의 보호 조항이 모두 적용됩니다."
                   : "기준 초과 상가에도 대항력, 계약갱신요구권(10년), 권리금 회수기회 보호, 3기 연체 해지 규정은 그대로 적용됩니다. 다만 5% 인상 상한·우선변제권 등은 적용되지 않습니다."}
               </p>
+              </SignupGate>
             </div>
           )}
         </div>

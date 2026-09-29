@@ -4,12 +4,15 @@ import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
 import { trackTool, trackToolCta } from "../../../lib/track";
 import { REGIONS } from "../../../lib/regions";
+import SignupGate from "../../../components/SignupGate";
 
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
 // 무료 공개 도구: 임대 수익률 계산기
 // 로그인 불필요. 대출·공실·세금 반영한 실질 수익률 즉시 계산.
 // 결과 하단에 "내 물건에 저장" CTA로 회원가입 유도.
+
+const FORM_KEYS = ["price", "rent", "deposit", "loan", "rate", "vacancy", "maintenance", "propertyTax"];
 
 export default function YieldCalcPage() {
   const [form, setForm] = useState({
@@ -26,6 +29,16 @@ export default function YieldCalcPage() {
   const n = (v) => Number(v || 0);
   useEffect(() => { trackTool("yield"); }, []);
   const onSignupCta = () => trackToolCta("yield");
+
+  // 가입 후 돌아왔을 때 입력 복원 — next 쿼리(?price=..&rent=..)에서 읽는다
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const restored = {};
+    for (const k of FORM_KEYS) { const v = q.get(k); if (v && /^[0-9.]+$/.test(v)) restored[k] = v; }
+    if (!Object.keys(restored).length) return;
+    Promise.resolve().then(() => setForm((f) => ({ ...f, ...restored })));
+  }, []);
+  const nextPath = `/tools/yield?${new URLSearchParams(Object.entries(form).filter(([, v]) => v !== "")).toString()}`;
 
   const result = useMemo(() => {
     const price = n(form.price);
@@ -147,6 +160,12 @@ export default function YieldCalcPage() {
                 />
               </section>
 
+              <SignupGate
+                tool="yield"
+                title="상세 분석은 무료 가입 후 볼 수 있습니다"
+                items={["투자금 회수 시점", "연간 현금흐름 내역 (임대료·공실·이자·관리비·세금)", "10년 누적 현금흐름 시뮬레이션 표"]}
+                next={nextPath}
+              >
               {/* 투자금 회수 */}
               <section style={{ background: "linear-gradient(135deg,rgba(91,79,207,0.08),rgba(15,165,115,0.08))", border: "1px solid rgba(91,79,207,0.2)", borderRadius: 14, padding: "20px 24px" }}>
                 <p style={{ fontSize: 12, fontWeight: 800, color: "#5b4fcf", letterSpacing: "1px", marginBottom: 6 }}>💎 투자금 회수 시점</p>
@@ -201,6 +220,7 @@ export default function YieldCalcPage() {
                   </table>
                 </div>
               </section>
+              </SignupGate>
 
               {/* CTA */}
               <section style={{ background: "linear-gradient(135deg,#1a2744,#5b4fcf)", color: "#fff", borderRadius: 14, padding: "28px 26px" }}>

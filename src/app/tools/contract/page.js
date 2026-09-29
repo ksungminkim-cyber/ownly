@@ -3,8 +3,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
 import { trackTool, trackToolCta } from "../../../lib/track";
+import SignupGate from "../../../components/SignupGate";
 
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
+// 가입 버튼 클릭 시 작성 중인 계약서를 보관 → 가입 후 이 페이지로 돌아오면 복원 (개인정보라 URL 대신 sessionStorage)
+const DRAFT_KEY = "ownly_contract_tool_draft";
 
 // 무료 공개 도구: 임대차계약서 생성기
 // 로그인 불필요. 표준 조항 + 추천 특약 포함 계약서 작성 + 워터마크 미리보기/인쇄.
@@ -51,6 +54,19 @@ export default function ContractToolPage() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const toggleTerm = (key) => setSelectedTerms((prev) => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
+  useEffect(() => {
+    let draft = null;
+    try { draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || "null"); sessionStorage.removeItem(DRAFT_KEY); } catch {}
+    if (!draft?.form) return;
+    Promise.resolve().then(() => {
+      setForm((f) => ({ ...f, ...draft.form }));
+      if (Array.isArray(draft.terms)) setSelectedTerms(draft.terms);
+    });
+  }, []);
+  const saveDraft = () => {
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, terms: selectedTerms })); } catch {}
+  };
+
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
   const isCommercial = form.propertyType === "상가";
   const overdueClause = isCommercial ? "3기" : "2기";
@@ -95,7 +111,7 @@ export default function ContractToolPage() {
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
             <span className="chip">표준 조항 자동 포함</span>
             <span className="chip">추천 특약 원클릭</span>
-            <span className="chip">로그인 불필요</span>
+            <span className="chip">작성·미리보기 로그인 불필요</span>
           </div>
         </div>
 
@@ -155,9 +171,16 @@ export default function ContractToolPage() {
                 style={{ width: "100%", padding: "11px 13px", fontSize: 13, color: NAVY, background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
             </div>
 
-            <button onClick={() => window.print()} className="btn btn-fill" style={{ width: "100%" }}>
-              🖨️ 미리보기 인쇄 (워터마크 포함)
-            </button>
+            <SignupGate
+              tool="contract"
+              title="계약서 인쇄·PDF 저장은 무료 가입 후 이용할 수 있습니다"
+              items={["작성한 내용 그대로 인쇄·PDF 저장 (가입 후 이 화면으로 돌아와 이어서)", "계약을 물건으로 등록해 월세 수금·만료 알림 관리"]}
+              onSignup={saveDraft}
+            >
+              <button onClick={() => window.print()} className="btn btn-fill" style={{ width: "100%" }}>
+                🖨️ 미리보기 인쇄 (워터마크 포함)
+              </button>
+            </SignupGate>
             <p style={{ fontSize: 11, color: "#a0a0b0", textAlign: "center", margin: 0 }}>입력 내용은 서버에 저장되지 않습니다 — 브라우저에서만 처리됩니다</p>
           </div>
 
@@ -292,7 +315,7 @@ export default function ContractToolPage() {
               { q: "이 계약서 양식은 법적으로 유효한가요?", a: "임대차계약은 당사자 간 합의로 성립하며 정해진 서식이 없습니다. 목적물·보증금·차임·기간과 쌍방 서명이 있으면 유효합니다. 본 양식은 표준 조항과 관행적 특약을 반영한 참고용 서식입니다." },
               { q: "계약서만 쓰면 보증금이 보호되나요?", a: "아닙니다. 임차인은 전입신고 + 확정일자를 받아야 대항력과 우선변제권이 생깁니다. 계약서에 전입신고 협조 특약을 넣어두는 것이 서로에게 안전합니다." },
               { q: "전월세신고는 누가 하나요?", a: "임대인·임차인 중 한 명이 하면 되고, 계약 체결일로부터 30일 이내입니다. 보증금 6천만원 초과 또는 월세 30만원 초과 주택 계약이 대상이며, 기한을 넘기면 과태료가 부과될 수 있습니다." },
-              { q: "이 생성기는 정말 무료인가요?", a: "네, 작성과 미리보기·워터마크 인쇄는 회원가입 없이 무료입니다. 가입하면 계약을 물건으로 등록해 수금 현황·만료 알림·계약서 보관까지 무료 플랜(물건 3개)에서 관리할 수 있습니다." },
+              { q: "이 생성기는 정말 무료인가요?", a: "네, 작성과 미리보기는 회원가입 없이 무료이고, 인쇄·PDF 저장은 무료 가입 후 이용할 수 있습니다. 가입하면 계약을 물건으로 등록해 수금 현황·만료 알림·계약서 보관까지 무료 플랜(물건 3개)에서 관리할 수 있습니다." },
             ].map((f) => (
               <details key={f.q} style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, padding: "14px 18px" }}>
                 <summary style={{ fontSize: 13.5, fontWeight: 800, color: NAVY, cursor: "pointer" }}>{f.q}</summary>

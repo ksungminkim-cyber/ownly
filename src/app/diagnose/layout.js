@@ -1,7 +1,7 @@
 // 기본 메타데이터. 공유 링크(?grade=...)용 OG 카드는 page.js 의 generateMetadata 가 덮어쓴다 (layout 은 searchParams 를 받지 못함).
 export const metadata = {
   title: "내 물건 등급 즉시 진단 — 국토부 실거래 + AI | 온리",
-  description: "주소만 넣으면 입지 등급(A~D)·시장 포지션·공실 리스크를 즉시 확인. 국토부 실거래 + AI 분석. 무료.",
+  description: "주소만 넣으면 입지 등급(A~D)과 점수를 즉시 확인. 적정 월세·공실 리스크 상세는 무료 가입 후. 국토부 실거래 + AI 분석.",
   alternates: { canonical: "https://www.ownly.kr/diagnose" },
   openGraph: {
     title: "내 부동산 등급 즉시 진단 (무료)",

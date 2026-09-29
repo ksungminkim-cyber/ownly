@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
 import { trackTool, trackToolCta } from "../../../lib/track";
+import SignupGate from "../../../components/SignupGate";
 
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 import { calcTotalHoldingTax, HOLDING_TAX_BASIS_YEAR, HOLDING_TAX_DISCLAIMER } from "../../../lib/holdingTax";
@@ -48,6 +49,20 @@ export default function HoldingTaxToolPage() {
   const [is3Plus, setIs3Plus] = useState(false);
   const [joint, setJoint] = useState(false);
 
+  // 가입 후 돌아왔을 때 입력 복원 — next 쿼리(?h=9.5&one=1&three=0&joint=0)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const h = q.get("h");
+    if (!h || !/^[0-9.]+$/.test(h)) return;
+    Promise.resolve().then(() => {
+      setHousingEok(h);
+      setIs1Home(q.get("one") === "1");
+      setIs3Plus(q.get("three") === "1");
+      setJoint(q.get("joint") === "1");
+    });
+  }, []);
+  const nextPath = `/tools/tax?h=${encodeURIComponent(housingEok)}&one=${is1Home ? 1 : 0}&three=${is3Plus ? 1 : 0}&joint=${joint ? 1 : 0}`;
+
   const result = useMemo(() => {
     const sum = Number(housingEok || 0) * 10000; // 억 → 만원
     if (!sum) return null;
@@ -79,7 +94,7 @@ export default function HoldingTaxToolPage() {
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
             <span className="chip">{HOLDING_TAX_BASIS_YEAR} 세법 기준</span>
-            <span className="chip">로그인 불필요</span>
+            <span className="chip">예상 세액 로그인 불필요</span>
           </div>
         </div>
 
@@ -99,6 +114,12 @@ export default function HoldingTaxToolPage() {
               <p className="num" style={{ fontSize: 30, fontWeight: 900, margin: 0 }}>{fmt(result.grandTotal)}</p>
             </div>
             <div style={{ padding: "16px 22px" }}>
+              <SignupGate
+                tool="tax"
+                title="세목별 내역은 무료 가입 후 볼 수 있습니다"
+                items={["재산세(주택분) · 종합부동산세 각각의 금액", "종부세 공제액 (공동명의 시 명의별 합산)"]}
+                next={nextPath}
+              >
               {[
                 ["재산세 (주택분)", result.propertyTax.housing],
                 ["종합부동산세", result.comprehensiveTax.housing],
@@ -112,6 +133,7 @@ export default function HoldingTaxToolPage() {
                 <span style={{ fontSize: 12, color: "#a0a0b0" }}>종부세 공제액 {joint ? "(명의별 합산)" : ""}</span>
                 <span className="num" style={{ fontSize: 12, color: "#a0a0b0" }}>{fmt(result.comprehensiveTax.housingDetail.exemption)}</span>
               </div>
+              </SignupGate>
               <p style={{ fontSize: 11, color: "#a0a0b0", lineHeight: 1.7, margin: "10px 0 0" }}>{HOLDING_TAX_DISCLAIMER}</p>
             </div>
           </div>

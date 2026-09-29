@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
 import { trackTool, trackToolCta } from "../../../lib/track";
+import SignupGate from "../../../components/SignupGate";
 
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
 
@@ -27,6 +28,14 @@ export default function RentRefundPage() {
   const onSignupCta = () => trackToolCta("refund");
   const [monthlyRent, setMonthlyRent] = useState("");
   const [salary, setSalary] = useState("");
+
+  // 가입 후 돌아왔을 때 입력 복원 — next 쿼리(?rent=60&salary=4500)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const r = q.get("rent"), s = q.get("salary");
+    if (!r || !s || !/^[0-9]+$/.test(r) || !/^[0-9]+$/.test(s)) return;
+    Promise.resolve().then(() => { setMonthlyRent(r); setSalary(s); });
+  }, []);
 
   const result = useMemo(() => {
     const rent = Number(monthlyRent || 0);
@@ -60,7 +69,7 @@ export default function RentRefundPage() {
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
             <span className="chip">{BASIS} 세법 기준</span>
-            <span className="chip">로그인 불필요</span>
+            <span className="chip">예상 환급액 로그인 불필요</span>
           </div>
         </div>
 
@@ -76,10 +85,17 @@ export default function RentRefundPage() {
               <div style={{ background: "rgba(15,165,115,0.06)", border: "1.5px solid rgba(15,165,115,0.3)", borderRadius: 14, padding: "16px 18px" }}>
                 <p style={{ fontSize: 12, color: "#065f46", fontWeight: 700, marginBottom: 4 }}>예상 연간 환급액 (공제율 {Math.round(result.rate * 100)}%)</p>
                 <p className="num" style={{ fontSize: 28, fontWeight: 900, color: "#0fa573", margin: 0 }}>약 {result.refund.toLocaleString()}만원</p>
+                <SignupGate
+                  tool="refund"
+                  title="계산 근거는 무료 가입 후 볼 수 있습니다"
+                  items={["연 월세 중 공제 대상 한도 적용 내역", "공제율 적용 계산식", "한도 초과분 안내"]}
+                  next={`/tools/refund?rent=${monthlyRent}&salary=${salary}`}
+                >
                 <p style={{ fontSize: 11.5, color: "#4a6a5a", margin: "6px 0 0", lineHeight: 1.7 }}>
                   연 월세 {result.annualRent.toLocaleString()}만원 중 한도 {result.capped.toLocaleString()}만원 × {Math.round(result.rate * 100)}%
                   {result.overCap && " · 연 1,000만원 초과분은 공제 대상에서 제외됩니다"}
                 </p>
+                </SignupGate>
               </div>
             ) : (
               <div style={{ background: "rgba(232,68,90,0.05)", border: "1.5px solid rgba(232,68,90,0.25)", borderRadius: 14, padding: "14px 18px" }}>
