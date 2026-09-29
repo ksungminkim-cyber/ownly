@@ -237,7 +237,7 @@ export default function DiagnoseClient() {
             {/* CTA */}
             <section style={{ background: "linear-gradient(135deg,#0fa573,#5b4fcf)", color: "#fff", borderRadius: 14, padding: "24px 26px" }}>
               <p style={{ fontSize: 17, fontWeight: 900, marginBottom: 8 }}>이 물건, 계속 관리하고 싶다면</p>
-              <p style={{ fontSize: 13, opacity: 0.9, marginBottom: 16, lineHeight: 1.7 }}>무료 가입 후 물건 3개까지 수금·계약·만료 알림을 자동 관리하세요. 상세 AI 진단·실거래 평당 비교·수익률·세금 계산은 플랜 업그레이드로.</p>
+              <p style={{ fontSize: 13, opacity: 0.9, marginBottom: 16, lineHeight: 1.7 }}>무료 가입하면 적정 월세·공실 리스크까지 전체 진단을 보고, 물건 3개까지 수금·계약·만료 알림을 자동으로 관리할 수 있어요. 세금 시뮬레이터·카카오 알림톡은 플러스 플랜에서.</p>
               <Link href={SIGNUP_HREF} onClick={onSignupCta} style={{ display: "inline-block", padding: "11px 24px", background: "#fff", color: "#1a2744", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
                 무료로 시작하기 →
               </Link>
