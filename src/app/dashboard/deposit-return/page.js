@@ -1,9 +1,10 @@
 "use client";
-import { useState, useRef, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "../../../context/AppContext";
 import { supabase } from "../../../lib/supabase";
 import { SectionLabel, toast, Modal } from "../../../components/shared";
+import { latestPair, worsenedItems, conditionLabel } from "../../../lib/inspections";
 
 const C = {
   navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a",
@@ -37,8 +38,19 @@ function unpaidMonths(t, payments, now = new Date()) {
   return out;
 }
 
+// ?tenant=<id> 로 세입자 선택, &from=inspection 이면 퇴실 점검에서 나빠진 항목을 공제 후보로 보여준다
 export default function DepositReturnPage() {
+  return (
+    <Suspense fallback={<div className="page-in page-padding" style={{ color: C.muted, fontSize: 13 }}>불러오는 중...</div>}>
+      <DepositReturnContent />
+    </Suspense>
+  );
+}
+
+function DepositReturnContent() {
   const router = useRouter();
+  const params = useSearchParams();
+  const fromInspection = params?.get("from") === "inspection";
   const { tenants, repairs, payments, user } = useApp();
   const printRef = useRef(null);
   const [picked, setPicked] = useState({}); // 체크한 공제 후보 key
@@ -47,7 +59,9 @@ export default function DepositReturnPage() {
   const [saving, setSaving] = useState(false);
   const [viewing, setViewing] = useState(null);
 
-  const [selectedTenant, setSelectedTenant] = useState("");
+  const [selectedTenant, setSelectedTenant] = useState(() => params?.get("tenant") || "");
+  const [insp, setInsp] = useState(null); // { tenantId, state: "ok"|"error", rows } — 퇴실 점검 후보용
+  const [inspAmounts, setInspAmounts] = useState({}); // 후보 key → 사용자가 입력한 금액(만원)
   const [deductions, setDeductions] = useState([
     { id: 1, label: "미납 월세", amount: "" },
     { id: 2, label: "수리비 공제", amount: "" },
@@ -65,7 +79,15 @@ export default function DepositReturnPage() {
       .map(r => ({ key: `r-${r.id}`, label: `수리비 ${r.category || ""}${r.date ? ` (${r.date})` : ""}`.trim(), amount: Number(r.cost) || 0, status: r.status }));
     return { unpaid: unpaidMonths(sel, payments || []), repair };
   }, [sel, payments, repairs]);
-  const pickedItems = [...candidates.unpaid, ...candidates.repair].filter(c => picked[c.key]);
+  const inspLoaded = fromInspection && insp?.tenantId === selectedTenant ? insp : null;
+  const inspPair = useMemo(() => latestPair(inspLoaded?.rows || []), [inspLoaded]);
+  const inspCandidates = (inspPair.moveIn && inspPair.moveOut ? worsenedItems(inspPair.moveIn, inspPair.moveOut) : []).map(r => ({
+    key: `i-${r.area}`,
+    label: `퇴실 점검 ${r.area} (${conditionLabel(r.before.condition)} → ${conditionLabel(r.after.condition)})`,
+    amount: Math.max(0, Number(inspAmounts[`i-${r.area}`]) || 0),
+    note: r.after.note,
+  }));
+  const pickedItems = [...candidates.unpaid, ...candidates.repair, ...inspCandidates].filter(c => picked[c.key]);
   const totalDeduct = deductions.reduce((s, d) => s + (Number(d.amount) || 0), 0) + pickedItems.reduce((s, c) => s + c.amount, 0);
   const returnAmount = Math.max(0, deposit - totalDeduct);
   const asOf = new Date().toISOString().slice(0, 10);
@@ -83,6 +105,19 @@ export default function DepositReturnPage() {
     })();
     return () => { cancelled = true; };
   }, [user?.id]);
+
+  // 퇴실 점검 기록 불러오기 (move_inspections — 2026-09-30 마이그레이션). from=inspection 일 때만
+  useEffect(() => {
+    if (!fromInspection || !user?.id || !selectedTenant) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from("move_inspections").select("*").eq("user_id", user.id).eq("tenant_id", selectedTenant);
+      if (cancelled) return;
+      if (error) console.error("[deposit-return.inspections]", error);
+      setInsp({ tenantId: selectedTenant, state: error ? "error" : "ok", rows: data || [] });
+    })();
+    return () => { cancelled = true; };
+  }, [fromInspection, user?.id, selectedTenant]);
 
   const handleSave = async () => {
     if (!sel) { toast("세입자를 선택하세요", "error"); return; }
@@ -147,7 +182,7 @@ export default function DepositReturnPage() {
       {/* 세입자 선택 */}
       <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "18px 20px", marginBottom: 16 }}>
         <p style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 12 }}>세입자 선택</p>
-        <select value={selectedTenant} onChange={e => { setSelectedTenant(e.target.value); setPicked({}); }}
+        <select value={selectedTenant} onChange={e => { setSelectedTenant(e.target.value); setPicked({}); setInspAmounts({}); }}
           style={{ width: "100%", padding: "11px 13px", border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.navy, background: C.faint, cursor: "pointer" }}>
           <option value="">세입자를 선택하세요</option>
           {tenants.map(t => (
@@ -195,6 +230,28 @@ export default function DepositReturnPage() {
               <span className="num" style={{ fontWeight: 700, color: C.rose }}>{c.amount.toLocaleString()}만원</span>
             </label>
           ))}
+          {fromInspection && (
+            <>
+              <p style={{ fontSize: 12, fontWeight: 700, color: C.navy, margin: "12px 0 6px" }}>퇴실 점검에서 나빠진 항목 <span style={{ fontWeight: 500, color: C.muted }}>— 금액은 직접 입력하세요</span></p>
+              {!inspLoaded ? (
+                <p style={{ fontSize: 12, color: C.muted }}>점검 기록을 불러오는 중...</p>
+              ) : inspLoaded.state === "error" ? (
+                <p style={{ fontSize: 12, color: C.muted }}>점검 기록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
+              ) : !(inspPair.moveIn && inspPair.moveOut) ? (
+                <p style={{ fontSize: 12, color: C.muted }}>이 세입자의 입주·퇴실 점검 기록이 모두 있어야 비교할 수 있습니다.</p>
+              ) : inspCandidates.length === 0 ? (
+                <p style={{ fontSize: 12, color: C.muted }}>입주 때보다 상태가 나빠진 항목이 없습니다.</p>
+              ) : inspCandidates.map(c => (
+                <label key={c.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", fontSize: 13, color: C.navy, cursor: "pointer" }}>
+                  <input type="checkbox" checked={!!picked[c.key]} onChange={e => setPicked(p => ({ ...p, [c.key]: e.target.checked }))} />
+                  <span style={{ flex: 1 }}>{c.label}{c.note ? <span style={{ fontSize: 11, color: C.muted }}> · {c.note}</span> : null}</span>
+                  <input type="number" min="0" value={inspAmounts[c.key] ?? ""} placeholder="0" onChange={e => setInspAmounts(a => ({ ...a, [c.key]: e.target.value }))}
+                    style={{ width: 90, padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, color: C.rose, fontWeight: 700, background: C.faint, textAlign: "right" }} />
+                  <span style={{ fontSize: 11, color: C.muted }}>만원</span>
+                </label>
+              ))}
+            </>
+          )}
           <p style={{ fontSize: 10, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>※ 미납액은 계약 시작일과 ownly 등록일 중 늦은 달부터 납부일이 지난 달까지, 수금 기록이 없거나 부분납부인 달을 현재 월세 기준으로 계산한 참고값입니다. 월세 변경 이력·현금 수령 등 기록되지 않은 사항은 반영되지 않으니 실제 공제 전 세입자와 확인하세요. 통상적인 사용에 따른 마모 수리비는 세입자에게 청구하기 어려울 수 있습니다.</p>
         </div>
       )}

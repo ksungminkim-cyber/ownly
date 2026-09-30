@@ -1,7 +1,7 @@
 export const C = { bg: "#f5f4f0", surface: "#ffffff", surfaceHover: "#f8f7f4", border: "#e8e6e0", borderFocus: "#1a2744", text: "#1a1a2e", muted: "#8a8a9a", faint: "#f0efe9", indigo: "#1a2744", indigoLight: "#2d4270", purple: "#5b4fcf", rose: "#e8445a", emerald: "#0fa573", amber: "#e8960a", sky: "#1e7fcb", gold: "#c9920a", coral: "#ff5a3c", teal: "#0d9488", navy: "#1a2744", cream: "#f5f4f0", white: "#ffffff", };
 export const STATUS_MAP = { "정상": { c: "#0fa573", bg: "rgba(15,165,115,0.1)" }, "미납": { c: "#e8445a", bg: "rgba(232,68,90,0.1)" }, "만료임박":{ c: "#e8960a", bg: "rgba(232,150,10,0.1)" }, };
 export const INTENT_MAP = { "갱신의향 있음": { c: "#0fa573", bg: "rgba(15,165,115,0.1)" }, "갱신의향 없음": { c: "#e8445a", bg: "rgba(232,68,90,0.1)" }, "협의중": { c: "#e8960a", bg: "rgba(232,150,10,0.1)" }, "미확인": { c: "#8a8a9a", bg: "#f0efe9" }, };
-export const PAY_MAP = { paid: { label: "납부완료", c: "#0fa573", bg: "rgba(15,165,115,0.1)" }, unpaid: { label: "미납", c: "#e8445a", bg: "rgba(232,68,90,0.1)" }, late: { label: "연체", c: "#e8960a", bg: "rgba(232,150,10,0.1)" }, };
+export const PAY_MAP = { paid: { label: "납부완료", c: "#0fa573", bg: "rgba(15,165,115,0.1)" }, unpaid: { label: "미납", c: "#e8445a", bg: "rgba(232,68,90,0.1)" }, };
 export const COLORS = ["#1a2744", "#e8960a", "#e8445a", "#1e7fcb", "#5b4fcf", "#0fa573", "#2d4270"];
 
 // ─── 요금제 (2026-09-10 단순화: 무료 / 플러스 · 2026-09-28 월 9,900원 → 4,900원 인하) ─────────────

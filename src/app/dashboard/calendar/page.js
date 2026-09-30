@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; const MONTH_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"]; const DAY_KO = ["일","월","화","수","목","금","토"]; export default function CalendarPage() { const router = useRouter(); const { tenants, contracts, payments, vacancies } = useApp(); const today = new Date(); const [year, setYear] = useState(today.getFullYear()); const [month, setMonth] = useState(today.getMonth()); const [selected, setSelected] = useState(null); const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768); useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []); const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); setSelected(null); }; const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); setSelected(null); }; const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); setSelected(today.getDate()); }; const daysInMonth = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); const getPayDayForMonth = (t, yr, mo) => { const pd = Number(t.pay_day); if (!pd || pd === 0) return 1; if (pd === 99) return new Date(yr, mo + 1, 0).getDate(); const lastDay = new Date(yr, mo + 1, 0).getDate(); return Math.min(pd, lastDay); };
+"use client"; import { useState, useMemo, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel } from "../../../components/shared"; import { C } from "../../../lib/constants"; import { overdueDays } from "../../../lib/unpaid"; import { useApp } from "../../../context/AppContext"; const MONTH_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"]; const DAY_KO = ["일","월","화","수","목","금","토"]; export default function CalendarPage() { const router = useRouter(); const { tenants, contracts, payments, vacancies } = useApp(); const today = new Date(); const [year, setYear] = useState(today.getFullYear()); const [month, setMonth] = useState(today.getMonth()); const [selected, setSelected] = useState(null); const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768); useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []); const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y-1); } else setMonth(m => m-1); setSelected(null); }; const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y+1); } else setMonth(m => m+1); setSelected(null); }; const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); setSelected(today.getDate()); }; const daysInMonth = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear(); const getPayDayForMonth = (t, yr, mo) => { const pd = Number(t.pay_day); if (!pd || pd === 0) return 1; if (pd === 99) return new Date(yr, mo + 1, 0).getDate(); const lastDay = new Date(yr, mo + 1, 0).getDate(); return Math.min(pd, lastDay); };
 
   // 공실 일수 계산
   const vacantDays = (since) => {
@@ -21,12 +21,16 @@
       const monthPayment = (payments || []).find(
         p => p.tid === t.id && Number(p.month) === month + 1 && (Number(p.year) || year) === year
       );
+      // 완납(paid)만 납부 완료 — 부분납부(partial)는 입금일에 "부분납부"로 표시하고 잔액은 미납/수금예정으로 계속 보여준다
+      const fullyPaid = monthPayment?.status === "paid";
       if (monthPayment?.paid) {
         const d = new Date(monthPayment.paid);
         if (d.getFullYear() === year && d.getMonth() === month)
-          add(d.getDate(), { type: "paid", label: t.name, sub: "월세납부", color: "#0fa573" });
-      } else {
-        const isUnpaid = ["unpaid", "late"].includes(monthPayment?.status) || t.status === "미납";
+          add(d.getDate(), { type: "paid", label: t.name, sub: fullyPaid ? "월세납부" : "부분납부", color: "#0fa573" });
+      }
+      if (!fullyPaid && Number(t.rent) > 0 && t.status !== "공실" && t.status !== "퇴거") {
+        // 예전엔 존재하지 않는 상태값("unpaid"/"late")으로 판정해 실제 미납이 납부일이 지나도 "수금예정"으로 보였다
+        const isUnpaid = overdueDays(t, year, month + 1) > 0 || t.status === "미납";
         add(payDay, { type: isUnpaid ? "unpaid" : "due", label: t.name, sub: isUnpaid ? "미납" : "수금예정", color: isUnpaid ? C.rose : C.amber });
       }
     });

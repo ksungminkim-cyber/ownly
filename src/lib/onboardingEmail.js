@@ -32,7 +32,8 @@ const li = (items) => `<ul style="margin:0 0 14px;padding-left:18px;font-size:13
 export function onboardingEmail(step, { createdAt }) {
   const created = Date.parse(createdAt);
   const hitCrash = created >= CRASH_FROM && created < CRASH_TO;
-  const cta = { href: "https://www.ownly.kr/dashboard", label: "첫 물건 등록하기 →" };
+  // utm: 메일을 보고 돌아온 방문을 대시보드가 email_return 이벤트로 기록 (src/app/dashboard/layout.js)
+  const cta = { href: `https://www.ownly.kr/dashboard?utm_source=email&utm_campaign=onboarding_${step}`, label: "첫 물건 등록하기 →" };
 
   if (step === 1) {
     return {

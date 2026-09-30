@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const BUCKET = "tenant-files";
 const MAX_BYTES = 10 * 1024 * 1024;
-const KINDS = new Set(["notes", "receipts", "contracts"]);
+const KINDS = new Set(["notes", "receipts", "contracts", "inspections"]);
 
 const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 

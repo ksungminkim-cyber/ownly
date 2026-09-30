@@ -1,4 +1,5 @@
 // CSV 내보내기 유틸 — 한글 Excel 호환 (BOM 포함)
+import { isSampleTenant } from "./sampleData";
 
 function escapeCsvField(v) {
   if (v === null || v === undefined) return "";
@@ -47,6 +48,8 @@ export function exportTenants(tenants, buildings) {
   downloadCsv(`세입자_목록_${today()}.csv`, rowsToCsv(headers, rows));
 }
 
+const PAYMENT_STATUS = (s) => (s === "paid" ? "납부" : s === "partial" ? "부분납부" : "미납");
+
 // ─── 수금 이력 ───
 export function exportPayments(payments, tenants) {
   const tenantMap = Object.fromEntries((tenants || []).map(t => [t.id, t]));
@@ -56,7 +59,7 @@ export function exportPayments(payments, tenants) {
     return [
       p.year || "", p.month || "", t.name || "", t.addr || "",
       p.amt || p.amount || 0, p.paid || p.paid_date || "",
-      p.status || "", p.maintenance_paid ? "Y" : "N", p.memo || "",
+      PAYMENT_STATUS(p.status), p.maintenance_paid ? "Y" : "N", p.memo || "",
     ];
   });
   downloadCsv(`수금_이력_${today()}.csv`, rowsToCsv(headers, rows));
@@ -156,6 +159,62 @@ export function exportTenantNotes(notes, tenants) {
     n.title || "", n.content || "", n.file_name || "",
   ]);
   downloadCsv(`세입자_메모_${today()}.csv`, rowsToCsv(headers, rows));
+}
+
+// ─── 연도별 경비 항목 (장부 지출 + 장부에 없는 수리비) — 간편장부·세금 비교 공용 ───
+// 수리 등록 시 AppContext.addRepair 가 장부에 auto_generated "수리비" 지출을 같은 날짜·금액·세입자로 남기므로
+// 그런 수리 건은 장부 쪽 행으로만 잡고(중복 방지), 장부에 없는 수리비(예: 나중에 비용만 수정)만 추가합니다.
+// 샘플 세입자에 연결된 항목은 제외합니다.
+export function yearExpenseItems(year, { ledger, repairs, tenants }) {
+  const y = String(year);
+  const tenantMap = Object.fromEntries((tenants || []).map(t => [t.id, t]));
+  const isSample = (tid) => !!tid && !!tenantMap[tid] && isSampleTenant(tenantMap[tid]);
+  const ledgerRows = (ledger || []).filter(l => l.type === "expense" && (l.date || "").startsWith(y) && !isSample(l.tenant_id));
+  const used = new Set();
+  const items = ledgerRows.map(l => ({ source: "ledger", date: l.date, category: l.category || "", memo: l.memo || "", tenant_id: l.tenant_id || null, vendor: "", amount: Number(l.amount) || 0, receipt: !!l.receipt_path }));
+  for (const r of repairs || []) {
+    const cost = Number(r.cost) || 0;
+    if (cost <= 0 || !(r.date || "").startsWith(y) || isSample(r.tenant_id)) continue;
+    const idx = ledgerRows.findIndex((l, i) => !used.has(i) && l.auto_generated && l.category === "수리비" && l.date === r.date && Number(l.amount) === cost && (l.tenant_id || null) === (r.tenant_id || null));
+    if (idx >= 0) { used.add(idx); continue; }
+    items.push({ source: "repair", date: r.date, category: "수리비", memo: [r.category, r.memo].filter(Boolean).join(" "), tenant_id: r.tenant_id || null, vendor: r.vendor || "", amount: cost, receipt: !!r.receipt_yn });
+  }
+  return items;
+}
+
+// ─── 간편장부 (국세청 간편장부 양식 열 · 금액 원 단위) ───
+export function buildSimpleLedgerRows(year, { payments, ledger, repairs, tenants }) {
+  const tenantMap = Object.fromEntries((tenants || []).map(t => [t.id, t]));
+  const MAN = 10000;
+  const rows = [];
+  for (const p of payments || []) {
+    if (Number(p.year) !== Number(year) || (p.status !== "paid" && p.status !== "partial")) continue;
+    const t = tenantMap[p.tid ?? p.tenant_id];
+    if (!t || isSampleTenant(t)) continue;
+    const amt = Number(p.amt ?? p.amount) || 0;
+    if (amt <= 0) continue;
+    const paidDate = p.paid || p.paid_date || "";
+    const date = paidDate || `${year}-${String(p.month).padStart(2, "0")}-01`;
+    const note = [t.pType || t.p_type || "", t.addr || t.address || "", paidDate ? "" : "납부일 미기록(해당 월 1일로 표기)"].filter(Boolean).join(" / ");
+    rows.push([date, `${p.month}월 월세${p.status === "partial" ? " (부분납부)" : ""}`, t.name || "", Math.round(amt * MAN), "", "", note]);
+  }
+  for (const e of yearExpenseItems(year, { ledger, repairs, tenants })) {
+    const t = tenantMap[e.tenant_id] || {};
+    const content = [e.category, e.memo].filter(Boolean).join(" · ");
+    const note = [e.source === "repair" ? "수리 이력" : "장부", e.receipt ? "영수증 있음" : ""].filter(Boolean).join(" / ");
+    rows.push([e.date, content, e.vendor || t.name || "", "", Math.round(e.amount * MAN), "", note]);
+  }
+  rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  const sum = (i) => rows.reduce((s, r) => s + (Number(r[i]) || 0), 0);
+  rows.push(["합계", "", "", sum(3), sum(4), "", ""]);
+  return rows;
+}
+
+export function exportSimpleLedger(year, data) {
+  const headers = ["일자", "거래내용", "거래처", "수입(금액)", "비용(금액)", "고정자산 증감", "비고"];
+  const rows = buildSimpleLedgerRows(year, data);
+  downloadCsv(`간편장부_${year}년_${today()}.csv`, rowsToCsv(headers, rows));
+  return rows.length - 1;
 }
 
 // ─── 전체 일괄 (파일별 CSV 연속 다운로드 — 브라우저가 "여러 파일 다운로드" 허용을 물을 수 있음) ───

@@ -633,7 +633,7 @@ function AdminContent({ currentUser }) {
 // 광고 유입 → 가입 → 물건 등록 → 가치 이벤트를 한 화면에서. 데이터: public.events (src/lib/track.js)
 const EVENT_LABELS = {
   login: "로그인", dashboard_view: "대시보드 방문(일 1회)", property_added: "물건 등록", sample_seeded: "샘플 체험",
-  sample_removed: "샘플 삭제", signup_source: "가입 유입경로 기록", onboard_addr_check: "온보딩 주소 조회",
+  sample_removed: "샘플 삭제", signup_source: "가입 유입경로 기록", onboard_addr_check: "온보딩 주소 조회", onboard_view: "온보딩 노출", onboard_dwell: "온보딩 체류(30초·2분)", onboard_addr_focus: "온보딩 주소 입력 시작", onboard_option: "온보딩 선택지 클릭", email_return: "메일 링크로 재방문", client_error: "화면 오류",
   tool_view: "무료 도구 조회", tool_cta_click: "무료 도구 → 가입 클릭", certified_issued: "내용증명 정식 발급",
   portal_link_copied: "세입자 포털 링크 복사", sms_parse_used: "입금 문자 파싱 사용", upsell_click: "플러스 구독 CTA 클릭",
   interest_registered: "관심 등록 (구 이벤트)", checklist_done: "시작 체크리스트 완료", checkout_view: "결제 페이지 진입", pay_click: "결제 버튼 클릭",

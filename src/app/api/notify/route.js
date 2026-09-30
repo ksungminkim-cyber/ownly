@@ -75,7 +75,7 @@ function unpaidSmsText(month, unpaidTenants) {
   return `[온리] ${month}월 미납 ${unpaidTenants.length}건 · 총 ${total.toLocaleString()}만원\n${first.name} ${(first.due ?? first.rent ?? 0).toLocaleString()}만원${first.partialPaid ? "(잔액)" : ""}${rest}\n납부 처리·독촉: https://www.ownly.kr/dashboard/payments`;
 }
 
-function baseHtml(title, body, cta = { href: "https://ownly.kr/dashboard", label: "대시보드 확인하기 →" }) {
+function baseHtml(title, body, cta = { href: "https://www.ownly.kr/dashboard?utm_source=email&utm_campaign=notify", label: "대시보드 확인하기 →" }) {
   return `
 <div style="font-family:'Apple SD Gothic Neo',sans-serif;max-width:540px;margin:0 auto;padding:0;background:#f5f4f0;">
   <div style="background:#1a2744;padding:24px 28px 20px;border-radius:12px 12px 0 0;">

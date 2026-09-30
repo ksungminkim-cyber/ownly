@@ -8,7 +8,7 @@ async function authHeader() {
   return { Authorization: `Bearer ${token}` };
 }
 
-/** kind: "notes" | "receipts" | "contracts" → { path, name, type } */
+/** kind: "notes" | "receipts" | "contracts" | "inspections" → { path, name, type } */
 export async function uploadPrivateFile(file, kind) {
   const body = new FormData();
   body.append("file", file);

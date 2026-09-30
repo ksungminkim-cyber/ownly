@@ -233,7 +233,7 @@ function RenewalConfirm({ tenant, suggested, onClose, onSave }) {
   const [dep, setDep] = useState(prevDep);
   const [newEnd, setNewEnd] = useState(() => (end ? addYears(end, 2) : ""));
   const [rightUsed, setRightUsed] = useState(false);
-  const [registered, setRegistered] = useState(false);
+  const [registered, setRegistered] = useState(() => !!tenant.registered_rental); /* 물건 관리에서 입력한 등록임대 여부가 기본값 */
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -301,7 +301,7 @@ function RenewalConfirm({ tenant, suggested, onClose, onSave }) {
         </label>
         <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: "var(--text)", cursor: "pointer" }}>
           <input type="checkbox" checked={registered} onChange={e => setRegistered(e.target.checked)} />
-          <span>등록임대주택(임대사업자 등록 물건) <span style={{ color: "var(--text-faint)" }}>— 경고 판단용, 저장되지 않음</span></span>
+          <span>등록임대주택(임대사업자 등록 물건) <span style={{ color: "var(--text-faint)" }}>— 물건 관리의 등록임대 설정을 불러옴 · 여기서 바꾼 값은 경고 판단용이며 저장되지 않음</span></span>
         </label>
         {over5 && capApplies && (
           <div className="chip chip-danger" style={{ borderRadius: 10, padding: "8px 12px", whiteSpace: "normal", lineHeight: 1.5, fontSize: 12 }}>⚠️ 인상률이 5%를 넘습니다 (월세 {rentRate}% · 보증금 {depRate}%). {rightUsed ? "계약갱신청구권 행사 시" : "등록임대주택은"} 5% 상한이 적용되어 분쟁·과태료 소지가 있습니다.</div>

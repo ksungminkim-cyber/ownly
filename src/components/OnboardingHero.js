@@ -148,6 +148,19 @@ export default function OnboardingHero() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 첫 화면 이탈 분석 계측 (2026-09-30): 노출 → 머문 시간(30초·2분) → 주소 입력 시작 → 선택지 클릭(onboard_option)
+  const focusedRef = useRef(false);
+  useEffect(() => {
+    track("onboard_view");
+    const t1 = setTimeout(() => track("onboard_dwell", { seconds: 30 }), 30_000);
+    const t2 = setTimeout(() => track("onboard_dwell", { seconds: 120 }), 120_000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+  const onAddrFocus = () => {
+    if (!focusedRef.current) { focusedRef.current = true; track("onboard_addr_focus"); }
+    if (suggestions.length > 0) setShowDrop(true);
+  };
+
   const inputStyle = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13.5, color: "var(--text)", background: "#fff", outline: "none", boxSizing: "border-box" };
   const m = checked?.market;
 
@@ -165,7 +178,7 @@ export default function OnboardingHero() {
         <div style={{ flex: "1 1 260px", position: "relative" }}>
           <input value={addr} onChange={onAddrChange}
             onKeyDown={(e) => { if (e.key === "Enter") checkAddress(); if (e.key === "Escape") setShowDrop(false); }}
-            onFocus={() => suggestions.length > 0 && setShowDrop(true)}
+            onFocus={onAddrFocus}
             placeholder="물건 주소 (예: 서울 마포구 합정동 123)" autoComplete="off"
             style={{ ...inputStyle, padding: "13px 14px", fontSize: 14 }} />
           {showDrop && suggestions.length > 0 && (
@@ -245,16 +258,20 @@ export default function OnboardingHero() {
           </div>
         </div>
       )}
-      <button onClick={() => router.push("/dashboard/properties?scan=1")} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, marginTop: 12, marginRight: 16 }}>📷 계약서 사진으로 등록 →</button>
-      <button onClick={() => router.push("/dashboard/properties?bulk=1")} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, marginTop: 12 }}>📥 물건이 많다면 엑셀로 여러 개 올리기 →</button>
-
-      {/* 샘플 체험 — 보조 경로 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>아직 입력 없이 둘러보고 싶다면</p>
-        <button onClick={trySample} disabled={seeding} className="btn btn-ghost btn-sm" style={{ opacity: seeding ? 0.7 : 1 }}>
-          {seeding ? "샘플 채우는 중..." : "👀 샘플 데이터로 구경하기"}
-        </button>
-        <span style={{ fontSize: 10.5, color: "var(--text-faint)" }}>클릭 한 번으로 언제든 전체 삭제됩니다</span>
+      {/* 다른 시작 방법 — 주소 입력 외 선택지를 같은 무게로 노출 (예전엔 작은 텍스트 링크라 눈에 띄지 않았다) */}
+      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "16px 0 8px" }}>또는 다른 방법으로 시작하기</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8 }}>
+        {[
+          { key: "scan", icon: "📷", label: "계약서 사진으로", sub: "찍으면 AI 가 채워요", onClick: () => router.push("/dashboard/properties?scan=1") },
+          { key: "bulk", icon: "📥", label: "엑셀로 여러 개", sub: "물건이 많다면", onClick: () => router.push("/dashboard/properties?bulk=1") },
+          { key: "sample", icon: "👀", label: seeding ? "샘플 채우는 중..." : "샘플로 구경하기", sub: "언제든 한 번에 삭제", onClick: trySample, disabled: seeding },
+        ].map((o) => (
+          <button key={o.key} disabled={o.disabled} onClick={() => { track("onboard_option", { option: o.key }); o.onClick(); }}
+            className="surface-card interactive" style={{ textAlign: "left", padding: "12px 14px", cursor: o.disabled ? "wait" : "pointer", border: "1px solid var(--border)", background: "#fff", opacity: o.disabled ? 0.7 : 1 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text)" }}>{o.icon} {o.label}</span>
+            <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{o.sub}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

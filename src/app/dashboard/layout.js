@@ -1,4 +1,4 @@
-"use client"; import { useState, useEffect } from "react"; import { useRouter, usePathname } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast } from "../../components/shared"; import { SearchOverlay } from "../../components/GlobalSearch"; import PwaInstallBanner from "../../components/PwaInstallBanner"; import InstallGuideModal from "../../components/InstallGuide"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import RealEstateTicker from "../../components/RealEstateTicker"; import SiteFooter from "../../components/SiteFooter";
+"use client"; import { useState, useEffect } from "react"; import { useRouter, usePathname } from "next/navigation"; import { Sidebar, MobileHeader, BottomNav, MobileDrawer } from "../../components/navigation"; import { Toast } from "../../components/shared"; import { SearchOverlay } from "../../components/GlobalSearch"; import PwaInstallBanner from "../../components/PwaInstallBanner"; import InstallGuideModal from "../../components/InstallGuide"; import { AppProvider, useApp } from "../../context/AppContext"; import { supabase } from "../../lib/supabase"; import { track } from "../../lib/track"; import RealEstateTicker from "../../components/RealEstateTicker"; import SiteFooter from "../../components/SiteFooter";
 
 function DashboardShell({ children }) {
   const router = useRouter();
@@ -19,6 +19,15 @@ function DashboardShell({ children }) {
   }, [user, authPassed]);
 
   const authChecked = !loading && (!!user || authPassed);
+
+  // 메일(가입 안내·알림) 링크로 돌아온 방문 기록 — 메일이 실제로 재방문을 만드는지 측정
+  useEffect(() => {
+    if (!authChecked) return;
+    try {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get("utm_source") === "email") track("email_return", { campaign: q.get("utm_campaign") || "" });
+    } catch {}
+  }, [authChecked]);
   const handleLogout = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   // 🔒 비로그인 유저는 로그인 페이지로 리디렉트
