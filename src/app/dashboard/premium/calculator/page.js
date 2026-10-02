@@ -2,6 +2,7 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
+import { LEGAL_CONVERSION_RATE, BOK_BASE_RATE_AS_OF } from "../../../../lib/constants";
 
 const C = {
   navy:"#1a2744", purple:"#5b4fcf", emerald:"#0fa573",
@@ -234,10 +235,10 @@ function RentIncreaseCalc() {
 
   const maxIncrease   = Math.round(currentRent * 0.05);
   const legalMax      = currentRent + maxIncrease;
-  const depConversion = Math.round(dep * 0.025 / 12);
+  const depConversion = Math.round(dep * LEGAL_CONVERSION_RATE / 100 / 12);
   const totalCurrent  = currentRent + depConversion;
 
-  const depositToRent = Math.round(dep * 0.025 / 12);
+  const depositToRent = Math.round(dep * LEGAL_CONVERSION_RATE / 100 / 12);
   const newRent5      = Math.round(currentRent * 1.05);
   const newDep5       = Math.round(dep * 1.05);
 
@@ -291,10 +292,10 @@ function RentIncreaseCalc() {
           </>}
           {method === "mixed" && <>
             <ResultRow label="현재 보증금"    value={dep.toLocaleString()+"만원"} />
-            <ResultRow label="보증금 1000만 감소 시" value={"월세 +"+(Math.round(1000*0.025/12)).toLocaleString()+"만원"} color={C.amber} />
-            <ResultRow label="법정 전환이율"  value="연 2.5%" color={C.muted} />
+            <ResultRow label="보증금 1000만 감소 시" value={"월세 +"+(Math.round(1000*LEGAL_CONVERSION_RATE/100/12)).toLocaleString()+"만원"} color={C.amber} />
+            <ResultRow label="법정 전환율 상한"  value={`연 ${LEGAL_CONVERSION_RATE}% (기준금리 ${BOK_BASE_RATE_AS_OF} 기준)`} color={C.muted} />
             <div style={{ marginTop:12, padding:"12px", background:"rgba(232,150,10,0.06)", borderRadius:10 }}>
-              <p style={{ fontSize:12, color:C.amber, fontWeight:700 }}>보증금 1000만원 = 월세 약 2.1만원</p>
+              <p style={{ fontSize:12, color:C.amber, fontWeight:700 }}>보증금 1000만원 = 월세 약 {(1000 * LEGAL_CONVERSION_RATE / 100 / 12).toFixed(1)}만원 (법정 상한)</p>
             </div>
           </>}
         </div>
@@ -302,7 +303,7 @@ function RentIncreaseCalc() {
           <p style={{ fontSize:12, fontWeight:700, color:C.emerald, marginBottom:6 }}>💡 환산 월세 (참고)</p>
           <p style={{ fontSize:13, color:C.muted, lineHeight:1.7 }}>
             현재 보증금 {dep.toLocaleString()}만원을 월세로 환산하면<br/>
-            <strong style={{ color:C.emerald }}>+{depositToRent.toLocaleString()}만원/월</strong> (연 2.5% 기준)
+            <strong style={{ color:C.emerald }}>+{depositToRent.toLocaleString()}만원/월</strong> (법정 전환율 상한 연 {LEGAL_CONVERSION_RATE}% 기준)
           </p>
         </div>
       </div>

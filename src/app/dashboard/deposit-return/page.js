@@ -1,4 +1,4 @@
-"use client";
+"use client"; import { todayKST } from "../../../lib/kstDate";
 import { useState, useRef, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "../../../context/AppContext";
@@ -68,7 +68,7 @@ function DepositReturnContent() {
     { id: 3, label: "원상복구 비용", amount: "" },
   ]);
   const [memo, setMemo] = useState("");
-  const [returnDate, setReturnDate] = useState(new Date().toISOString().slice(0,10));
+  const [returnDate, setReturnDate] = useState(todayKST());
 
   const sel = tenants.find(t => t.id === selectedTenant);
   const deposit = sel ? (sel.dep || sel.deposit || 0) : 0;
@@ -90,7 +90,7 @@ function DepositReturnContent() {
   const pickedItems = [...candidates.unpaid, ...candidates.repair, ...inspCandidates].filter(c => picked[c.key]);
   const totalDeduct = deductions.reduce((s, d) => s + (Number(d.amount) || 0), 0) + pickedItems.reduce((s, c) => s + c.amount, 0);
   const returnAmount = Math.max(0, deposit - totalDeduct);
-  const asOf = new Date().toISOString().slice(0, 10);
+  const asOf = todayKST();
 
   // 저장된 정산서 불러오기 (deposit_settlements — 2026-09-28 마이그레이션)
   useEffect(() => {

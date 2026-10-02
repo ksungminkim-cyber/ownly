@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, EmptyState, Modal, AuthInput, toast, ConfirmDialog } from "../../../components/shared"; import { C, COLORS } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import PlanGate from "../../../components/PlanGate"; import AddressInput from "../../../components/AddressInput";
+"use client"; import { todayKST } from "../../../lib/kstDate"; import { useState, useMemo, useEffect } from "react"; import { useRouter } from "next/navigation"; import { SectionLabel, EmptyState, Modal, AuthInput, toast, ConfirmDialog } from "../../../components/shared"; import { C, COLORS } from "../../../lib/constants"; import { useApp } from "../../../context/AppContext"; import { supabase } from "../../../lib/supabase"; import PlanGate from "../../../components/PlanGate"; import AddressInput from "../../../components/AddressInput";
 
 const TYPE_CONFIG = { 주거: { icon: "🏠", color: C.indigo, subs: ["아파트","빌라","오피스텔","단독주택","원룸","투룸"] }, 상가: { icon: "🏪", color: C.amber, subs: ["1층 상가","집합상가","근린상가","오피스"] }, 오피스텔: { icon: "🏢", color: C.purple, subs: ["오피스텔(주거)","오피스텔(업무)"] }, 토지: { icon: "🌳", color: "#0d9488", subs: ["나대지","농지","임야","대지"] } };
 
@@ -88,17 +88,17 @@ function VacancyContent() {
   const [openPlan, setOpenPlan] = useState(null); // 액션플랜 열린 공실 id
   const [checkedSteps, setCheckedSteps] = useState({}); // {vacancyId_stepId: bool}
 
-  const initForm = () => ({ addr:"", pType:"주거", sub:"아파트", vacantSince:new Date().toISOString().slice(0,10), expectedRent:"", dep:"", maintenance:"", note:"" });
+  const initForm = () => ({ addr:"", pType:"주거", sub:"아파트", vacantSince:todayKST(), expectedRent:"", dep:"", maintenance:"", note:"" });
   const [form, setForm] = useState(initForm());
   const set = (k) => (val) => setForm(f=>({...f,[k]:val}));
   const gf = (v,...keys) => { for(const k of keys) if(v[k]!==undefined&&v[k]!==null) return v[k]; return ""; };
 
-  const tenantVacancies = useMemo(()=>tenants.filter(t=>t.status==="공실").map(t=>{const industry=extractIndustry(t.biz);return {_source:"tenant",id:"t_"+t.id,tenantId:t.id,addr:t.addr,p_type:t.pType,sub_type:t.sub,vacant_since:t.vacant_since||t.start_date||new Date().toISOString().slice(0,10),expected_rent:t.rent||0,deposit:t.dep||0,maintenance:t.maintenance||0,note:industry?`추천 업종: ${industry}`:"",color:t.color,action_steps:t.vacancy_action_steps||t.vacancyActionSteps||{}};}),[tenants]);
+  const tenantVacancies = useMemo(()=>tenants.filter(t=>t.status==="공실").map(t=>{const industry=extractIndustry(t.biz);return {_source:"tenant",id:"t_"+t.id,tenantId:t.id,addr:t.addr,p_type:t.pType,sub_type:t.sub,vacant_since:t.vacant_since||t.start_date||todayKST(),expected_rent:t.rent||0,deposit:t.dep||0,maintenance:t.maintenance||0,note:industry?`추천 업종: ${industry}`:"",color:t.color,action_steps:t.vacancy_action_steps||t.vacancyActionSteps||{}};}),[tenants]);
   const allVacancies = useMemo(()=>{ const s=new Set(vacancies.map(v=>v.addr)); return [...vacancies,...tenantVacancies.filter(tv=>!s.has(tv.addr))]; },[vacancies,tenantVacancies]);
   const totalUnits = tenants.filter(t=>t.status!=="공실").length + allVacancies.length;
   const vacancyRate = totalUnits>0 ? Math.round((allVacancies.length/totalUnits)*100) : 0;
   const monthlyLoss = allVacancies.reduce((s,v)=>s+(Number(v.expected_rent)||0),0);
-  const cumulativeLoss = allVacancies.reduce((s,v)=>{ const r=Number(gf(v,"expected_rent","expectedRent")||0); const mo=Math.max(0,(new Date()-new Date(v.vacant_since||new Date().toISOString().slice(0,10)))/(1000*60*60*24*30.44)); return s+r*mo; },0);
+  const cumulativeLoss = allVacancies.reduce((s,v)=>{ const r=Number(gf(v,"expected_rent","expectedRent")||0); const mo=Math.max(0,(new Date()-new Date(v.vacant_since||todayKST()))/(1000*60*60*24*30.44)); return s+r*mo; },0);
   const vacantDays = (since)=>{ const d=Math.ceil((new Date()-new Date(since))/86400000); return d<0?0:d; };
   const filtered = filterType==="전체" ? allVacancies : allVacancies.filter(v=>(gf(v,"p_type","pType")||"주거")===filterType);
   const showMaint = form.pType==="상가"||form.sub==="오피스텔";
@@ -138,7 +138,7 @@ function VacancyContent() {
     const nextChecked = !checkedSteps[key];
     setCheckedSteps(prev => ({ ...prev, [key]: nextChecked }));
     // 현재 공실 객체의 모든 단계 상태를 추출해 영속화
-    const plan = getActionPlan(vacantDays(gf(vac, "vacant_since", "vacantSince") || new Date().toISOString().slice(0,10)));
+    const plan = getActionPlan(vacantDays(gf(vac, "vacant_since", "vacantSince") || todayKST()));
     const currentSteps = {};
     for (const s of plan.steps) {
       const k = `${vac.id}_${s.id}`;
@@ -182,7 +182,7 @@ function VacancyContent() {
       addr: gf(v,"addr","address") || "",
       pType: gf(v,"p_type","pType") || "주거",
       sub: gf(v,"sub_type","sub") || "아파트",
-      vacantSince: gf(v,"vacant_since","vacantSince") || new Date().toISOString().slice(0,10),
+      vacantSince: gf(v,"vacant_since","vacantSince") || todayKST(),
       expectedRent: String(gf(v,"expected_rent","expectedRent") || ""),
       dep: String(gf(v,"deposit","dep") || ""),
       maintenance: String(v.maintenance || ""),
@@ -213,7 +213,7 @@ function VacancyContent() {
           {l:"공실률",v:vacancyRate+"%",c:vacancyRate>10?C.rose:C.emerald,sub:vacancyRate>10?"주의 필요":"양호"},
           {l:"공실 수",v:allVacancies.length+"실",c:C.amber,sub:`전체 ${totalUnits}실 중`},
           {l:"월간 손실 추정",v:monthlyLoss.toLocaleString()+"만원",c:C.rose,sub:"공실 기대 월세 합계"},
-          {l:"평균 공실 기간",v:allVacancies.length>0?Math.round(allVacancies.reduce((s,v)=>s+vacantDays(gf(v,"vacant_since","vacantSince")||new Date().toISOString().slice(0,10)),0)/allVacancies.length)+"일":"—",c:C.navy,sub:"공실 평균"},
+          {l:"평균 공실 기간",v:allVacancies.length>0?Math.round(allVacancies.reduce((s,v)=>s+vacantDays(gf(v,"vacant_since","vacantSince")||todayKST()),0)/allVacancies.length)+"일":"—",c:C.navy,sub:"공실 평균"},
         ].map(k=>(
           <div key={k.l} style={{ background:"#fff", border:"1px solid #ebe9e3", borderRadius:15, padding:"18px 20px" }}>
             <p style={{ fontSize:10, color:"#8a8a9a", fontWeight:700, textTransform:"uppercase", letterSpacing:".5px", marginBottom:7 }}>{k.l}</p>
@@ -261,7 +261,7 @@ function VacancyContent() {
             const pType=gf(v,"p_type","pType")||"주거";
             const sub=gf(v,"sub_type","sub")||"";
             const addr=gf(v,"addr","address")||"";
-            const since=gf(v,"vacant_since","vacantSince")||new Date().toISOString().slice(0,10);
+            const since=gf(v,"vacant_since","vacantSince")||todayKST();
             const rent=Number(gf(v,"expected_rent","expectedRent")||0);
             const dep=Number(gf(v,"deposit","dep")||0);
             const maint=Number(v.maintenance||0);

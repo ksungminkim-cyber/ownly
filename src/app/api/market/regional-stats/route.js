@@ -8,6 +8,7 @@
 
 export const runtime = "edge";
 import { isRateLimited } from "../../../../lib/ratelimit";
+import { LEGAL_CONVERSION_RATE } from "../../../../lib/constants";
 import { fetchMolitRows as fetchMolitRowsSafe, expandLawdCd } from "../../../../lib/molitParse";
 export const revalidate = 86400; // 24h
 
@@ -62,8 +63,8 @@ function avg(nums) {
   return nums.length ? Math.round(nums.reduce((s, v) => s + v, 0) / nums.length) : 0;
 }
 
-// 보증금을 월세로 환산 (전월세 전환율 6% 기준 - 임대차보호법)
-const CONVERSION_RATE = 0.06;
+// 보증금을 월세로 환산 (법정 전환율 — lib/constants LEGAL_CONVERSION_RATE)
+const CONVERSION_RATE = LEGAL_CONVERSION_RATE / 100;
 const depositToMonthly = (deposit) => Math.round(deposit * CONVERSION_RATE / 12);
 
 export async function POST(req) {
@@ -112,7 +113,7 @@ export async function POST(req) {
       .map(r => ({ rent: num(r.monthlyRent), dep: num(r.deposit), area: parseArea(r) }))
       .filter(x => (x.rent > 0 || x.dep > 0) && x.area > 0);
 
-    // 보증금 환산 포함 월세 (전월세 환산율 6%)
+    // 보증금 환산 포함 월세 (법정 전환율)
     const effectiveMonthly = rents.map(x => x.rent + depositToMonthly(x.dep));
     const avgMonthlyRent = avg(effectiveMonthly);
     const medianMonthlyRent = median(effectiveMonthly);

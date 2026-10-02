@@ -1,4 +1,4 @@
-"use client";
+"use client"; import { nowKSTInput } from "../lib/kstDate";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { toast } from "./shared";
@@ -17,7 +17,7 @@ export default function TenantNotes({ tenantId, userId }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ type: "call", title: "", content: "", occurred_at: new Date().toISOString().slice(0, 16) });
+  const [form, setForm] = useState({ type: "call", title: "", content: "", occurred_at: nowKSTInput() });
   const [saving, setSaving] = useState(false);
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
@@ -80,7 +80,7 @@ export default function TenantNotes({ tenantId, userId }) {
       });
       if (error) throw error;
       toast("✅ 기록이 저장됐습니다");
-      setForm({ type: "call", title: "", content: "", occurred_at: new Date().toISOString().slice(0, 16) });
+      setForm({ type: "call", title: "", content: "", occurred_at: nowKSTInput() });
       clearFile();
       setAdding(false);
       load();

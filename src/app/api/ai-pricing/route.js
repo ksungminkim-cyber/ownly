@@ -390,10 +390,8 @@ export async function POST(req) {
       result.comparables = result.comparables.map(c => ({ ...c, rent: toMan(c.rent), deposit: toMan(c.deposit) }));
     }
 
-    // 실거래 샘플이 있으면 AI comparables를 대체 (실 데이터 우선)
-    if (marketStats?.samples?.length) {
-      result.comparables = marketStats.samples;
-    }
+    // 비교 물건은 실거래 샘플만 보여준다. 샘플이 없으면 모델이 지어낸 "인근 유사 매물"을 내보내지 않는다 (가짜 매물 금지)
+    result.comparables = marketStats?.samples?.length ? marketStats.samples : [];
 
     // 평당 월세 — AI 값이 이상하거나 비어있으면 실측값으로 덮어씀
     if (marketStats?.avgRentPerPy && (!result.rentPerPy || result.rentPerPy <= 0 || result.rentPerPy > 200)) {

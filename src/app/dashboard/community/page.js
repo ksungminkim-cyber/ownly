@@ -230,9 +230,22 @@ export default function CommunityPage() {
     }
   };
 
+  // 좋아요·조회수는 서버 라우트로 — 글 update 정책이 작성자 본인만 허용이라 직접 update 하면 남의 글에서는 저장되지 않는다
+  const react = async (postId, action) => {
+    const { data: s } = await supabase.auth.getSession();
+    const res = await fetch("/api/community/react", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${s?.session?.access_token || ""}` },
+      body: JSON.stringify({ postId, action }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || "요청 실패");
+    return out;
+  };
+
   const openPost = async (post) => {
-    await supabase.from("community_posts").update({ views: post.views + 1 }).eq("id", post.id);
-    const updated = { ...post, views: post.views + 1 };
+    react(post.id, "view").catch(() => {}); // 조회수 실패는 화면을 막지 않는다
+    const updated = { ...post, views: (post.views || 0) + 1 };
     setPosts(prev => prev.map(p => p.id === post.id ? updated : p));
     setActivePost(updated);
     setPanelOpen(true);
@@ -245,7 +258,14 @@ export default function CommunityPage() {
     }
     const { data } = await supabase.from("community_comments")
       .select("*").eq("post_id", post.id).order("created_at");
-    setComments(data || []);
+    // 댓글 좋아요 수는 community_comment_likes 행 수로 계산 (테이블이 아직 없으면 0 으로 표시)
+    const likeCount = {};
+    const ids = (data || []).map(c => c.id);
+    if (ids.length > 0) {
+      const { data: cls } = await supabase.from("community_comment_likes").select("comment_id").in("comment_id", ids);
+      (cls || []).forEach(l => { likeCount[l.comment_id] = (likeCount[l.comment_id] || 0) + 1; });
+    }
+    setComments((data || []).map(c => ({ ...c, likes: likeCount[c.id] || 0 })));
     setNewComment("");
   };
 
@@ -436,35 +456,25 @@ export default function CommunityPage() {
   // ─── 게시글 좋아요 ───
   const toggleLike = async (postId) => {
     if (!user) return;
-    const liked = myLikes.has(postId);
-    const post = posts.find(p => p.id === postId);
-    const delta = liked ? -1 : 1;
-    if (liked) {
-      await supabase.from("community_likes").delete().eq("post_id", postId).eq("user_id", user.id);
-      await supabase.from("community_posts").update({ likes: (post?.likes||1) + delta }).eq("id", postId);
-      setMyLikes(prev => { const s = new Set(prev); s.delete(postId); return s; });
-    } else {
-      await supabase.from("community_likes").insert({ post_id: postId, user_id: user.id });
-      await supabase.from("community_posts").update({ likes: (post?.likes||0) + delta }).eq("id", postId);
-      setMyLikes(prev => new Set([...prev, postId]));
-    }
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: p.likes + delta } : p));
-    if (activePost?.id === postId) setActivePost(p => ({ ...p, likes: p.likes + delta }));
+    let out;
+    try { out = await react(postId, "like"); }
+    catch (e) { toast("좋아요 저장 실패: " + e.message, "error"); return; }
+    setMyLikes(prev => { const s = new Set(prev); if (out.liked) s.add(postId); else s.delete(postId); return s; });
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: out.likes } : p));
+    if (activePost?.id === postId) setActivePost(p => ({ ...p, likes: out.likes }));
   };
 
   // ─── 댓글 좋아요 ───
   const toggleCommentLike = async (commentId) => {
     if (!user) return;
     const liked = myCommentLikes.has(commentId);
-    const comment = comments.find(c => c.id === commentId);
     const delta = liked ? -1 : 1;
-    if (liked) {
-      await supabase.from("community_comment_likes").delete().eq("comment_id", commentId).eq("user_id", user.id);
-      setMyCommentLikes(prev => { const s = new Set(prev); s.delete(commentId); return s; });
-    } else {
-      await supabase.from("community_comment_likes").insert({ comment_id: commentId, user_id: user.id });
-      setMyCommentLikes(prev => new Set([...prev, commentId]));
-    }
+    // supabase-js 는 throw 하지 않으므로 error 를 직접 확인 (저장 실패인데 화면만 바뀌던 문제)
+    const { error } = liked
+      ? await supabase.from("community_comment_likes").delete().eq("comment_id", commentId).eq("user_id", user.id)
+      : await supabase.from("community_comment_likes").insert({ comment_id: commentId, user_id: user.id });
+    if (error) { toast("댓글 좋아요를 저장하지 못했습니다", "error"); return; }
+    setMyCommentLikes(prev => { const s = new Set(prev); if (liked) s.delete(commentId); else s.add(commentId); return s; });
     setComments(prev => prev.map(c => c.id === commentId ? { ...c, likes: (c.likes||0) + delta } : c));
   };
 

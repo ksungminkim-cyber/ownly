@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import PlanGate from "../../../../components/PlanGate";
+import { LEGAL_CONVERSION_RATE, BOK_BASE_RATE_AS_OF } from "../../../../lib/constants";
 
 const C = {
   navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a",
@@ -70,14 +71,14 @@ const SECTIONS = [
     law: "주택임대차보호법 제7조의2",
     badge: "법정 전환율",
     badgeColor: C.amber,
-    summary: "전세를 월세로 전환 시 법정 전환율(현재 연 6%) 이내로만 산정 가능.",
+    summary: `전세를 월세로 전환 시 법정 전환율(현재 연 ${LEGAL_CONVERSION_RATE}%) 이내로만 산정 가능.`,
     questions: [
       { id: "v1", q: "전세를 월세로 전환하거나 보증금을 조정하려 하나요?", risk: "high" },
-      { id: "v2", q: "법정 전환율(연 6%)을 초과한 월세를 요구했나요?", risk: "high" },
+      { id: "v2", q: `법정 전환율(연 ${LEGAL_CONVERSION_RATE}%)을 초과한 월세를 요구했나요?`, risk: "high" },
     ],
     guides: [
-      { icon: "📐", title: "전환율 계산식", content: "월세 = (전환 전세금) × 전환율(6%) ÷ 12. 예: 전세 1억 → 월세 = 1억 × 6% ÷ 12 = 50만원" },
-      { icon: "📅", title: "현재 법정 전환율", content: "연 6% (2024년 기준). 한국은행 기준금리 + 대통령령 이율로 산정. 기준금리 변동 시 달라질 수 있음." },
+      { icon: "📐", title: "전환율 계산식", content: `월세 = (전환 전세금) × 전환율(${LEGAL_CONVERSION_RATE}%) ÷ 12. 예: 전세 1억 → 월세 = 1억 × ${LEGAL_CONVERSION_RATE}% ÷ 12 = 약 ${Math.round(10000 * LEGAL_CONVERSION_RATE / 100 / 12)}만원` },
+      { icon: "📅", title: "현재 법정 전환율", content: `연 ${LEGAL_CONVERSION_RATE}% (한국은행 기준금리 ${BOK_BASE_RATE_AS_OF} 기준). 연 10%와 "기준금리 + 2%p" 중 낮은 값(주택임대차보호법 제7조의2). 기준금리가 바뀌면 달라집니다.` },
       { icon: "🔄", title: "월세 → 전세 전환", content: "보증금 전환도 동일 비율 적용. 임차인 동의 없이 임대인이 일방 전환 불가." },
       { icon: "⚠️", title: "초과 전환 시 제재", content: "법정 전환율 초과 월세 약정도 초과분 무효. 임차인은 초과 납부액 반환 청구 가능." },
     ],
@@ -126,7 +127,7 @@ function LeaseCheckContent() {
   // 계산기 상태
   const [capCurrent, setCapCurrent] = useState("");
   const [convertDeposit, setConvertDeposit] = useState("");
-  const [convertRate, setConvertRate] = useState("6");
+  const [convertRate, setConvertRate] = useState(String(LEGAL_CONVERSION_RATE));
 
   const toggle = (id) => setOpenSections(s => ({ ...s, [id]: !s[id] }));
   const setAnswer = (qid, val) => setAnswers(a => ({ ...a, [qid]: val }));
@@ -209,7 +210,7 @@ function LeaseCheckContent() {
           recommendations.push({ section: SEC.cap, icon: "📊", title: "5% 초과 인상 — 무효 위험", desc: "갱신 계약에서 5% 초과 인상은 초과분 무효. 임차인이 반환 청구 가능. 5% 이내로 조정하세요." });
         }
         if (answers.v1 === "yes" && answers.v2 === "yes") {
-          recommendations.push({ section: SEC.convert, icon: "💱", title: "전환율 초과 — 법정 한도 위반", desc: "법정 전환율(연 6%) 초과는 무효. 임차인이 초과분 반환 청구 가능합니다." });
+          recommendations.push({ section: SEC.convert, icon: "💱", title: "전환율 초과 — 법정 한도 위반", desc: "법정 전환율(연 " + LEGAL_CONVERSION_RATE + "%) 초과는 무효. 임차인이 초과분 반환 청구 가능합니다." });
         }
         if (answers.d1 === "yes") {
           recommendations.push({ section: SEC.dispute, icon: "📨", title: "차임 연체 — 내용증명 권장", desc: "주택은 2기(상가는 3기) 차임 연체 시 계약 해지 가능. 내용증명으로 명확히 통보하세요." });
@@ -439,7 +440,7 @@ function LeaseCheckContent() {
                       </div>
                       <div>
                         <p style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>전환율 (%)</p>
-                        <input type="number" value={convertRate} onChange={e => setConvertRate(e.target.value)} placeholder="6" style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 13, color: C.navy, background: C.faint }} />
+                        <input type="number" value={convertRate} onChange={e => setConvertRate(e.target.value)} placeholder={String(LEGAL_CONVERSION_RATE)} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 13, color: C.navy, background: C.faint }} />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                         {convertDeposit > 0 ? (

@@ -5,10 +5,10 @@ import { useApp } from "../../../../context/AppContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import PlanGate from "../../../../components/PlanGate";
 
-// 매물 가치 추정 (Pro 플랜 전용)
-// 수익환원법(R-ONE 임대수익률) + KB 시세 + 국토부 매매 실거래 평균을 함께 비교합니다.
-// 임대수익률·KB 평균은 스냅샷이므로 기준 시점을 표기합니다.
-const MARKET_DATA_AS_OF = "2024년 4분기 R-ONE · KB Liiv ON 공시값";
+// 매물 가치 추정 (플러스 플랜)
+// 국토부 실거래(최근 6개월)만 사용: 매매 평당가 · 매매가 대비 임대료로 계산한 지역 수익률 · 유사 면적 임대 시세.
+// 2026-10 이전에는 구별 "R-ONE 임대수익률"·"KB 평당가"를 코드에 직접 적어 폴백으로 썼으나, R-ONE 은 구별 아파트 임대수익률을
+// 공표하지 않아 출처를 댈 수 없는 수치였다 → 제거. 실거래 표본이 없으면 추정하지 않고 "데이터 부족"으로 표시한다.
 
 const LAWD_MAP = {
   "서울 강남구": "11680", "서울 서초구": "11650", "서울 송파구": "11710",
@@ -16,24 +16,6 @@ const LAWD_MAP = {
   "서울 강동구": "11740", "서울 노원구": "11350", "서울 영등포구": "11560",
   "서울 관악구": "11620", "경기 성남시": "41130", "경기 수원시": "41110",
   "경기 용인시": "41460", "경기 고양시": "41280",
-};
-
-// 한국부동산원 임대수익률 (R-ONE 참고치) — 수익환원법 기준가
-const KAB_YIELD = {
-  "서울 강남구": 1.82, "서울 서초구": 2.05, "서울 송파구": 2.31,
-  "서울 마포구": 3.12, "서울 용산구": 2.18, "서울 성동구": 2.44,
-  "서울 강동구": 2.68, "서울 노원구": 3.54, "서울 영등포구": 3.28,
-  "서울 관악구": 3.71, "경기 성남시": 3.84, "경기 수원시": 4.21,
-  "경기 용인시": 4.38, "경기 고양시": 4.02,
-};
-
-// KB 아파트 평균 시세 (KB부동산 참고치, 3.3㎡당 만원 — KB Liiv ON에서 최신값 확인)
-const KB_PRICE_PER_PYEONG = {
-  "서울 강남구": 11800, "서울 서초구": 10200, "서울 송파구": 8900,
-  "서울 마포구": 6800,  "서울 용산구": 9400,  "서울 성동구": 7200,
-  "서울 강동구": 6400,  "서울 노원구": 4200,  "서울 영등포구": 5800,
-  "서울 관악구": 4600,  "경기 성남시": 4800,  "경기 수원시": 3200,
-  "경기 용인시": 3400,  "경기 고양시": 3000,
 };
 
 function getLastNMonths(n) {
@@ -60,17 +42,19 @@ function ValuationContent() {
   const [currentRent, setCurrentRent] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
   const estimate = useCallback(async () => {
     setLoading(true);
+    setError("");
+    setResult(null);
     const months = getLastNMonths(6);
     const lawdCd = LAWD_MAP[region];
-    let kabYield = KAB_YIELD[region] || 3.5;
-    let kbPricePerPyeong = KB_PRICE_PER_PYEONG[region] || 5000;
-    let isRealtime = false;
+    let regionYield = null;          // 지역 임대수익률(%) — 실거래 매매가·임대료로 계산. 표본 없으면 null
+    let pricePerPyeong = null;  // 3.3㎡당 매매 평균(만원) — 실거래. 표본 없으면 null
     let realtimeSampleSize = null;
 
-    // ✅ 실시간 계산: MOLIT 실거래로 평당가·수익률 직접 산출
+    // MOLIT 실거래로 평당가·수익률 직접 산출 (폴백 수치 없음)
     try {
       const realtimeRes = await fetch("/api/market/regional-stats", {
         method: "POST",
@@ -81,14 +65,13 @@ function ValuationContent() {
         const realtime = await realtimeRes.json();
         const apt = realtime?.types?.apt;
         if (apt?.avgPricePerPyeong > 0) {
-          kbPricePerPyeong = apt.avgPricePerPyeong;
-          isRealtime = true;
+          pricePerPyeong = apt.avgPricePerPyeong;
           realtimeSampleSize = apt.sampleSize;
         }
-        if (apt?.yieldRate > 0) kabYield = apt.yieldRate;
+        if (apt?.yieldRate > 0) regionYield = apt.yieldRate;
       }
     } catch (e) {
-      console.warn("실시간 계산 실패, 베이스라인 사용:", e.message);
+      console.warn("지역 실거래 통계 조회 실패:", e.message);
     }
 
     const myArea = parseFloat(area);
@@ -102,10 +85,10 @@ function ValuationContent() {
         const d = await res.json();
         if (d.items) {
           d.items
-            .filter(i => parseInt(i.monthlyRent || "0") > 0)
+            .filter(i => parseInt(String(i.monthlyRent || "0").replace(/,/g, ""), 10) > 0)
             .forEach(i => {
               allRents.push({
-                monthly: parseInt(i.monthlyRent || "0"),
+                monthly: parseInt(String(i.monthlyRent || "0").replace(/,/g, ""), 10),
                 area: parseFloat(i.excluUseAr || "0"),
                 deposit: parseInt((i.deposit || "0").replace(/,/g, "")),
                 apt: i.aptNm || "",
@@ -124,24 +107,29 @@ function ValuationContent() {
       const p75Rent    = rentVals[Math.floor(rentVals.length * 0.75)] || 0;
 
       // ── 가치 추정 3가지 방법 ──────────────────────────
-      // 1. KB 시세 기반 (평당가 × 평수)
-      const kbValue = Math.round(kbPricePerPyeong * myPyeong / 10000 * 10) / 10; // 억
+      // 1. 실거래 평당가 기준 (평당가 × 평수)
+      const priceValue = pricePerPyeong ? Math.round(pricePerPyeong * myPyeong / 10000 * 10) / 10 : null; // 억
 
       // 2. 수익환원법 (임대수익률 역산)
       //    추정가 = 연간임대료 / 수익률
       const useRent = parseFloat(currentRent || medianRent || "0");
-      const incomeValue = useRent > 0
-        ? Math.round((useRent * 10000 * 12) / (kabYield / 100) / 100000000 * 10) / 10
+      const incomeValue = useRent > 0 && regionYield > 0
+        ? Math.round((useRent * 10000 * 12) / (regionYield / 100) / 100000000 * 10) / 10
         : null;
 
       // 3. 실거래 임대 시세 기반 추정 (면적당 임대료 × 지역 수익률 역산)
       const rentPerSqm = avgRent > 0 ? avgRent / myArea : 0;
-      const rentBasedValue = rentPerSqm > 0
-        ? Math.round((rentPerSqm * myArea * 10000 * 12) / (kabYield / 100) / 100000000 * 10) / 10
+      const rentBasedValue = rentPerSqm > 0 && regionYield > 0
+        ? Math.round((rentPerSqm * myArea * 10000 * 12) / (regionYield / 100) / 100000000 * 10) / 10
         : null;
 
       // 최종 추정 범위
-      const estimates = [kbValue, incomeValue, rentBasedValue].filter(v => v !== null && v > 0);
+      const estimates = [priceValue, incomeValue, rentBasedValue].filter(v => v !== null && v > 0);
+      if (estimates.length === 0) {
+        setError("이 지역은 최근 6개월 실거래 표본이 부족해 추정할 수 없습니다.");
+        setLoading(false);
+        return;
+      }
       const low  = Math.round(Math.min(...estimates) * 0.92 * 10) / 10;
       const mid  = Math.round(estimates.reduce((s, v) => s + v, 0) / estimates.length * 10) / 10;
       const high = Math.round(Math.max(...estimates) * 1.08 * 10) / 10;
@@ -179,9 +167,9 @@ function ValuationContent() {
       }).filter(g => g.count > 0);
 
       setResult({
-        kbValue, incomeValue, rentBasedValue,
+        priceValue, incomeValue, rentBasedValue,
         low, mid, high, impliedYield,
-        kabYield, kbPricePerPyeong, isRealtime, realtimeSampleSize,
+        regionYield, pricePerPyeong, realtimeSampleSize, methodCount: estimates.length,
         medianRent, avgRent, p25Rent, p75Rent,
         similarCount: similarRents.length, totalRents: allRents.length,
         monthlyRentTrend, areaGroups,
@@ -190,6 +178,7 @@ function ValuationContent() {
       });
     } catch (e) {
       console.error(e);
+      setError("추정 중 오류: " + (e?.message || "알 수 없는 오류"));
     }
     setLoading(false);
   }, [region, area, currentRent]);
@@ -199,7 +188,7 @@ function ValuationContent() {
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>🏠 매물 가치 추정</h1>
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
-          KB 시세 + 수익환원법 + 실거래 임대 시세 3중 교차 추정
+          국토부 실거래 기반 — 매매 평당가 · 수익환원법 · 임대 시세 교차 추정
         </p>
       </div>
 
@@ -245,6 +234,8 @@ function ValuationContent() {
         </button>
       </div>
 
+      {error && <div style={{ padding: "12px 16px", borderRadius: 10, background: "#fff1f2", border: "1px solid #fecdd3", color: "#e11d48", fontSize: 13, marginBottom: 16 }}>{error}</div>}
+
       {result && (<>
         {/* 데이터 출처 */}
         <div style={{ background: "rgba(26,39,68,0.04)", border: "1px solid rgba(26,39,68,0.12)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", gap: 10 }}>
@@ -252,13 +243,13 @@ function ValuationContent() {
           <div>
             <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>추정 방법 및 데이터 출처</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.7 }}>
-              <strong>① 평당가 기준법:</strong> {result.isRealtime ? (
-                <><strong style={{ color: "#0fa573" }}>🟢 MOLIT 실거래 실시간 계산</strong> ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원, 실거래 {result.realtimeSampleSize?.trade || 0}건)</>
-              ) : (
-                <>KB부동산 평균 시세 ({result.region} 3.3㎡당 {result.kbPricePerPyeong.toLocaleString()}만원, {MARKET_DATA_AS_OF}) · <a href="https://onland.kbstar.com" target="_blank" rel="noopener noreferrer" style={{ color: "#5b4fcf", textDecoration: "underline" }}>KB Liiv ON 최신값 확인</a></>
-              )}<br/>
-              <strong>수익환원법:</strong> R-ONE {result.region} 임대수익률 {result.kabYield}% 기준 역산 ({MARKET_DATA_AS_OF})<br/>
-              <strong>임대시세법:</strong> 국토부 실거래 최근 6개월 유사면적 임대 {result.similarCount}건 → 수익률 역산 (실시간)<br/>
+              <strong>① 실거래 평당가법:</strong> {result.pricePerPyeong
+                ? <>국토부 아파트 매매 실거래 최근 6개월 평균 ({result.region} 3.3㎡당 {result.pricePerPyeong.toLocaleString()}만원, {result.realtimeSampleSize?.trade || 0}건)</>
+                : <>매매 실거래 표본이 없어 계산하지 않았습니다</>}<br/>
+              <strong>② 수익환원법:</strong> {result.regionYield
+                ? <>입력한 월세 ÷ 지역 임대수익률 {result.regionYield}% (같은 기간 매매 평당가 대비 임대료로 계산, 보증금은 법정 전환율로 월세 환산)</>
+                : <>지역 수익률을 계산할 표본이 없어 계산하지 않았습니다</>}<br/>
+              <strong>③ 임대시세법:</strong> 국토부 실거래 최근 6개월 유사면적 임대 {result.similarCount}건의 평균 월세를 같은 수익률로 역산<br/>
               <span style={{ color: "#e8960a", fontSize: 10 }}>⚠️ 참고용 추정치이며 실제 매매가는 단지·동·층·향·노후도에 따라 달라집니다. 감정평가는 공인된 감정평가법인 상담을 권장합니다.</span>
             </p>
           </div>
@@ -268,13 +259,13 @@ function ValuationContent() {
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, marginBottom: 16 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>추정 시장가치 범위</p>
           <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 20 }}>
-            {result.region} · {result.myArea}㎡ ({result.myPyeong}평) · 3가지 방법 교차 추정
+            {result.region} · {result.myArea}㎡ ({result.myPyeong}평) · {result.methodCount}가지 방법 교차 추정
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
             {[
               { label: "하단", value: result.low, sub: "보수적 추정", color: "#64748b" },
-              { label: "중간 (추천)", value: result.mid, sub: "3개 방법 평균", color: "#1a2744", highlight: true },
+              { label: "중간 (추천)", value: result.mid, sub: "계산된 방법 평균", color: "#1a2744", highlight: true },
               { label: "상단", value: result.high, sub: "낙관적 추정", color: "#e8445a" },
             ].map((v, i) => (
               <div key={i} style={{
@@ -292,8 +283,8 @@ function ValuationContent() {
           {/* 3개 방법별 값 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
             {[
-              { label: "① KB 시세법", value: result.kbValue, desc: `KB ${result.kbPricePerPyeong.toLocaleString()}만/평 기준` },
-              { label: "② 수익환원법", value: result.incomeValue, desc: `부동산원 수익률 ${result.kabYield}% 적용` },
+              { label: "① 실거래 평당가법", value: result.priceValue, desc: result.pricePerPyeong ? `매매 실거래 ${result.pricePerPyeong.toLocaleString()}만/평 기준` : "매매 실거래 표본 없음" },
+              { label: "② 수익환원법", value: result.incomeValue, desc: result.regionYield ? `지역 실거래 수익률 ${result.regionYield}% 적용` : "수익률 표본 없음" },
               { label: "③ 임대시세법", value: result.rentBasedValue, desc: `실거래 임대료 역산` },
             ].map((m, i) => (
               <div key={i} style={{ padding: "12px 14px", background: "var(--surface2)", borderRadius: 10, border: "1px solid var(--border)" }}>
@@ -312,7 +303,7 @@ function ValuationContent() {
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#0fa573" }}>임대 수익률 {result.impliedYield}%</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                  월 {result.useRent}만원 기준 · 추정 시가 {result.mid}억 대비 · 한국부동산원 기준 {result.kabYield}%와 비교
+                  월 {result.useRent}만원 기준 · 추정 시가 {result.mid}억 대비{result.regionYield ? ` · 지역 실거래 수익률 ${result.regionYield}%와 비교` : ""}
                 </div>
               </div>
             </div>
@@ -386,11 +377,11 @@ function ValuationContent() {
         </div>
       </>)}
 
-      {!result && !loading && (
+      {!result && !loading && !error && (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
           <p style={{ fontSize: 14, fontWeight: 600 }}>지역과 면적을 입력하면 시가를 추정해요</p>
-          <p style={{ fontSize: 12, marginTop: 4 }}>KB시세 + 수익환원법 + 실거래 데이터 3중 교차 추정</p>
+          <p style={{ fontSize: 12, marginTop: 4 }}>국토부 실거래 기반 교차 추정 (참고용)</p>
         </div>
       )}
     </div>

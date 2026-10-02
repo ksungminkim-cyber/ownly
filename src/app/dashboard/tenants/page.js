@@ -1,4 +1,4 @@
-"use client"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { getInitial } from "../../../lib/initial"; import { track } from "../../../lib/track"; import { getUnpaidTenantIds } from "../../../lib/unpaid"; import { useApp } from "../../../context/AppContext"; import TenantNotes from "../../../components/TenantNotes"; import RenewalGuide from "../../../components/RenewalGuide"; import RentHistoryChart from "../../../components/RentHistoryChart"; import TenantCreditScore from "../../../components/TenantCreditScore"; import LeaseReportCard from "../../../components/LeaseReportCard";
+"use client"; import { todayKST } from "../../../lib/kstDate"; import { useState, useMemo } from "react"; import { useRouter } from "next/navigation"; import { Badge, SectionLabel, SearchBox, EmptyState, Modal, toast, SkeletonTable } from "../../../components/shared"; import { C, STATUS_MAP, INTENT_MAP, daysLeft } from "../../../lib/constants"; import { getInitial } from "../../../lib/initial"; import { track } from "../../../lib/track"; import { getUnpaidTenantIds } from "../../../lib/unpaid"; import { useApp } from "../../../context/AppContext"; import TenantNotes from "../../../components/TenantNotes"; import { supabase } from "../../../lib/supabase"; import RenewalGuide from "../../../components/RenewalGuide"; import RentHistoryChart from "../../../components/RentHistoryChart"; import TenantCreditScore from "../../../components/TenantCreditScore"; import LeaseReportCard from "../../../components/LeaseReportCard";
 // ✅ ② 갱신 제안서 컴포넌트
 function RenewalProposal({ tenant, onClose }) {
   const endDate = tenant.end_date || tenant.end || "";
@@ -8,7 +8,7 @@ function RenewalProposal({ tenant, onClose }) {
   const [proposedDep, setProposedDep] = useState(Number(tenant.dep) || 0);
   const [newEndYears, setNewEndYears] = useState(2);
   const [memo, setMemo] = useState("");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
   const newStartDate = endDate ? new Date(new Date(endDate).getTime() + 86400000).toISOString().slice(0, 10) : today;
   const newEndDate = newStartDate ? new Date(new Date(newStartDate).setFullYear(new Date(newStartDate).getFullYear() + newEndYears)).toISOString().slice(0, 10) : "";
   const increaseRate = currentRent > 0 ? ((proposedRent - currentRent) / currentRent * 100).toFixed(1) : 0;
@@ -109,14 +109,14 @@ function RenewalProposal({ tenant, onClose }) {
   );
 }
 
-export default function TenantsPage() { const router = useRouter(); const { tenants, payments, repairs, updateTenantContacts, updateTenantIntent, loading, user } = useApp(); const [selected, setSelected] = useState(null); const [filter, setFilter] = useState("전체"); const [search, setSearch] = useState(""); const [showContact, setShowContact] = useState(false); const [contactNote, setContactNote] = useState({ type: "납부확인", note: "" }); const [saving, setSaving] = useState(false);
+export default function TenantsPage() { const router = useRouter(); const { tenants, payments, repairs, updateTenantIntent, loading, user } = useApp(); const [selected, setSelected] = useState(null); const [filter, setFilter] = useState("전체"); const [search, setSearch] = useState(""); const [showContact, setShowContact] = useState(false); const [notesVersion, setNotesVersion] = useState(0); /* 연락 기록 저장 후 메모 목록 새로고침 */ const [contactNote, setContactNote] = useState({ type: "납부확인", note: "" }); const [saving, setSaving] = useState(false);
   // ✅ ⑧ 수리이력 탭
   const [detailTab, setDetailTab] = useState("contract");
   const [showRenewal, setShowRenewal] = useState(false); // ✅ ② 갱신 제안서 모달
   const getEnd = (t) => t.end_date || t.end || ""; const filtered = useMemo(() => { let list = [...tenants]; if (filter === "만료임박") list = list.filter((t) => t.status !== "공실" && getEnd(t) && daysLeft(getEnd(t)) <= 90); else if (filter === "미납") { const ids = getUnpaidTenantIds(tenants, payments); list = list.filter((t) => ids.has(t.id)); } else if (filter !== "전체") list = list.filter((t) => t.pType === filter); if (search) { const q = search.toLowerCase(); list = list.filter((t) => t.name?.toLowerCase().includes(q) || t.addr?.toLowerCase().includes(q)); } return list; }, [tenants, filter, search]); const sel = selected ? tenants.find((t) => t.id === selected.id) : null;
   // ✅ 선택된 세입자의 수리이력
   const selRepairs = useMemo(() => sel ? (repairs||[]).filter(r => r.tenant_id === sel.id) : [], [sel, repairs]);
-  const addContact = async () => { if (!sel || !contactNote.note.trim()) { toast("내용을 입력하세요", "error"); return; } setSaving(true); try { const newContact = { date: new Date().toISOString().slice(0, 10), type: contactNote.type, note: contactNote.note }; const updatedContacts = [newContact, ...(sel.contacts || [])]; await updateTenantContacts(sel.id, updatedContacts); toast("연락 기록이 저장되었습니다"); setShowContact(false); setContactNote({ type: "납부확인", note: "" }); } catch (e) { toast(`저장 실패: ${e?.message || "알 수 없는 오류"}`, "error"); console.error("[tenants.save]", e);} finally { setSaving(false); } }; const handleUpdateIntent = async (intent) => { if (!sel) return; try { await updateTenantIntent(sel.id, intent); toast("갱신 의향이 변경되었습니다"); } catch (e) { toast(`변경 실패: ${e?.message || "알 수 없는 오류"}`, "error"); console.error("[tenants.change]", e); } };
+  const addContact = async () => { if (!sel || !contactNote.note.trim()) { toast("내용을 입력하세요", "error"); return; } setSaving(true); try { /* 연락 기록 탭이 보여주는 tenant_notes 에 저장 — 예전엔 화면 상태만 바꿔 저장도 표시도 되지 않았다 */ const { error } = await supabase.from("tenant_notes").insert({ tenant_id: sel.id, user_id: user.id, type: "call", title: contactNote.type, content: contactNote.note.trim(), occurred_at: new Date().toISOString() }); if (error) throw error; setNotesVersion((v) => v + 1); toast("연락 기록이 저장되었습니다"); setShowContact(false); setContactNote({ type: "납부확인", note: "" }); } catch (e) { toast(`저장 실패: ${e?.message || "알 수 없는 오류"}`, "error"); console.error("[tenants.save]", e);} finally { setSaving(false); } }; const handleUpdateIntent = async (intent) => { if (!sel) return; try { await updateTenantIntent(sel.id, intent); toast("갱신 의향이 변경되었습니다"); } catch (e) { toast(`변경 실패: ${e?.message || "알 수 없는 오류"}`, "error"); console.error("[tenants.change]", e); } };
 
   // ✅ 전체 현황 요약
   const summaryStats = useMemo(() => { const active = tenants.filter(t => t.status !== "공실"); const totalRent = active.reduce((s, t) => s + (t.rent || 0), 0); const avgRent = active.length > 0 ? Math.round(totalRent / active.length) : 0; const unpaid = getUnpaidTenantIds(tenants, payments).size; /* status "미납"은 실데이터에 기록되지 않음 — payments 기준 판정 */ const expiring60 = active.filter(t => getEnd(t) && daysLeft(getEnd(t)) <= 60).length; /* 만료일 없는 물건은 제외 (daysLeft 가 0 을 돌려줌) */ const byType = { 주거: 0, 상가: 0, 토지: 0 }; tenants.forEach(t => { if (byType[t.pType] !== undefined) byType[t.pType]++; }); return { total: active.length, totalRent, avgRent, unpaid, expiring60, byType }; }, [tenants]);
@@ -244,7 +244,7 @@ export default function TenantsPage() { const router = useRouter(); const { tena
 
         {detailTab === "contacts" && (
           <div style={{ background: "#ffffff", border: "1px solid #ebe9e3", borderRadius: 13, padding: "18px" }}>
-            <TenantNotes tenantId={sel.id} userId={user?.id} />
+            <TenantNotes key={sel.id + ":" + notesVersion} tenantId={sel.id} userId={user?.id} />
           </div>
         )}
       </div>

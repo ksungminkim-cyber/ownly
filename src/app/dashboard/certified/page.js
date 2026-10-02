@@ -1,4 +1,4 @@
-﻿"use client";
+﻿"use client"; import { todayKST } from "../../../lib/kstDate";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SectionLabel, EmptyState, Modal, toast } from "../../../components/shared";
@@ -255,7 +255,7 @@ function CertifiedContent() {
       // 등기번호를 처음 입력하는 경우 상태를 sent 로 자동 승격
       if (trackingInput.trim() && (trackingTarget.status === "drafted" || !trackingTarget.status)) {
         patch.status = "sent";
-        if (!trackingTarget.sent_at) patch.sent_at = new Date().toISOString().slice(0,10);
+        if (!trackingTarget.sent_at) patch.sent_at = todayKST();
       }
       const { data, error } = await supabase.from("certified_mail").update(patch).eq("id", trackingTarget.id).select().single();
       if (error) throw error;
@@ -270,8 +270,8 @@ function CertifiedContent() {
   // 상태 변경 (DB 즉시 반영)
   const updateStatus = async (h, nextStatus) => {
     const patch = { status: nextStatus };
-    if (nextStatus === "sent" && !h.sent_at) patch.sent_at = new Date().toISOString().slice(0,10);
-    if (nextStatus === "received" && !h.received_at) patch.received_at = new Date().toISOString().slice(0,10);
+    if (nextStatus === "sent" && !h.sent_at) patch.sent_at = todayKST();
+    if (nextStatus === "received" && !h.received_at) patch.received_at = todayKST();
     try {
       const { data, error } = await supabase.from("certified_mail").update(patch).eq("id", h.id).select().single();
       if (error) throw error;

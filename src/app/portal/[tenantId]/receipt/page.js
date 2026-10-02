@@ -1,4 +1,4 @@
-"use client";
+"use client"; import { todayKST } from "../../../../lib/kstDate";
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 
@@ -57,7 +57,7 @@ export default function PaymentReceiptPage() {
   const t = data.tenant;
   const landlord = data.landlord || {};
   const total = rows.reduce((s, p) => s + (p.amount || t.rent || 0), 0);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
 
   return (
     <div style={{ minHeight: "100vh", background: "#f0efe9", fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", padding: "24px 16px 60px" }}>

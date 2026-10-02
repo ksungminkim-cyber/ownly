@@ -1,3 +1,4 @@
+import { todayKST } from "../../../../lib/kstDate";
 // 세입자 수리 요청 (로그인 없음) — service role 로 처리
 // 배경: /request/[tenantId] 페이지가 익명 supabase 클라이언트로 tenants 조회·repairs insert 를 직접 하고 있었는데,
 //       RLS(20260520_core_tables_rls) 가 user_id 소유자만 허용하므로 세입자에게는 항상 "링크를 확인해주세요"로 떨어졌다.
@@ -46,7 +47,7 @@ export async function POST(req, { params }) {
     user_id: tenant.user_id,
     category,
     memo: urgent ? "[긴급] " + desc : desc,
-    date: new Date().toISOString().slice(0, 10),
+    date: todayKST(),
     cost: 0,
     receipt_yn: false,
     vendor: "",

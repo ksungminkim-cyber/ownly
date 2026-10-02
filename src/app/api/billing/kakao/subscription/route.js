@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { KAKAOPAY_BASE, KAKAOPAY_CID, KAKAOPAY_SECRET, authHeaders, adminClient, PLAN_PRICE_KRW, fmtKakaoError, cycleAmount, itemNameFor, nextPeriodDate } from "../_helpers";
-import { GRACE_DAYS } from "../../../../../lib/plan";
+import { GRACE_DAYS, normalizePlan } from "../../../../../lib/plan";
 
 const RENEWAL_TOKEN = process.env.BILLING_RENEWAL_TOKEN || "";
 const CRON_SECRET = process.env.CRON_SECRET || "";
@@ -70,7 +70,7 @@ async function handle(req, body) {
 
   const results = [];
   for (const sub of subs || []) {
-    const planId = sub.plan;
+    const planId = normalizePlan(sub.plan); // DB 의 과거 값 pro·starter 는 플러스로 취급 (lib/plan.js)
     if (!PLAN_PRICE_KRW[planId]) { results.push({ user_id: sub.user_id, skipped: "unknown plan" }); continue; }
 
     // past_due 유예 초과 → 해지 (sid 는 카카오 측에 남지만 우리가 호출하지 않는 한 청구되지 않음)

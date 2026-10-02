@@ -6,7 +6,20 @@ import { supabase } from "../../../lib/supabase";
 import { useApp } from "../../../context/AppContext";
 import { toast } from "../../../components/shared";
 
-const ADMIN_EMAILS = ["k.sungminkim@gmail.com"];
+import { ADMIN_EMAILS } from "../../../lib/constants";
+
+// 구독 조회·변경은 관리자 API 로 — subscriptions 는 RLS 로 본인 행만 읽히고 클라이언트 update 는 0행 갱신으로 사라진다
+async function adminApi(method, body) {
+  const { data: s } = await supabase.auth.getSession();
+  const res = await fetch("/api/admin/subscriptions", {
+    method,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${s?.session?.access_token || ""}` },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`);
+  return out;
+}
 
 const PLAN_META = {
   free:         { label: "무료",    color: "#8a8a9a", bg: "#f0efe9" },
@@ -97,21 +110,10 @@ function AdminContent({ currentUser }) {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: subData, error: subErr } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (subErr) throw subErr;
+      const { subs: subData, billing: billData } = await adminApi("GET");
       setSubs(subData || []);
 
       // 최근 12개월 결제 이력 — MRR 그래프용
-      const yearAgo = new Date();
-      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-      const { data: billData } = await supabase
-        .from("billing_history")
-        .select("plan, amount, status, paid_at")
-        .gte("paid_at", yearAgo.toISOString())
-        .order("paid_at", { ascending: true });
       setBilling(billData || []);
 
       // 신규 RPC 우선 시도 → 실패 시 구 버전 fallback
@@ -196,11 +198,7 @@ function AdminContent({ currentUser }) {
   const updatePlan = async ({ userId, plan, status }) => {
     setSaving(userId);
     try {
-      const { error } = await supabase
-        .from("subscriptions")
-        .update({ plan, status, current_period_end: null })
-        .eq("user_id", userId);
-      if (error) throw error;
+      await adminApi("POST", { userId, plan, status });
       toast("변경 완료: " + PLAN_META[plan].label + " / " + STATUS_META[status].label);
       setEditModal(null);
       await loadData();
@@ -214,10 +212,7 @@ function AdminContent({ currentUser }) {
   const quickPlan = async (planId) => {
     setSaving(currentUser.id);
     try {
-      const { error } = await supabase
-        .from("subscriptions")
-        .upsert({ user_id: currentUser.id, plan: planId, status: "active", current_period_end: null }, { onConflict: "user_id" });
-      if (error) throw error;
+      await adminApi("POST", { userId: currentUser.id, plan: planId, status: "active" });
       toast("✅ " + PLAN_META[planId].label + " 적용! F5로 새로고침하세요.");
       await loadData();
     } catch (err) {

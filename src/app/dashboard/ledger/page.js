@@ -1,4 +1,4 @@
-"use client"; import { useState } from "react"; import { useApp } from "../../../context/AppContext"; import { SectionLabel, toast, EmptyState } from "../../../components/shared"; import { supabase } from "../../../lib/supabase"; import { uploadPrivateFile, openPrivateFile, deletePrivateFile } from "../../../lib/files"; const C = { navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", purple:"#5b4fcf", indigo:"#3b5bdb", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" }; const INCOME_CATS = ["월세수입","보증금수입","관리비수입","기타수입"]; const EXPENSE_CATS = ["수리비","관리비","세금","보험료","대출이자","광고비","기타지출"];
+"use client"; import { todayKST } from "../../../lib/kstDate"; import { useState } from "react"; import { useApp } from "../../../context/AppContext"; import { SectionLabel, toast, EmptyState } from "../../../components/shared"; import { supabase } from "../../../lib/supabase"; import { uploadPrivateFile, openPrivateFile, deletePrivateFile } from "../../../lib/files"; const C = { navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", purple:"#5b4fcf", indigo:"#3b5bdb", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" }; const INCOME_CATS = ["월세수입","보증금수입","관리비수입","기타수입"]; const EXPENSE_CATS = ["수리비","관리비","세금","보험료","대출이자","광고비","기타지출"];
 
 export default function LedgerPage() {
   // ✅ #10: AppContext에서 ledger 직접 가져옴 (별도 supabase 쿼리 불필요)
@@ -11,9 +11,9 @@ export default function LedgerPage() {
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(0);
-  const [form, setForm] = useState({ date: new Date().toISOString().slice(0,10), type:"income", category:INCOME_CATS[0], amount:0, memo:"", tenant_id:"" });
+  const [form, setForm] = useState({ date: todayKST(), type:"income", category:INCOME_CATS[0], amount:0, memo:"", tenant_id:"" });
 
-  const emptyForm = () => ({ date: new Date().toISOString().slice(0,10), type:"income", category:INCOME_CATS[0], amount:0, memo:"", tenant_id:"" });
+  const emptyForm = () => ({ date: todayKST(), type:"income", category:INCOME_CATS[0], amount:0, memo:"", tenant_id:"" });
   const closeForm = () => { setShowForm(false); setEditing(null); setReceiptFile(null); setRemoveReceipt(false); setForm(emptyForm()); };
   const openEdit = (item) => { setEditing(item); setReceiptFile(null); setRemoveReceipt(false); setForm({ date:item.date||"", type:item.type||"income", category:item.category||"", amount:item.amount||0, memo:item.memo||"", tenant_id:item.tenant_id||"" }); setShowForm(true); };
 

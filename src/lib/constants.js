@@ -153,6 +153,15 @@ export const NAV = [
   { key: "pricing",    icon: "💎",  label: "구독 플랜" },
 ];
 
+// 관리자 계정 — 관리자 화면(dashboard/admin)과 관리자 API(api/admin/*)가 같은 목록을 쓴다
+export const ADMIN_EMAILS = ["k.sungminkim@gmail.com"];
+
+// 주택 법정 전월세 전환율 = min(연 10%, 한국은행 기준금리 + 2%p) — 주택임대차보호법 제7조의2 · 시행령 제9조.
+// 기준금리가 바뀌면 아래 두 줄만 고친다 (한국은행 "기준금리 추이" 페이지에서 확인). 계산기·임대차 3법·블로그·지역 수익률 계산이 모두 이 값을 읽는다.
+export const BOK_BASE_RATE = 3.0;
+export const BOK_BASE_RATE_AS_OF = "2026-08-27";
+export const LEGAL_CONVERSION_RATE = Math.min(10, BOK_BASE_RATE + 2);
+
 export function daysLeft(endDate) {
   if (!endDate) return 0;
   const d = Math.ceil((new Date(endDate) - new Date()) / 86400000);

@@ -1,4 +1,4 @@
-"use client"; import { useState } from "react"; import { useRouter } from "next/navigation"; import { useApp } from "../../../context/AppContext"; import { SectionLabel, toast, EmptyState } from "../../../components/shared"; const C = { navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", purple:"#5b4fcf", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" }; const CATEGORIES = ["도배/장판","배관/수도","전기","에어컨/냉난방","창문/문","주방","욕실","외벽/지붕","기타"]; const CATEGORY_ICONS = {"도배/장판":"🎨","배관/수도":"🔧","전기":"⚡","에어컨/냉난방":"❄️","창문/문":"🚪","주방":"🍳","욕실":"🚿","외벽/지붕":"🏠","기타":"🔨"};
+"use client"; import { todayKST } from "../../../lib/kstDate"; import { useState } from "react"; import { useRouter } from "next/navigation"; import { useApp } from "../../../context/AppContext"; import { SectionLabel, toast, EmptyState } from "../../../components/shared"; const C = { navy:"#1a2744", emerald:"#0fa573", rose:"#e8445a", amber:"#e8960a", purple:"#5b4fcf", border:"#e8e6e0", surface:"#ffffff", faint:"#f8f7f4", muted:"#8a8a9a" }; const CATEGORIES = ["도배/장판","배관/수도","전기","에어컨/냉난방","창문/문","주방","욕실","외벽/지붕","기타"]; const CATEGORY_ICONS = {"도배/장판":"🎨","배관/수도":"🔧","전기":"⚡","에어컨/냉난방":"❄️","창문/문":"🚪","주방":"🍳","욕실":"🚿","외벽/지붕":"🏠","기타":"🔨"};
 
 export default function RepairsPage() {
   // ✅ AppContext에서 repairs, addRepair 사용 (장부 자동 연동)
@@ -24,7 +24,7 @@ export default function RepairsPage() {
       toast("상태 변경 중 오류: " + (e.message || ""), "error");
     }
   };
-  const [form, setForm] = useState({ date: new Date().toISOString().slice(0,10), category: "기타", vendor: "", cost: 0, memo: "", receipt_yn: false, tenant_id: "", property_name: "" });
+  const [form, setForm] = useState({ date: todayKST(), category: "기타", vendor: "", cost: 0, memo: "", receipt_yn: false, tenant_id: "", property_name: "" });
 
   const save = async () => {
     if (!form.category) return;
@@ -34,7 +34,7 @@ export default function RepairsPage() {
       await addRepair(payload);
       toast("수리 이력이 저장됐습니다 — 간편 장부에도 자동 기록됐어요");
       setShowForm(false);
-      setForm({ date: new Date().toISOString().slice(0,10), category:"기타", vendor:"", cost:0, memo:"", receipt_yn:false, tenant_id:"", property_name:"" });
+      setForm({ date: todayKST(), category:"기타", vendor:"", cost:0, memo:"", receipt_yn:false, tenant_id:"", property_name:"" });
     } catch (e) { toast(`저장 실패: ${e?.message || "알 수 없는 오류"}`, "error"); console.error("[repairs]", e); }
     finally { setSaving(false); }
   };

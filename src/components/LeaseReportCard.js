@@ -1,4 +1,4 @@
-"use client";
+"use client"; import { todayKST } from "../lib/kstDate";
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { toast } from "./shared";
@@ -7,7 +7,7 @@ import { toast } from "./shared";
 export default function LeaseReportCard({ tenant }) {
   const { updateTenant } = useApp();
   const [saving, setSaving] = useState(false);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => todayKST());
   const sd = tenant.start_date || tenant.start || "";
   const isTarget = (Number(tenant.dep) || 0) > 6000 || (Number(tenant.rent) || 0) > 30;
   const filed = tenant.report_filed_at || null;
@@ -54,7 +54,7 @@ export default function LeaseReportCard({ tenant }) {
         ) : (
           <>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="신고 완료일" style={{ padding: "6px 10px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, color: "var(--text)", background: "var(--surface2)" }} />
-            <button onClick={() => save(date || new Date().toISOString().slice(0, 10))} disabled={saving} className="btn btn-accent btn-sm">{saving ? "저장 중..." : "신고 완료로 표시"}</button>
+            <button onClick={() => save(date || todayKST())} disabled={saving} className="btn btn-accent btn-sm">{saving ? "저장 중..." : "신고 완료로 표시"}</button>
           </>
         )}
       </div>

@@ -1,4 +1,4 @@
-"use client";
+"use client"; import { todayKST } from "../lib/kstDate";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { uploadPrivateFile, privateFileUrl, openPrivateFile, deletePrivateFile } from "../lib/files";
@@ -72,7 +72,7 @@ const photosOf = (items) => (items || []).flatMap(it => (Array.isArray(it.photos
 /** 새 점검 작성 / 기존 점검 수정. 저장·취소 시 쓰이지 않게 된 사진은 비공개 저장소에서 지운다 */
 export default function InspectionForm({ tenant, initial, userId, onSaved, onCancel }) {
   const [kind, setKind] = useState(() => initial?.kind || "move_in");
-  const [date, setDate] = useState(() => initial?.inspected_on || new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => initial?.inspected_on || todayKST());
   const [items, setItems] = useState(() => (initial?.items?.length ? initial.items : templateFor(tenant)).map(withKey));
   const [memo, setMemo] = useState(() => initial?.memo || "");
   const [uploading, setUploading] = useState({}); // _k → 업로드 중 장수

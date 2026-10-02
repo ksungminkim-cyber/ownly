@@ -1,4 +1,4 @@
-"use client";
+"use client"; import { todayKST } from "../../../../lib/kstDate";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
@@ -25,7 +25,7 @@ export default function VacancyFlyerPage() {
   const rent = Number(v.rent || 0);
   const dep = Number(v.dep || 0);
   const maint = Number(v.maintenance || 0);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
 
   return (
     <div style={{ minHeight: "100vh", background: "#f0efe9", fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", padding: "24px 16px 60px" }}>

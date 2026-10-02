@@ -60,28 +60,28 @@ function ProfitAnalysisContent() {
     if (!buy || !cur) return null;
 
     // ── 양도세 계산 (간이) ──
+    // 기본세율(누진공제 방식) + 기본공제 250만원 + 지방소득세 10%. 장기보유특별공제·단기 중과·12억 초과 고가주택은 반영하지 않는다.
+    // (예전엔 한계세율을 차익 전체에 곱하고 구간도 한 칸씩 밀려 있어 세액이 크게 과대 계산됐다)
+    const taxOn = (g) => {
+      if (g <= 0 || (form.isMain && years >= 2)) return 0; // 1세대1주택 2년 보유 비과세 (간이)
+      const base = Math.max(0, g - 250);
+      const [rate, ded] = base <= 1400 ? [0.06, 0] : base <= 5000 ? [0.15, 126] : base <= 8800 ? [0.24, 576] : base <= 15000 ? [0.35, 1544]
+        : base <= 30000 ? [0.38, 1994] : base <= 50000 ? [0.40, 2594] : base <= 100000 ? [0.42, 3594] : [0.45, 6594];
+      return Math.round((base * rate - ded) * 1.1);
+    };
     const gain = cur - buy; // 양도차익
-    let taxRate = 0;
-    if (gain <= 0) taxRate = 0;
-    else if (form.isMain && years >= 2) taxRate = 0; // 1세대1주택 비과세 (간이)
-    else if (gain <= 1400) taxRate = 0.15;
-    else if (gain <= 5000) taxRate = 0.24;
-    else if (gain <= 8800) taxRate = 0.35;
-    else if (gain <= 15000) taxRate = 0.38;
-    else if (gain <= 30000) taxRate = 0.40;
-    else taxRate = 0.42;
-
-    const transferTax = gain > 0 ? Math.round(gain * taxRate) : 0;
+    const transferTax = taxOn(gain);
+    const taxRate = gain > 0 ? transferTax / gain : 0; // 실효세율 (표시용)
     const netSaleGain = gain - transferTax; // 세후 양도차익
     const netSaleProceeds = cur - loan - transferTax; // 실수령액 (대출 상환 후)
 
-    // ── 계속 임대 시 수익 ──
+    // ── 계속 임대 시 ── 매각과 같은 기준(대출 상환·양도세 후 손에 남는 돈)으로 비교한다.
+    // 예전엔 매각은 원금 포함 실수령액, 보유는 차익만 더해 비교해서 결론이 항상 매각 쪽으로 기울었다.
     const annualNet = annualRent - annualCost;
     const rentTotalNet = annualNet * rentYears; // 임대 순수익 합계
     const futureValue = cur * Math.pow(1.03, rentYears); // 3% 상승 가정
-    const futureGain = futureValue - cur;
-    const futureGainAfterTax = futureGain * (1 - taxRate);
-    const holdTotalGain = rentTotalNet + futureGainAfterTax; // 계속보유 총수익 추정
+    const futureProceeds = futureValue - loan - taxOn(futureValue - buy); // 그때 매각 시 실수령액 (대출 잔액은 그대로라고 가정)
+    const holdTotalGain = rentTotalNet + futureProceeds; // 임대 수익 + 그때 매각 실수령액
 
     // ── 수익률 비교 ──
     const saleROI = buy > 0 ? ((netSaleGain / buy) * 100).toFixed(1) : 0;
@@ -94,8 +94,8 @@ function ProfitAnalysisContent() {
     if (!calc) return null;
     const saleScore = calc.netSaleProceeds;
     const holdScore = calc.holdTotalGain;
-    if (holdScore > saleScore * 1.2) return { action: "보유 추천", reason: "향후 임대 수익과 자산 가치 상승 합산이 즉시 매각보다 유리합니다.", color: "#0fa573", icon: "🏠" };
-    if (saleScore > holdScore * 1.2) return { action: "매각 추천", reason: "양도세 후 실수령액이 향후 임대 기대 수익보다 높습니다.", color: "#3b5bdb", icon: "💰" };
+    if (holdScore > saleScore * 1.2) return { action: "보유 쪽이 유리", reason: "임대 수익과 그때 매각 실수령액의 합이 지금 매각 실수령액보다 20% 이상 큽니다 (연 3% 상승 가정).", color: "#0fa573", icon: "🏠" };
+    if (saleScore > holdScore * 1.2) return { action: "매각 쪽이 유리", reason: "지금 매각 실수령액이 계속 임대했을 때의 합계보다 20% 이상 큽니다.", color: "#3b5bdb", icon: "💰" };
     return { action: "상황에 따라 판단", reason: "매각과 보유의 기대 수익이 비슷합니다. 유동성 필요 여부와 세금 상황을 고려하세요.", color: "#e8960a", icon: "⚖️" };
   }, [calc]);
 
@@ -211,7 +211,7 @@ function ProfitAnalysisContent() {
                   { l: "연간 임대 순수익", v: `${calc.annualNet.toLocaleString()}만원/년`, c: "#1a2744" },
                   { l: `${form.expectedRentYears}년 임대 수익 합계`, v: `${calc.rentTotalNet.toLocaleString()}만원`, c: "#0fa573" },
                   { l: "자산가치 상승 추정 (3%/년)", v: `+${Math.round((calc.cur * Math.pow(1.03, Number(form.expectedRentYears)) - calc.cur)).toLocaleString()}만원`, c: "#3b5bdb" },
-                  { l: "총 기대 수익 (임대+시세차익)", v: `${Math.round(calc.holdTotalGain).toLocaleString()}만원`, c: "#0fa573", bold: true },
+                  { l: "임대 수익 + 그때 매각 실수령액 (세후)", v: `${Math.round(calc.holdTotalGain).toLocaleString()}만원`, c: "#0fa573", bold: true },
                   { l: "연 임대 수익률", v: `${calc.rentROI}%`, c: Number(calc.rentROI) > 4 ? "#0fa573" : "#e8960a", bold: true },
                 ].map(row => (
                   <div key={row.l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0efe9" }}>
@@ -223,7 +223,8 @@ function ProfitAnalysisContent() {
 
               <div style={{ background: "rgba(26,39,68,0.04)", borderRadius: 12, padding: "12px 16px" }}>
                 <p style={{ fontSize: 11, color: "#8a8a9a", lineHeight: 1.7, margin: 0 }}>
-                  ※ 양도세는 간이 세율 적용 추정값이며, 실제 세액은 다를 수 있습니다.<br/>
+                  ※ 양도세는 기본세율·기본공제 250만원·지방소득세만 반영한 추정값입니다 (장기보유특별공제·단기 중과·고가주택 미반영).<br/>
+                  ※ 계속 임대 금액은 대출 잔액이 그대로라고 보고, 기간 뒤 매각했을 때의 세후 실수령액에 임대 순수익을 더한 값입니다.<br/>
                   ※ 자산가치 상승은 연 3% 가정 — 지역에 따라 다를 수 있습니다.<br/>
                   ※ 세무사 상담을 통한 정확한 계산을 권장합니다.
                 </p>

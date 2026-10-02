@@ -221,7 +221,7 @@ export default function AIReportPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {[
                   { step: 0, label: "지역 코드 조회", sub: "행정구역 코드 추출" },
-                  { step: 1, label: "실거래가 수집", sub: "국토교통부 최근 5개월" },
+                  { step: 1, label: "실거래가 수집", sub: "국토교통부 최근 3개월" },
                   { step: 2, label: "AI 분석", sub: "데이터 해석 및 리포트 생성" },
                 ].map((s) => {
                   const isDone   = pLoadingStep > s.step;
@@ -299,12 +299,12 @@ export default function AIReportPage() {
                       const s = pResult.rawStats;
                       if (!pResult.hasRealData)
                         return <span style={{ fontSize:9, fontWeight:800, color:"#f87171", background:"rgba(248,113,113,0.2)", padding:"2px 8px", borderRadius:20 }}>✕ 실거래 없음 — AI 추정</span>;
-                      if (s?.tradeCount > 0 && !s?.wolseCount)
-                        return <span style={{ fontSize:9, fontWeight:800, color:"#fbbf24", background:"rgba(251,191,36,0.2)", padding:"2px 8px", borderRadius:20 }}>⚠ 매매가 역산 {s.count}건 — 전월세 미공개</span>;
+                      if (pResult.marketStats?.isEstimatedFromSales) // 서버는 tradeCount·wolseCount 를 보내지 않는다 — 매매 역산 여부는 이 플래그로 판단
+                        return <span style={{ fontSize:9, fontWeight:800, color:"#fbbf24", background:"rgba(251,191,36,0.2)", padding:"2px 8px", borderRadius:20 }}>⚠ 매매가 역산 {s?.count || 0}건 — 전월세 미공개</span>;
                       return <span style={{ fontSize:9, fontWeight:800, color:"#4ade80", background:"rgba(74,222,128,0.2)", padding:"2px 8px", borderRadius:20 }}>✓ 전월세 실거래 {s?.count || 0}건</span>;
                     })()}
                   </div>
-                  <p style={{ fontSize:15, fontWeight:800, lineHeight:1.6 }}>{pResult.marketSummary}</p>
+                  <p style={{ fontSize:15, fontWeight:800, lineHeight:1.6 }}>{pResult.marketSummary || pResult.trendReason || ""}</p>
                 </div>
                 <div style={{ textAlign:"center", flexShrink:0, marginLeft:20 }}>
                   <div style={{ fontSize:24, fontWeight:900, color:posColor }}>{pos}</div>
@@ -377,14 +377,14 @@ export default function AIReportPage() {
             </div>
 
             {/* ② 시세 구간 */}
-            {pResult.priceRange && (
+            {pResult.rentRange && (
               <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:"18px 22px", marginBottom:14 }}>
                 <p style={{ fontSize:12, fontWeight:800, color:C.navy, letterSpacing:"1px", marginBottom:14 }}>📊 시세 구간 분석</p>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
                   {[
-                    { label:"하한가", desc:pResult.priceRange?.low, color:C.emerald, bg:"rgba(15,165,115,0.06)", border:"rgba(15,165,115,0.2)" },
-                    { label:"중간가", desc:pResult.priceRange?.mid, color:C.amber,   bg:"rgba(232,150,10,0.06)",  border:"rgba(232,150,10,0.2)" },
-                    { label:"상한가", desc:pResult.priceRange?.high, color:C.rose,   bg:"rgba(232,68,90,0.06)",   border:"rgba(232,68,90,0.2)" },
+                    { label:"월세 하한", desc:`${Number(pResult.rentRange?.min || 0).toLocaleString()}만원/월`, color:C.emerald, bg:"rgba(15,165,115,0.06)", border:"rgba(15,165,115,0.2)" },
+                    { label:"월세 상한", desc:`${Number(pResult.rentRange?.max || 0).toLocaleString()}만원/월`, color:C.rose,   bg:"rgba(232,68,90,0.06)",   border:"rgba(232,68,90,0.2)" },
+                    { label:"보증금 범위", desc: pResult.depositRange ? `${Number(pResult.depositRange.min || 0).toLocaleString()}~${Number(pResult.depositRange.max || 0).toLocaleString()}만원` : "—", color:C.amber,   bg:"rgba(232,150,10,0.06)",  border:"rgba(232,150,10,0.2)" },
                   ].map(r=>(
                     <div key={r.label} style={{ background:r.bg, border:`1px solid ${r.border}`, borderRadius:12, padding:"14px 16px" }}>
                       <p style={{ fontSize:11, fontWeight:800, color:r.color, marginBottom:6 }}>{r.label}</p>
@@ -465,7 +465,7 @@ export default function AIReportPage() {
               <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, overflow:"hidden", marginBottom:14 }}>
                 <div style={{ padding:"12px 20px", background:C.faint, borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <p style={{ fontSize:12, fontWeight:800, color:C.navy }}>🏘️ 인근 유사 물건 비교</p>
-                  <p style={{ fontSize:11, color:C.muted }}>AI 추정 데이터 · 실제 공시와 차이 있을 수 있음</p>
+                  <p style={{ fontSize:11, color:C.muted }}>{pResult.marketStats?.isEstimatedFromSales ? "국토부 매매 실거래 표본 · 월세는 수익률 역산값" : "국토부 실거래 표본"}</p>
                 </div>
                 {/* 테이블 헤더 */}
                 <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 1.5fr", gap:0, padding:"8px 20px", background:"#fafaf8", borderBottom:`1px solid ${C.border}` }}>

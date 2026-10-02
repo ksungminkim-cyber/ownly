@@ -1,3 +1,4 @@
+import { todayKST } from "./kstDate";
 // CSV 내보내기 유틸 — 한글 Excel 호환 (BOM 포함)
 import { isSampleTenant } from "./sampleData";
 
@@ -30,7 +31,7 @@ function downloadCsv(filename, csv) {
   URL.revokeObjectURL(url);
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayKST();
 
 // ─── 세입자 목록 ───
 export function exportTenants(tenants, buildings) {
