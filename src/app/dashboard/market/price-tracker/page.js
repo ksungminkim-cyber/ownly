@@ -55,7 +55,9 @@ function PriceTrackerContent() {
   }, [tenants]);
 
   const defaultRegion = myRegion || Object.keys(LAWD_MAP)[0] || "서울 강남구";
-  const [region, setRegion] = useState(defaultRegion);
+  // 물건 목록은 비동기로 늦게 도착하므로, 직접 고르기 전에는 감지된 지역을 그대로 따른다
+  const [regionSel, setRegion] = useState(null);
+  const region = regionSel || defaultRegion;
   const [tradeType, setTradeType] = useState("아파트 전월세");
   const [loading, setLoading] = useState(false);
   const [chartData, setChartData] = useState([]);
@@ -69,12 +71,15 @@ function PriceTrackerContent() {
     const lawdCd = LAWD_MAP[region];
     const type = TYPE_MAP[tradeType];
     const results = [];
+    const failed = [];
+    setStats(null);
 
     try {
       await Promise.all(
         months.map(async ({ ym, label }) => {
           const res = await fetch(`/api/market/molit?type=${type}&lawdCd=${lawdCd}&dealYm=${ym}&numOfRows=200`);
           const data = await res.json();
+          if (data.molitError || data.error) failed.push(data.molitError || data.error);
 
           if (data.items?.length > 0) {
             if (type === "apt_trade") {
@@ -115,6 +120,8 @@ function PriceTrackerContent() {
 
       // 통계 계산
       const validData = results.filter(r => r.count > 0);
+      if (failed.length > 0) setError(`국토부 실거래 조회 오류 (${failed.length}/${months.length}개월): ${failed[0]}`);
+      else if (validData.length === 0) setError("이 지역·유형은 최근 12개월 실거래 신고 내역이 없습니다.");
       if (validData.length >= 2) {
         const isRent = type.includes("rent");
         const isTrade = type === "apt_trade";

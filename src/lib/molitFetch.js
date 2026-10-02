@@ -6,11 +6,11 @@
 //   ok        — resultCode 000/00 이고 본문 형식을 인식 (items 0건도 ok=true, totalCount 로 구분)
 //   molitError — 국토부가 오류 코드를 돌려줌 (한도 초과·키 오류·점검 등)
 //   unrecognized — HTTP 오류이거나 본문이 국토부 형식이 아님 (HTML 점검 페이지·게이트웨이 오류 등) → 호출자는 오류로 취급
-import { parseMolitBody } from "./molitParse";
+import { parseMolitBody, expandLawdCd } from "./molitParse";
 
 const URL_MAP = {
   apt_rent:    "http://apis.data.go.kr/1613000/RTMSDataSvcAptRent/getRTMSDataSvcAptRent",
-  apt_trade:   "http://apis.data.go.kr/1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTradeDev",
+  apt_trade:   "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
   villa_rent:  "http://apis.data.go.kr/1613000/RTMSDataSvcRHRent/getRTMSDataSvcRHRent",
   villa_trade: "http://apis.data.go.kr/1613000/RTMSDataSvcRHTrade/getRTMSDataSvcRHTrade",
   offi_rent:   "http://apis.data.go.kr/1613000/RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent",
@@ -51,7 +51,23 @@ const head = (text) => String(text || "").replace(/\s+/g, " ").trim().slice(0, 2
  * MOLIT 한 페이지 조회. 절대 throw 하지 않고 분류 결과를 돌려준다.
  * @returns {{ items:any[], totalCount:number, resultCode:string|null, resultMsg:string|null, molitError:string|null, httpStatus:number, bodyHead:string|null, ms:number }}
  */
-export async function fetchMolitPage({ type, lawdCd, dealYm, pageNo = "1", numOfRows = "100", timeoutMs = 15000, cache = "no-store" }) {
+export async function fetchMolitPage(opts) {
+  const codes = expandLawdCd(opts.lawdCd);
+  if (codes.length === 1) return fetchOnePage(opts);
+  // 시 단위 코드 → 구별로 조회해 합산. 한 구라도 오류면 molitError 로 알린다 (부분 결과는 그대로 실어 보냄)
+  const parts = await Promise.all(codes.map((cd) => fetchOnePage({ ...opts, lawdCd: cd })));
+  const bad = parts.find((p) => p.molitError);
+  const items = parts.flatMap((p) => p.items);
+  return {
+    ...(bad || parts[0]),
+    items,
+    totalCount: parts.reduce((s, p) => s + p.totalCount, 0),
+    bodyHead: bad ? bad.bodyHead : items.length === 0 ? parts[0].bodyHead : null,
+    ms: Math.max(...parts.map((p) => p.ms)),
+  };
+}
+
+async function fetchOnePage({ type, lawdCd, dealYm, pageNo = "1", numOfRows = "100", timeoutMs = 15000, cache = "no-store" }) {
   const t0 = Date.now();
   const empty = { items: [], totalCount: 0, resultCode: null, resultMsg: null, molitError: null, httpStatus: 0, bodyHead: null };
   if (!molitSupported(type)) return { ...empty, molitError: `지원하지 않는 타입: ${type}`, ms: 0 };

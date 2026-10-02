@@ -81,17 +81,17 @@ export const REGIONS = [
   { code: "41465", slug: "yongin-suji",      name: "용인 수지구",   sido: "경기도", sigungu: "용인시 수지구", region: "gyeonggi" },
   { code: "41117", slug: "suwon-yeongtong",  name: "수원 영통구",   sido: "경기도", sigungu: "수원시 영통구", region: "gyeonggi" },
   { code: "41115", slug: "suwon-paldal",     name: "수원 팔달구",   sido: "경기도", sigungu: "수원시 팔달구", region: "gyeonggi" },
-  { code: "41195", slug: "anyang-dongan",    name: "안양 동안구",   sido: "경기도", sigungu: "안양시 동안구", region: "gyeonggi" },
+  { code: "41173", slug: "anyang-dongan",    name: "안양 동안구",   sido: "경기도", sigungu: "안양시 동안구", region: "gyeonggi" },
   { code: "41570", slug: "gimpo",            name: "김포시",        sido: "경기도", sigungu: "김포시",        region: "gyeonggi" },
   { code: "41590", slug: "hwaseong",         name: "화성시",        sido: "경기도", sigungu: "화성시",        region: "gyeonggi" },
 
   // 광역시
-  { code: "26290", slug: "busan-haeundae", name: "부산 해운대구", sido: "부산광역시", sigungu: "해운대구", region: "busan" },
+  { code: "26350", slug: "busan-haeundae", name: "부산 해운대구", sido: "부산광역시", sigungu: "해운대구", region: "busan" },
   { code: "26230", slug: "busan-busanjin", name: "부산진구",       sido: "부산광역시", sigungu: "부산진구", region: "busan" },
-  { code: "27170", slug: "daegu-suseong",  name: "대구 수성구",   sido: "대구광역시", sigungu: "수성구",   region: "daegu" },
-  { code: "28245", slug: "incheon-yeonsu", name: "인천 연수구",   sido: "인천광역시", sigungu: "연수구",   region: "incheon" },
-  { code: "28260", slug: "incheon-namdong", name: "인천 남동구",  sido: "인천광역시", sigungu: "남동구",   region: "incheon" },
-  { code: "30230", slug: "daejeon-yuseong", name: "대전 유성구",  sido: "대전광역시", sigungu: "유성구",   region: "daejeon" },
+  { code: "27260", slug: "daegu-suseong",  name: "대구 수성구",   sido: "대구광역시", sigungu: "수성구",   region: "daegu" },
+  { code: "28185", slug: "incheon-yeonsu", name: "인천 연수구",   sido: "인천광역시", sigungu: "연수구",   region: "incheon" },
+  { code: "28200", slug: "incheon-namdong", name: "인천 남동구",  sido: "인천광역시", sigungu: "남동구",   region: "incheon" },
+  { code: "30200", slug: "daejeon-yuseong", name: "대전 유성구",  sido: "대전광역시", sigungu: "유성구",   region: "daejeon" },
 ];
 
 export const REGION_GROUPS = {

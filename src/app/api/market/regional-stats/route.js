@@ -8,13 +8,13 @@
 
 export const runtime = "edge";
 import { isRateLimited } from "../../../../lib/ratelimit";
-import { fetchMolitRows as fetchMolitRowsSafe } from "../../../../lib/molitParse";
+import { fetchMolitRows as fetchMolitRowsSafe, expandLawdCd } from "../../../../lib/molitParse";
 export const revalidate = 86400; // 24h
 
 const MOLIT_BASE = "http://apis.data.go.kr/1613000/";
 const MOLIT_ENDPOINTS = {
   apt_rent:   "RTMSDataSvcAptRent/getRTMSDataSvcAptRent",
-  apt_trade:  "RTMSDataSvcAptTrade/getRTMSDataSvcAptTradeDev",
+  apt_trade:  "RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
   offi_rent:  "RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent",
   offi_trade: "RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade",
   villa_rent: "RTMSDataSvcRHRent/getRTMSDataSvcRHRent",
@@ -39,9 +39,11 @@ async function fetchMolit(type, lawdCd, ym, errs) {
   const key = getKey();
   const path = MOLIT_ENDPOINTS[type];
   if (!key || !path || !lawdCd) return [];
-  const url = `${MOLIT_BASE}${path}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${lawdCd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=300&_type=json`;
+  const urlFor = (cd) => `${MOLIT_BASE}${path}?serviceKey=${encodeURIComponent(key)}&LAWD_CD=${cd}&DEAL_YMD=${ym}&pageNo=1&numOfRows=300&_type=json`;
   // 오류 본문(한도 초과·키 오류·점검)을 "데이터 없음"과 구분 — src/lib/molitParse.js
-  return fetchMolitRowsSafe(url, errs, `${type} ${ym}`);
+  // 시 단위 코드(성남시 41130 등)는 구 단위로 풀어 조회·합산
+  const parts = await Promise.all(expandLawdCd(lawdCd).map(cd => fetchMolitRowsSafe(urlFor(cd), errs, `${type} ${ym}`)));
+  return parts.flat();
 }
 
 const SQM_PER_PYEONG = 3.3058;

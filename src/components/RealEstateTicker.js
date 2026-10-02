@@ -9,7 +9,7 @@ const LIVE_REGIONS = [
   { code: "11680", name: "서울 강남구", slug: "seoul-gangnam" },
   { code: "11440", name: "서울 마포구", slug: "seoul-mapo" },
   { code: "11710", name: "서울 송파구", slug: "seoul-songpa" },
-  { code: "41130", name: "경기 성남시 분당", slug: "gyeonggi-bundang" },
+  { code: "41135", name: "경기 성남시 분당", slug: "seongnam-bundang" },
   { code: "26350", name: "부산 해운대구", slug: "busan-haeundae" },
 ];
 
