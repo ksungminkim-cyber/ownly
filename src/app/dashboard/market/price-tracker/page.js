@@ -32,7 +32,7 @@ function getLastNMonths(n) {
 }
 
 export default function PriceTrackerPage() {
-  return <PlanGate feature="reports"><PriceTrackerContent /></PlanGate>;
+  return <PlanGate feature="mapSearch"><PriceTrackerContent /></PlanGate>; // "reports" 는 무료 플랜도 true 라 잠금이 걸리지 않았음 — 요금제의 "주변 매물 조회 · 시세 추이" 항목과 같은 키
 }
 
 function PriceTrackerContent() {
@@ -86,7 +86,7 @@ function PriceTrackerContent() {
               // 매매
               const prices = data.items.map(i => parseInt((i.dealAmount || "0").replace(/,/g, "")) / 10000);
               const avg = prices.reduce((s, v) => s + v, 0) / prices.length;
-              results.push({ label, 매매평균: Math.round(avg * 10) / 10, count: data.items.length });
+              results.push({ label, 매매평균: Math.round(avg * 10) / 10, count: data.totalCount || data.items.length }); // 평균은 조회된 표본(최대 200건/구), 건수는 국토부 전체 건수
 
             } else if (type.includes("rent")) {
               // ✅ 전월세 공통 로직 - apt_rent, villa_rent, offi_rent 모두 동일하게 처리
@@ -104,7 +104,7 @@ function PriceTrackerContent() {
                 label,
                 ...(jeonseAvg !== null && { 전세평균: Math.round(jeonseAvg * 10) / 10 }),
                 ...(wolseAvg  !== null && { 월세평균: Math.round(wolseAvg) }),
-                count: data.items.length,
+                count: data.totalCount || data.items.length,
                 jeonseCount: jeonse.length,
                 wolseCount: wolse.length,
               });

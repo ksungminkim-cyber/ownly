@@ -38,7 +38,7 @@ const SECTIONS = [
     guides: [
       { icon: "⏰", title: "갱신 요청 기한", content: "계약 종료 6개월 전 ~ 2개월 전 사이에 요청 가능. 이 기간 외 요청은 효력 없음." },
       { icon: "🏠", title: "실거주 거절 요건", content: "임대인·직계존비속 실거주 목적으로만 거절 가능. 거절 후 2년 내 제3자 임대 시 손해배상 의무 발생." },
-      { icon: "❌", title: "거절 가능 사유", content: "3기 차임 연체 / 임차인 동의 없는 전대 / 고의 파손 / 재건축 필요 / 임대인 실거주 등 법정 사유 해당 시." },
+      { icon: "❌", title: "거절 가능 사유", content: "2기 차임 연체 / 임차인 동의 없는 전대 / 고의 파손 / 재건축 필요 / 임대인 실거주 등 법정 사유 해당 시." },
       { icon: "⚠️", title: "임대인 주의사항", content: "정당한 사유 없는 갱신 거절 시 임차인은 손해배상 청구 가능. 거절 의사는 서면(내용증명)으로 통보 권장." },
     ],
   },
@@ -98,7 +98,7 @@ const SECTIONS = [
       { id: "d4", q: "원상복구 의무 이행을 거부하고 있나요?", risk: "medium" },
     ],
     guides: [
-      { icon: "📨", title: "차임 연체 대응", content: "① 내용증명 발송 (2기 연체 사실 통지) → ② 3기 연체 시 계약 해지 통보 → ③ 명도소송 또는 지급명령 신청." },
+      { icon: "📨", title: "차임 연체 대응", content: "① 내용증명 발송 (연체 사실 통지) → ② 주택은 2기(상가는 3기) 연체 시 계약 해지 통보 → ③ 명도소송 또는 지급명령 신청." },
       { icon: "🚪", title: "명도(퇴거) 절차", content: "계약 해지 통보 → 임차인 미이행 시 임대차분쟁조정위원회 조정 신청 또는 법원 명도소송. 임의 퇴거 강제는 불법." },
       { icon: "🔧", title: "원상복구 분쟁", content: "입주 전 사진·영상 증거 확보가 핵심. 통상 마모는 임대인 부담, 임차인 과실 파손만 청구 가능. 분쟁조정위 활용." },
       { icon: "🏛️", title: "빠른 분쟁 해결", content: "주택임대차분쟁조정위원회 무료 조정 신청 가능 (소송 전 단계). 60일 이내 조정 완료. 법원 소송보다 빠르고 저렴." },
@@ -163,7 +163,7 @@ function LeaseCheckContent() {
             <h1 style={{ fontSize: 26, fontWeight: 900, color: C.navy, letterSpacing: "-.5px", marginBottom: 6 }}>임대차 3법 가이드</h1>
             <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
               계약갱신청구권 · 전월세상한제 · 전환율 · 분쟁 대응<br/>
-              <span style={{ color: C.emerald, fontWeight: 700 }}>✓ 무료 제공</span> — 임대인이 꼭 알아야 할 법적 권리와 의무
+              <span style={{ color: C.emerald, fontWeight: 700 }}>✓ 플러스 포함</span> — 임대인이 꼭 알아야 할 법적 권리와 의무
             </p>
           </div>
           <div style={{ background: "rgba(79,70,229,0.08)", border: "1px solid rgba(79,70,229,0.2)", borderRadius: 12, padding: "10px 16px", fontSize: 12, color: C.accent, fontWeight: 700, flexShrink: 0 }}>
@@ -212,7 +212,7 @@ function LeaseCheckContent() {
           recommendations.push({ section: SEC.convert, icon: "💱", title: "전환율 초과 — 법정 한도 위반", desc: "법정 전환율(연 6%) 초과는 무효. 임차인이 초과분 반환 청구 가능합니다." });
         }
         if (answers.d1 === "yes") {
-          recommendations.push({ section: SEC.dispute, icon: "📨", title: "차임 연체 — 내용증명 권장", desc: "2기 연체 시 통지, 3기 연체 시 계약 해지 가능. 내용증명으로 명확히 통보하세요." });
+          recommendations.push({ section: SEC.dispute, icon: "📨", title: "차임 연체 — 내용증명 권장", desc: "주택은 2기(상가는 3기) 차임 연체 시 계약 해지 가능. 내용증명으로 명확히 통보하세요." });
         }
         if (answers.d2 === "yes") {
           recommendations.push({ section: SEC.dispute, icon: "🚪", title: "무단 전대 — 즉시 대응", desc: "동의 없는 전대는 계약 해지 사유. 내용증명 후 명도 절차 진행 가능." });

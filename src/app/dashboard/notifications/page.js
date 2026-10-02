@@ -82,7 +82,8 @@ export default function NotificationsPage() {
       if (filter !== "전체") q = q.eq("type", filter);
       const { data, error } = await q;
       if (error) throw error;
-      setLogs(data || []);
+      // "더 보기"는 이전 목록 뒤에 이어 붙인다 (교체하면 앞 페이지로 돌아갈 방법이 없음)
+      setLogs(prev => page === 0 ? (data || []) : [...prev, ...(data || [])]);
     } catch {
       // notification_logs 테이블이 없을 수 있음 — 빈 배열로 처리
       setLogs([]);
@@ -208,7 +209,7 @@ export default function NotificationsPage() {
       )}
 
       {/* 페이지네이션 */}
-      {logs.length === PAGE_SIZE && (
+      {logs.length > 0 && logs.length % PAGE_SIZE === 0 && (
         <div style={{ textAlign: "center", marginTop: 16 }}>
           <button onClick={() => setPage(p => p + 1)} style={{ padding: "10px 24px", borderRadius: 11, border: "1px solid #ebe9e3", background: "#fff", color: "#1a2744", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             더 보기

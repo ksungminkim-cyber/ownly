@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+// 상가 업종은 tenants.biz 에 JSON({"industry":…}) 또는 평문으로 저장됨 — 업종명만 표시
+const bizLabel = (biz) => { if (!biz) return ""; try { const o = JSON.parse(biz); if (o && typeof o === "object") return o.industry || ""; } catch {} return String(biz); };
 
 export default function ContractExportPage() {
   const [data, setData] = useState(null);
@@ -50,7 +52,7 @@ export default function ContractExportPage() {
             </tr>
             <tr style={{ borderBottom: "1px solid #b0b0c0" }}>
               <td style={{ padding: "9px 12px", background: "#f8f7f4", fontWeight: 700, borderRight: "1px solid #d0d0d8" }}>물건 종류</td>
-              <td style={{ padding: "9px 14px" }}>{propertyType}{t.biz ? ` · 상호: ${t.biz}` : ""}{t.area_pyeong ? ` · ${t.area_pyeong}평` : ""}</td>
+              <td style={{ padding: "9px 14px" }}>{propertyType}{bizLabel(t.biz) ? ` · 상호: ${bizLabel(t.biz)}` : ""}{t.area_pyeong ? ` · ${t.area_pyeong}평` : ""}</td>
             </tr>
           </tbody>
         </table>

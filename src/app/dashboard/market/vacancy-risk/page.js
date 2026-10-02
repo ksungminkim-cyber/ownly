@@ -105,7 +105,8 @@ const TREND_LABELS = ["23Q1","23Q2","23Q3","23Q4","24Q1","24Q2","24Q3","24Q4"];
 function getLastNMonths(n) {
   const months = [];
   const now = new Date();
-  for (let i = n - 1; i >= 0; i--) {
+  // 진행 중인 당월은 신고가 덜 들어와 거래량이 급감한 것처럼 보이므로 제외하고 직전 n개월을 본다
+  for (let i = n; i >= 1; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push({
       ym: `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`,
@@ -166,6 +167,7 @@ function VacancyRiskContent() {
         months.map(async ({ ym, label }) => {
           const res = await fetch(`/api/market/molit?type=apt_rent&lawdCd=${lawdCd}&dealYm=${ym}&numOfRows=1000`);
           const d = await res.json();
+          if (d.molitError || d.error) throw new Error(d.molitError || d.error); // 국토부 오류를 0건으로 위장하지 않는다
           const items = d.items || [];
           // ✅ 실제 전체 거래건수는 totalCount 사용, 샘플로 전세/월세 비율 계산
           const totalCount = d.totalCount || items.length;
@@ -195,9 +197,9 @@ function VacancyRiskContent() {
       const riskLabel = riskScore >= 70 ? "위험" : riskScore >= 50 ? "주의" : riskScore >= 30 ? "보통" : "안전";
       const riskStyle = getRiskStyle(riskLabel);
 
-      const trendKey = Object.keys(VACANCY_TREND).find(k => k === region) || "서울 강남구";
-      const trendBase = VACANCY_TREND[trendKey] || VACANCY_TREND["서울 강남구"];
-      const vacancyTrend = TREND_LABELS.map((label, i) => ({ label, rate: trendBase[i] || kabVacancy.rate }));
+      // 추이 자료가 없는 지역에 강남구 추이를 대신 보여주지 않는다 (없으면 차트 숨김)
+      const trendBase = VACANCY_TREND[region];
+      const vacancyTrend = trendBase ? TREND_LABELS.map((label, i) => ({ label, rate: trendBase[i] || kabVacancy.rate })) : [];
 
       const byMonth = {};
       monthlyData.forEach(m => {
@@ -298,7 +300,7 @@ function VacancyRiskContent() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: data.isResidential ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 16 }}>
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
+          {data.vacancyTrend.length > 0 && (<div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>공실률 분기별 추이</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>한국부동산원 분기별 통계 (참고용 베이스라인)</p>
             <ResponsiveContainer width="100%" height={200}>
@@ -317,7 +319,7 @@ function VacancyRiskContent() {
               </AreaChart>
             </ResponsiveContainer>
             <p style={{ fontSize: 11, color: "var(--text-faint)", textAlign: "center", marginTop: 8 }}>출처: 한국부동산원 상업용부동산 임대동향조사</p>
-          </div>
+          </div>)}
 
           {data.isResidential && (<div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>12개월 임대 거래량 추이</p>

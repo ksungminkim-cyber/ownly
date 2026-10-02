@@ -64,12 +64,13 @@ function NewsletterSubscription({ user }) {
     setEnabled(next);
     setSaving(true);
     try {
-      await supabase.from("newsletter_subscribers").upsert({
+      const { error } = await supabase.from("newsletter_subscribers").upsert({
         user_id: user.id,
         email: user.email,
         weekly_digest: next,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
+      if (error) throw error; // supabase-js 는 throw 하지 않으므로 직접 확인 (실패해도 성공 토스트가 뜨던 문제)
       toast(next ? "📧 주간 뉴스레터 구독 시작" : "뉴스레터 구독 해제됨");
     } catch (e) {
       toast("저장 실패: " + e.message, "error");

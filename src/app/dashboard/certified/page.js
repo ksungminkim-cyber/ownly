@@ -541,6 +541,8 @@ function CertifiedContent() {
                 style={{ padding:"7px 14px", borderRadius:9, background:C.indigo+"15", border:`1px solid ${C.indigo}`, color:C.indigo, fontWeight:700, fontSize:12, cursor:"pointer" }}>✏️ 수정</button>
               <button onClick={() => printPDF(showDetail)}
                 style={{ padding:"7px 14px", borderRadius:9, background:C.navy, border:"none", color:"#fff", fontWeight:700, fontSize:12, cursor:"pointer" }}>📄 PDF 출력</button>
+              <button onClick={() => setShowDetail(null)}
+                style={{ padding:"7px 14px", borderRadius:9, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:700, fontSize:12, cursor:"pointer" }}>닫기</button>
             </div>
           </div>
           <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>

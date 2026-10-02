@@ -36,7 +36,7 @@ export default function DiagnoseClient() {
       const q = new URLSearchParams(window.location.search);
       const a = q.get("addr");
       if (a) Promise.resolve().then(() => {
-        const o = { addr: a.slice(0, 80), pType: TYPES.some((t) => t.v === q.get("t")) ? q.get("t") : "주거", myRent: (q.get("rent") || "").replace(/\D/g, ""), areaPy: (q.get("area") || "").replace(/\D/g, "") };
+        const o = { addr: a.slice(0, 80), pType: TYPES.some((t) => t.v === (q.get("t") || q.get("pType"))) ? (q.get("t") || q.get("pType")) : "주거" /* 공유 링크는 pType= 으로 만든다 */, myRent: (q.get("rent") || "").replace(/\D/g, ""), areaPy: (q.get("area") || "").replace(/\D/g, "") };
         setAddr(o.addr); setPType(o.pType); setMyRent(o.myRent); setAreaPy(o.areaPy);
         if (q.get("auto") === "1") submit(o); // 가입 후 돌아오면 같은 조건으로 다시 진단해 전체 결과를 바로 보여준다
       });

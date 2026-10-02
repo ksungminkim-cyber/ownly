@@ -101,7 +101,7 @@ function VacancyContent() {
   const cumulativeLoss = allVacancies.reduce((s,v)=>{ const r=Number(gf(v,"expected_rent","expectedRent")||0); const mo=Math.max(0,(new Date()-new Date(v.vacant_since||new Date().toISOString().slice(0,10)))/(1000*60*60*24*30.44)); return s+r*mo; },0);
   const vacantDays = (since)=>{ const d=Math.ceil((new Date()-new Date(since))/86400000); return d<0?0:d; };
   const filtered = filterType==="전체" ? allVacancies : allVacancies.filter(v=>(gf(v,"p_type","pType")||"주거")===filterType);
-  const showMaint = form.pType==="상가"||form.pType==="오피스텔";
+  const showMaint = form.pType==="상가"||form.sub==="오피스텔";
   const totalRent = Number(form.expectedRent||0)+Number(form.maintenance||0);
 
   // 페이지 진입 시 모든 공실의 action_steps 를 메모리 상태로 복원

@@ -301,7 +301,7 @@ export default async function RegionMarketPage({ params }) {
             {/* 다른 지역 */}
             <section style={{ marginTop: 14, padding: "14px 20px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, fontSize: 13, color: "#6a6a7a", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
               <span>다른 지역 시세도 궁금하신가요?</span>
-              <Link href="/sise" style={{ color: "#5b4fcf", fontWeight: 700, textDecoration: "none" }}>전국 46개 지역 →</Link>
+              <Link href="/sise" style={{ color: "#5b4fcf", fontWeight: 700, textDecoration: "none" }}>전국 {REGIONS.length}개 지역 →</Link>
             </section>
 
             {/* 출처 */}

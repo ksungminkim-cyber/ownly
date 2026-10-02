@@ -363,8 +363,9 @@ function DepositReturnContent() {
       <div id="deposit-return-print" style={{ display: "none" }}>
         <style>{`
           @media print {
-            body > * { display: none !important; }
-            #deposit-return-print { display: block !important; }
+            body * { visibility: hidden !important; }
+            #deposit-return-print { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+            #deposit-return-print, #deposit-return-print * { visibility: visible !important; }
             @page { margin: 20mm; size: A4; }
           }
         `}</style>

@@ -88,16 +88,16 @@ function YieldBenchmarkContent() {
       const loanAmountMan = parseFloat(loanAmount||"0") * 10000; // 억→만원
       const selfCapital = Math.max(0, myPriceMan - loanAmountMan); // 자기자본 (만원)
       const netAnnualIncome = annualRentTotal - annualInterest; // 순수익 (이자차감)
-      const leveragedYield = selfCapital > 0 ? ((netAnnualIncome / selfCapital) * 100).toFixed(2) : null;
+      const leveragedYield = selfCapital > 0 && loanAmountMan > 0 /* 대출을 입력한 경우에만 레버리지 카드 표시 */ ? ((netAnnualIncome / selfCapital) * 100).toFixed(2) : null;
       const grossYield = myPriceMan > 0 ? ((annualRentTotal / myPriceMan) * 100).toFixed(2) : null;
       const ltvPct = myPriceMan > 0 ? Math.round((loanAmountMan / myPriceMan) * 100) : 0;
 
       const mu = kabRef.apt; const sigma = 0.8;
       const yieldBrackets = [{ range:"1~2%",min:1,max:2 },{ range:"2~3%",min:2,max:3 },{ range:"3~4%",min:3,max:4 },{ range:"4~5%",min:4,max:5 },{ range:"5~6%",min:5,max:6 },{ range:"6%+",min:6,max:99 }];
       const yieldDist = yieldBrackets.map(b => { const mid=(b.min+Math.min(b.max,7))/2; const weight=Math.exp(-0.5*Math.pow((mid-mu)/sigma,2)); return { range:b.range, count:Math.round(weight*200+(allRents.length>0?20:5)), min:b.min, max:b.max }; });
-      const trendKey = Object.keys(KAB_TREND).find(k => k===region) || "서울 강남구";
-      const trendBase = KAB_TREND[trendKey] || KAB_TREND["서울 강남구"];
-      const trendData = TREND_LABELS.map((label,i) => ({ label, yield: trendBase[i]||kabRef.apt, market: kabRef.apt }));
+      // 추이 자료가 없는 지역에 강남구 추이를 대신 보여주지 않는다 (없으면 차트 숨김)
+      const trendBase = KAB_TREND[region];
+      const trendData = trendBase ? TREND_LABELS.map((label,i) => ({ label, yield: trendBase[i]||kabRef.apt, market: kabRef.apt })) : [];
 
       setResult({
         yieldDist, areaData, trendData, myYield, marketAvg, diff, kabRef, rents,
@@ -296,7 +296,7 @@ function YieldBenchmarkContent() {
               {result.myYield && <span>■ <span style={{ color: "#0fa573" }}>내 수익률 구간</span></span>}
             </div>
           </div>
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
+          {result.trendData.length > 0 && (<div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px 16px 10px" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>임대수익률 추이</p>
             <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 14 }}>한국부동산원 분기별 통계 (참고용 베이스라인)</p>
             <ResponsiveContainer width="100%" height={200}>
@@ -308,7 +308,7 @@ function YieldBenchmarkContent() {
                 <Line type="monotone" dataKey="yield" name="임대수익률" stroke="#1a2744" strokeWidth={2.5} dot={{ fill:"#1a2744",r:3,strokeWidth:0 }} />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          </div>)}
         </div>
 
         {result.areaData.length > 0 && (

@@ -70,7 +70,8 @@ export default function AnnualTaxReportPage() {
   });
 
   const totalRentIncome = rentIncomeByTenant.reduce((s, x) => s + x.total, 0);
-  const otherIncome = yearLedger.filter(l => l.type === "income").reduce((s, l) => s + (l.amount || 0), 0);
+  // 납부 처리 때 장부에 자동 기록된 월세수입은 위 totalRentIncome 과 중복이므로 제외
+  const otherIncome = yearLedger.filter(l => l.type === "income" && !(l.auto_generated && l.category === "월세수입")).reduce((s, l) => s + (l.amount || 0), 0);
   const grossIncome = totalRentIncome + otherIncome;
 
   // 경비 카테고리 집계 (세금 신고용 분류)
@@ -86,8 +87,10 @@ export default function AnnualTaxReportPage() {
     expenseCategories.수선비.total += r.cost || 0;
     expenseCategories.수선비.items.push({ date: r.date, desc: `${r.category} ${r.vendor ? "· " + r.vendor : ""}`, amount: r.cost || 0 });
   });
-  yearLedger.filter(l => l.type === "expense").forEach(l => {
-    const cat = ["이자비용", "보험료", "재산세", "감가상각비"].includes(l.category) ? l.category : "기타";
+  // 수리 등록 때 장부에 자동 기록된 수리비는 위 수선비와 중복이므로 제외. 장부 분류명 "대출이자"는 이자비용으로 집계
+  yearLedger.filter(l => l.type === "expense" && !(l.auto_generated && l.category === "수리비")).forEach(l => {
+    const mapped = l.category === "대출이자" ? "이자비용" : l.category;
+    const cat = ["이자비용", "보험료", "재산세", "감가상각비"].includes(mapped) ? mapped : "기타";
     expenseCategories[cat].total += l.amount || 0;
     expenseCategories[cat].items.push({ date: l.date, desc: l.memo || l.category, amount: l.amount || 0 });
   });

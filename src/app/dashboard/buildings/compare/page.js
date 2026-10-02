@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
 import { SectionLabel, EmptyState } from "../../../../components/shared";
 import { daysLeft, buildingKey } from "../../../../lib/constants";
+import { getUnpaidTenantIds } from "../../../../lib/unpaid";
 
 const SORT_OPTIONS = [
   { key: "units", label: "호실 수" },
@@ -15,7 +16,7 @@ const SORT_OPTIONS = [
 
 export default function BuildingCompare() {
   const router = useRouter();
-  const { buildings, tenants, repairs, loading } = useApp();
+  const { buildings, tenants, repairs, payments, loading } = useApp();
   const [sortKey, setSortKey] = useState("monthlyRent");
   const [desc, setDesc] = useState(true);
 
@@ -48,13 +49,13 @@ export default function BuildingCompare() {
       const totalDeposit = b.units.reduce((s, u) => s + (Number(u.dep) || 0), 0);
       const yieldRate = totalDeposit > 0 ? ((annualRent / totalDeposit) * 100) : null;
       const expiring = occupied.filter(u => { const dl = daysLeft(u.end_date || u.end); return dl > 0 && dl <= 90; }).length;
-      const unpaid = occupied.filter(u => u.status === "미납").length;
+      const unpaid = getUnpaidTenantIds(occupied, payments).size; // status "미납"은 실데이터에 기록되지 않음
       const buildingUnitIds = new Set(b.units.map(u => u.id));
       const openRepairs = (repairs || []).filter(r => buildingUnitIds.has(r.tenant_id) && (r.status === "open" || r.status === "in_progress")).length;
       const issues = expiring + unpaid + openRepairs;
       return { ...b, totalUnits, vacant, vacancyRate, monthlyRent, annualRent, totalDeposit, yieldRate, expiring, unpaid, openRepairs, issues };
     });
-  }, [buildings, tenants, repairs]);
+  }, [buildings, tenants, repairs, payments]);
 
   const sorted = useMemo(() => {
     const arr = [...cards];

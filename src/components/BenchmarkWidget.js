@@ -303,7 +303,7 @@ export default function BenchmarkWidget({ tenants = [] }) {
             최근 3개월 {primaryType === "residential" ? "아파트 전월세" : "오피스텔 전월세"} {data.count}건의 월세 금액 기반<br/>
             • 중위값: 50번째 백분위수 (평균보다 이상치 영향 적음)<br/>
             • 25%/75% 분포: 시장 대부분이 이 구간에 위치<br/>
-            AI 코멘트는 Llama 3.3 기반 실시간 생성 (결과 24시간 캐시)
+            AI 코멘트는 실시간 생성 (결과 24시간 캐시)
           </div>
         )}
       </div>

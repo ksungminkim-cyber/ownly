@@ -145,7 +145,7 @@ export default function CommercialToolPage() {
           <p style={{ fontSize: 15, fontWeight: 900, margin: "0 0 6px" }}>상가·건물 임대, 엑셀로 관리하고 계신가요?</p>
           <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.65)", lineHeight: 1.8, margin: "0 0 14px" }}>
             온리는 상가·사무실·건물 단위 관리에 특화된 웹 기반 임대 관리 서비스입니다.<br />
-            수금·부가세·세금계산서·3기 연체 추적·내용증명까지 — <b style={{ color: "#fff" }}>지금은 전부 무료</b>입니다.
+            수금·부가세·세금계산서·3기 연체 추적·내용증명까지 — <b style={{ color: "#fff" }}>무료로 시작</b>할 수 있습니다.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link href={SIGNUP_HREF} onClick={onSignupCta} className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료로 시작하기 →</Link>

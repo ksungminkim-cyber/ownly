@@ -45,7 +45,7 @@ function ProfitAnalysisContent() {
     setForm(f => ({
       ...f,
       annualRent: String(Math.round((t.rent || 0) * 12)),
-      buyPrice: f.buyPrice || String(Math.round((t.dep || 0) / 10000 * 100) || ""),
+      buyPrice: f.buyPrice || (t.purchase_price ? String(t.purchase_price) : ""), // 물건에 입력해 둔 매입가(만원). 보증금으로는 취득가를 추정할 수 없음
     }));
   };
 
