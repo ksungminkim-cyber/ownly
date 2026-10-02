@@ -91,17 +91,17 @@ export async function POST(req) {
   }
 
   // 3) billing_history 업데이트
-  try {
-    await admin.from("billing_history").update({
+  {
+    const { error: histErr } = await admin.from("billing_history").update({
       status: "refunded",
-      // 'refunded_at' 컬럼이 있으면 갱신, 없으면 무시 (try/catch)
       refunded_at: new Date().toISOString(),
       refund_reason: reason,
     }).eq("id", target.id);
-  } catch (e) {
-    // refunded_at·refund_reason 컬럼이 없는 경우 — status 만 갱신
-    console.warn("billing_history update partial:", e?.message);
-    await admin.from("billing_history").update({ status: "refunded" }).eq("id", target.id);
+    if (histErr) {
+      // supabase-js 는 throw 하지 않는다 — 부가 컬럼 문제면 status 만이라도 갱신
+      console.warn("billing_history update partial:", histErr.message);
+      await admin.from("billing_history").update({ status: "refunded" }).eq("id", target.id);
+    }
   }
 
   // 4) 옵션: 구독도 함께 취소
@@ -121,6 +121,7 @@ export async function POST(req) {
         cancelled_at: new Date().toISOString(),
         cancel_reason: `refund: ${reason}`,
         next_payment_at: null,
+        current_period_end: new Date().toISOString(), // 환불했으므로 잔여 기간 없이 즉시 종료 (cancelled + 기간 남음 = 유효로 판정됨)
         updated_at: new Date().toISOString(),
       }).eq("user_id", userId);
       subscriptionCancelled = true;

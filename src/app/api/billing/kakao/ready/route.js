@@ -24,11 +24,14 @@ export async function POST(req) {
   const cycle = "monthly"; // 결제 주기는 월간 하나 (2026-09-10 단순화 — 연간 옵션 없음)
   if (!PLAN_PRICE_KRW[planId]) return NextResponse.json({ error: "유효하지 않은 플랜" }, { status: 400 });
   // 이미 결제 수단이 등록된 활성 구독이 있으면 덮어쓰지 않는다 (결제창 이탈만으로 기존 구독이 pending 으로 사라지는 사고 방지)
+  let keepStatus = false;
   {
     const { data: existing } = await adminClient().from("subscriptions").select("status,kakao_sid,plan").eq("user_id", user.id).maybeSingle();
     if (existing && existing.kakao_sid && ["active", "past_due"].includes(existing.status)) {
       return NextResponse.json({ error: "이미 구독 중입니다. 플랜 변경은 설정 → 결제 관리 또는 inquiry@mclean21.com 으로 문의해 주세요." }, { status: 409 });
     }
+    // 체험·해지 예약(잔여 기간) 중이면 결제창만 열고 닫아도 남은 기간이 사라지지 않게 status 는 그대로 둔다
+    keepStatus = Boolean(existing && ["trial", "cancelled"].includes(existing.status));
   }
 
   const monthly = PLAN_PRICE_KRW[planId];
@@ -73,22 +76,25 @@ export async function POST(req) {
   if (!kakaoResp.ok) return NextResponse.json(fmtKakaoError(kakaoResp, kakaoBody), { status: kakaoResp.status });
 
   // 5) tid + orderId 를 임시 저장 (approve 단계에서 검증)
-  try {
+  {
     const admin = adminClient();
-    await admin.from("subscriptions").upsert({
+    const { error: saveErr } = await admin.from("subscriptions").upsert({
       user_id: user.id,
       plan: planId,
       pg: "kakao",
       kakao_cid: KAKAOPAY_CID,
       kakao_tid: kakaoBody.tid,
       toss_order_id: orderId, // 컬럼명은 toss_order_id 지만 일반 partner_order_id 용으로 재사용
-      status: "pending",
+      ...(keepStatus ? {} : { status: "pending" }),
       billing_cycle: cycle,
       monthly_amount: monthly,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
-  } catch (e) {
-    console.warn("subscription pending upsert failed:", e?.message);
+    // 저장에 실패하면 승인 단계가 주문을 찾지 못한다 → 결제창으로 보내기 전에 중단 (supabase-js 는 throw 하지 않고 error 를 반환)
+    if (saveErr) {
+      console.error("subscription pending upsert failed:", saveErr.message);
+      return NextResponse.json({ error: "결제 준비 정보를 저장하지 못했습니다. 잠시 후 다시 시도해주세요." }, { status: 500 });
+    }
   }
 
   // 6) 클라이언트가 카카오페이 결제창으로 이동할 URL 반환

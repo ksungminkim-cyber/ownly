@@ -49,6 +49,8 @@ async function fetchMolit(type, lawdCd, ym, errs) {
 const SQM_PER_PYEONG = 3.3058;
 const sqmToPy = (sqm) => sqm > 0 ? sqm / SQM_PER_PYEONG : 0;
 const parseArea = (r) => Number(String(r.excluUseAr || r.totalFloorAr || 0).replace(/,/g, "").trim());
+// 국토부 금액 필드는 "10,000" 처럼 콤마가 섞인 문자열 — 그대로 Number() 하면 NaN
+const num = (v) => Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
 const parsePrice = (r) => Number(String(r.dealAmount || "0").replace(/,/g, "").trim());
 
 function median(nums) {
@@ -107,7 +109,7 @@ export async function POST(req) {
 
     // 1) 임대 통계
     const rents = rentRows
-      .map(r => ({ rent: Number(r.monthlyRent || 0), dep: Number(r.deposit || 0), area: parseArea(r) }))
+      .map(r => ({ rent: num(r.monthlyRent), dep: num(r.deposit), area: parseArea(r) }))
       .filter(x => (x.rent > 0 || x.dep > 0) && x.area > 0);
 
     // 보증금 환산 포함 월세 (전월세 환산율 6%)

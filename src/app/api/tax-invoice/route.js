@@ -38,7 +38,9 @@ export async function POST(req) {
     issue_type: String(b.issueType).slice(0, 30),
     issue_type_label: String(b.issueTypeLabel || "").slice(0, 60),
     tenant_name: b.tenantName ? String(b.tenantName).slice(0, 60) : null,
-    tenant_id: b.tenantId || null,
+    tenant_id: /^d+$/.test(String(b.tenantId ?? "")) ? Number(b.tenantId) : null, // 컬럼이 bigint — uuid 가 오면 insert 가 통째로 실패
+    // 제휴 세무사 기능 제거 뒤에도 DB 에 NOT NULL 로 남은 컬럼 (값이 없으면 insert 실패)
+    partner_id: 0, partner_name: "미배정", partner_fee: 0,
     supply_amt: supply,
     tax_amt: Math.round(supply * 0.1),
     total_amt: supply + Math.round(supply * 0.1),

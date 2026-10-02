@@ -1,11 +1,12 @@
 // 커뮤니티 질문 글에 AI 자동 답변 생성
-// Groq Llama 3.3 70B 사용 — 한국 부동산 전문가 페르소나
+// src/lib/llm.js 의 callLLM 사용 (모델 ID 단일 관리 — 종료된 llama-3.3 을 직접 부르다 답변이 조용히 안 달리던 문제 수정)
 // 새 "질문" 글 작성 후 클라이언트에서 호출 → 즉시 AI 답변 코멘트 등록
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 import { createClient } from "@supabase/supabase-js";
+import { callLLM, llmConfigured } from "../../../../lib/llm";
 
 const SYSTEM_PROMPT = `당신은 15년 경력의 한국 부동산 임대 관리 전문가입니다. 임대인들의 커뮤니티에서 질문에 친절하게 답변합니다.
 
@@ -29,32 +30,20 @@ export async function POST(req) {
       return new Response(JSON.stringify({ skipped: true, reason: "질문 카테고리 아님" }));
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) return new Response(JSON.stringify({ error: "AI 키 미설정" }), { status: 500 });
+    if (!llmConfigured()) return new Response(JSON.stringify({ error: "AI 키 미설정" }), { status: 500 });
 
-    // Groq 호출
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `[제목]\n${title}\n\n[내용]\n${content || "(본문 없음)"}` },
-        ],
-        temperature: 0.6,
-        max_tokens: 500,
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      return new Response(JSON.stringify({ error: "AI 호출 실패: " + errText.slice(0, 200) }), { status: res.status });
+    // 이 라우트는 로그인 검증이 없으므로 유료 제공자(Claude)는 쓰지 않는다 (freeOnly)
+    let answer;
+    try {
+      const out = await callLLM({
+        system: SYSTEM_PROMPT,
+        user: `[제목]\n${title}\n\n[내용]\n${content || "(본문 없음)"}`,
+        maxTokens: 500, temperature: 0.6, freeOnly: true,
+      });
+      answer = out.text;
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "AI 호출 실패: " + String(e?.message || e).slice(0, 200) }), { status: 502 });
     }
-
-    const data = await res.json();
-    const answer = data?.choices?.[0]?.message?.content?.trim();
-    if (!answer) return new Response(JSON.stringify({ error: "AI 응답 비어있음" }), { status: 500 });
 
     // 마크다운/글머리 제거
     const clean = answer

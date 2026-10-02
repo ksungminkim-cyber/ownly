@@ -1,31 +1,41 @@
 export const runtime = "edge";
 
 // 주요 시군구 → 법정동코드 매핑 (카카오 API 없을 때 fallback)
+// 구 이름이 시도마다 겹치므로(중구·서구·동구·강서구) 시도별로 나눠 둔다
 const SIGUNGU_CODE_MAP = {
-  // 서울
+  "서울": {
   "종로구":"11110","중구":"11140","용산구":"11170","성동구":"11200","광진구":"11215",
   "동대문구":"11230","중랑구":"11260","성북구":"11290","강북구":"11305","도봉구":"11320",
   "노원구":"11350","은평구":"11380","서대문구":"11410","마포구":"11440","양천구":"11470",
   "강서구":"11500","구로구":"11530","금천구":"11545","영등포구":"11560","동작구":"11590",
   "관악구":"11620","서초구":"11650","강남구":"11680","송파구":"11710","강동구":"11740",
-  // 경기
+  },
+  "경기": {
   "수원시":"41110","성남시":"41130","의정부시":"41150","안양시":"41170","부천시":"41190",
   "광명시":"41210","평택시":"41220","동두천시":"41250","안산시":"41270","고양시":"41280",
   "과천시":"41290","구리시":"41310","남양주시":"41360","오산시":"41370","시흥시":"41390",
   "군포시":"41410","의왕시":"41430","하남시":"41450","용인시":"41460","파주시":"41480",
   "이천시":"41500","안성시":"41550","김포시":"41570","화성시":"41590","광주시":"41610",
-  // 인천
+  },
+  "인천": {
   "중구":"28110","동구":"28140","미추홀구":"28177","연수구":"28185","남동구":"28200",
   "부평구":"28237","계양구":"28245","서구":"28260","강화군":"28710","옹진군":"28720",
-  // 부산
+  },
+  "부산": {
   "중구":"26110","서구":"26140","동구":"26170","영도구":"26200","부산진구":"26230",
   "동래구":"26260","남구":"26290","북구":"26320","해운대구":"26350","사하구":"26380",
   "금정구":"26410","강서구":"26440","연제구":"26470","수영구":"26500","사상구":"26530",
+  },
 };
 
 function extractSigunguFromAddress(address) {
-  for (const [name, code] of Object.entries(SIGUNGU_CODE_MAP)) {
-    if (address.includes(name)) return { sigunguCode: code, sigunguName: name };
+  // 주소에 시도가 적혀 있으면 그 시도 안에서만, 없으면 전체(서울 우선)에서 찾는다
+  const sidos = Object.keys(SIGUNGU_CODE_MAP);
+  const named = sidos.filter(s => address.includes(s));
+  for (const sido of named.length ? named : sidos) {
+    for (const [name, code] of Object.entries(SIGUNGU_CODE_MAP[sido])) {
+      if (address.includes(name)) return { sigunguCode: code, sigunguName: name };
+    }
   }
   return null;
 }
@@ -59,9 +69,10 @@ export async function POST(req) {
         );
         const data = await res.json();
         const doc = data?.documents?.[0];
-        if (doc) {
+        // 법정동코드(b_code)는 지번 주소(doc.address)에만 있다 — road_address 에서 읽으면 도로명 주소는 항상 빈 코드가 된다
+        const bcode = doc?.address?.b_code || "";
+        if (doc && bcode) {
           const addr = doc.road_address || doc.address;
-          const bcode = addr?.b_code || addr?.region_3depth_h_code || "";
           return Response.json({
             bcode,
             sigunguCode: bcode.slice(0, 5),

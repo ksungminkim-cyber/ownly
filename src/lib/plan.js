@@ -33,8 +33,12 @@ export function paidPlanOf(sub, now = new Date()) {
 export function activePlanOf(sub, now = new Date()) {
   if (!sub) return "free";
   const plan = normalizePlan(sub.plan);
-  const periodOk = !sub.current_period_end || new Date(sub.current_period_end) > now;
-  const statusOk = sub.status === "active" || sub.status === "trial" || (sub.status === "cancelled" && !!sub.current_period_end);
+  // 결제 수단이 등록된 구독은 갱신 크론(하루 1회)·재시도를 기다리는 동안 GRACE_DAYS 유예 (paidPlanOf 와 동일 기준).
+  // 유예가 없으면 기간 종료 시각부터 다음 크론까지 매달 최대 하루씩 무료 한도로 떨어진다.
+  const hasMethod = Boolean(sub.kakao_sid || sub.billing_key);
+  const graceMs = hasMethod && (sub.status === "active" || sub.status === "past_due") ? GRACE_DAYS * 86400000 : 0;
+  const periodOk = !sub.current_period_end || new Date(sub.current_period_end).getTime() + graceMs > now.getTime();
+  const statusOk = sub.status === "active" || sub.status === "trial" || (sub.status === "past_due" && hasMethod) || (sub.status === "cancelled" && !!sub.current_period_end);
   return statusOk && periodOk ? plan : "free";
 }
 

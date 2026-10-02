@@ -44,6 +44,8 @@ async function fetchMolit(type, lawdCd, ym, errs) {
 
 const sqmToPy = (sqm) => sqm > 0 ? Math.round(sqm / 3.3058 * 10) / 10 : 0;
 const parseArea = (r) => Number(String(r.excluUseAr || r.totalFloorAr || r.bldArea || 0).replace(/,/g, "").trim());
+// 국토부 금액 필드는 "10,000" 처럼 콤마가 섞인 문자열 — 그대로 Number() 하면 NaN
+const num = (v) => Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
 const parsePrice = (r) => Number(String(r.dealAmount || "0").replace(/,/g, "").trim());
 
 function median(nums) {
@@ -81,16 +83,16 @@ export async function POST(req) {
 
   // 유효 월세 행 (monthlyRent > 0) 중 면적 있는 것
   const validRent = rentAll
-    .filter(r => Number(r.monthlyRent || 0) > 0 && parseArea(r) > 0)
+    .filter(r => num(r.monthlyRent) > 0 && parseArea(r) > 0)
     .map(r => ({
       type: r._type,
-      rent: Number(r.monthlyRent),
-      deposit: Number(r.deposit || 0),
+      rent: num(r.monthlyRent),
+      deposit: num(r.deposit),
       areaSqm: parseArea(r),
       py: sqmToPy(parseArea(r)),
       floor: r.floor ? Number(r.floor) : null,
       buildYear: r.buildYear ? Number(r.buildYear) : null,
-      name: r.aptName || r.houseType || r.offiNm || "(이름 없음)",
+      name: r.aptNm || r.mhouseNm || r.offiNm || r.houseType || "(이름 없음)",
       ym: r._ym,
       day: r.dealDay ? Number(r.dealDay) : null,
     }));

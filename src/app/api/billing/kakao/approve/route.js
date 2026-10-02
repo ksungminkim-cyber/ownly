@@ -85,8 +85,8 @@ export async function POST(req) {
 
   // 3) 구독 활성화
   const periodEnd = nextPeriodDate(cycle, new Date());
-  try {
-    await admin.from("subscriptions").upsert({
+  {
+    const { error: actErr } = await admin.from("subscriptions").upsert({
       user_id: user.id,
       plan: planId,
       pg: "kakao",
@@ -106,9 +106,11 @@ export async function POST(req) {
       cancel_reason: null,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
-  } catch (e) {
-    console.error("subscription activate failed:", e?.message);
-    return NextResponse.json({ error: "구독 활성화 저장 실패: " + e.message }, { status: 500 });
+    // supabase-js 는 throw 하지 않고 error 를 반환 — 결제는 됐는데 저장이 실패한 경우를 성공으로 응답하지 않는다
+    if (actErr) {
+      console.error("subscription activate failed:", actErr.message, "| order", orderId, "| tid", pending.kakao_tid);
+      return NextResponse.json({ error: "결제는 승인됐지만 구독 활성화 저장에 실패했습니다. inquiry@mclean21.com 으로 문의해 주세요 (주문번호 " + orderId + ")." }, { status: 500 });
+    }
   }
 
   // 4) 결제 이력 기록

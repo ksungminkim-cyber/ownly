@@ -137,7 +137,7 @@ export default async function PublicPostPage({ params }) {
               {comments.map(c => (
                 <div key={c.id} style={{ padding: "12px 14px", background: "#f8f7f4", borderRadius: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{c.nickname || "익명"}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#1a2744" }}>{c.author_name || "익명"}</span>
                     <span style={{ fontSize: 12, color: "#8a8a9a" }}>{timeAgo(c.created_at)}</span>
                   </div>
                   <p style={{ fontSize: 14, color: "#2a2a3a", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{c.content}</p>

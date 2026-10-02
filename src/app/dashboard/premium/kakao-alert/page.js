@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import PlanGate from "../../../../components/PlanGate";
 import { useApp } from "../../../../context/AppContext";
 import { daysLeft } from "../../../../lib/constants";
+import { getUnpaidTenantIds, effectivePayDay } from "../../../../lib/unpaid";
 
 const C = {
   navy:"#1a2744", amber:"#e8960a", rose:"#e8445a", emerald:"#0fa573",
@@ -270,16 +271,21 @@ function KakaoAlertContent() {
       .map(p => p.tid || p.tenant_id)
   );
 
-  const unpaid   = tenants.filter(t => t.status === "미납" || !paidTids.has(t.id));
-  const upcoming = tenants.filter(t => {
-    if (paidTids.has(t.id)) return false;
-    if (t.status === "미납") return false;
-    const d = (t.pay_day || 5) - today;
+  // 미납은 대시보드·크론과 같은 판정(lib/unpaid) — 납부일이 지났고 완납 기록이 없는 세입자만. 납부일 전·공실·전세(월세 0)는 제외
+  const unpaidIds = getUnpaidTenantIds(tenants, payments, now);
+  const occupied  = tenants.filter(t => t.status !== "공실" && t.status !== "퇴거");
+  const unpaid    = occupied.filter(t => unpaidIds.has(t.id));
+  const upcoming  = occupied.filter(t => {
+    if (!(Number(t.rent) > 0) || paidTids.has(t.id) || unpaidIds.has(t.id)) return false;
+    const d = effectivePayDay(t.pay_day, year, month) - today; // 말일(99)·짧은 달 반영
     return d >= 0 && d <= 3;
   });
-  const expiring = tenants.filter(t => {
-    const dl = daysLeft(t.end_date || t.end || "");
-    return dl >= 0 && dl <= 60;
+  // daysLeft 는 만료일 없음·이미 만료를 모두 0 으로 돌려주므로, 만료일이 있고 아직 지나지 않은 계약만 직접 계산
+  const expiring  = occupied.filter(t => {
+    const end = t.end_date || t.end;
+    if (!end) return false;
+    const d = Math.ceil((new Date(end) - now) / 86400000);
+    return d >= 0 && d <= 60;
   });
 
   const counts = { unpaid: unpaid.length, upcoming: upcoming.length, expiring: expiring.length };

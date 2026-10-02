@@ -15,7 +15,7 @@ const CAT_ICON = {
 
 function monthKey(y, m) { return `${y}-${String(m).padStart(2, "0")}`; }
 
-function buildPaymentHistory(payments, startDate) {
+function buildPaymentHistory(payments, startDate, payDay) {
   const now = new Date();
   const months = [];
   const start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth() - 11, 1);
@@ -23,7 +23,12 @@ function buildPaymentHistory(payments, startDate) {
   while (cur >= start && months.length < 12) {
     const y = cur.getFullYear(), m = cur.getMonth() + 1;
     const p = payments.find(p => p.year === y && p.month === m);
-    months.push({ y, m, p, key: monthKey(y, m) });
+    // 이번 달 납부일이 아직 지나지 않았으면 "미납"이 아니라 "납부 예정" (말일=99)
+    const isCur = y === now.getFullYear() && m === now.getMonth() + 1;
+    const lastDay = new Date(y, m, 0).getDate();
+    const dueDay = Math.min(Number(payDay) || lastDay, lastDay);
+    const upcoming = isCur && now.getDate() <= dueDay && p?.status !== "paid" && p?.status !== "partial";
+    months.push({ y, m, p, upcoming, key: monthKey(y, m) });
     cur.setMonth(cur.getMonth() - 1);
   }
   return months;
@@ -68,7 +73,8 @@ export default function TenantPortalPage() {
   const t = data.tenant;
   const payments = data.payments || [];
   const repairs = data.repairs || [];
-  const history = buildPaymentHistory(payments, t.start_date);
+  const history = buildPaymentHistory(payments, t.start_date, t.pay_day);
+  const payDayLabel = Number(t.pay_day) === 99 ? "매월 말일" : `매월 ${t.pay_day}일`;
   const daysLeft = t.contract_end ? Math.ceil((new Date(t.contract_end) - new Date()) / 86400000) : null;
   const openRepairs = repairs.filter(r => r.status === "open" || r.status === "in_progress").length;
 
@@ -114,7 +120,7 @@ export default function TenantPortalPage() {
                 { label: "보증금", value: (t.deposit || 0).toLocaleString() + "만원" },
                 { label: "월세", value: (t.rent || 0).toLocaleString() + "만원" },
                 ...(t.maintenance > 0 ? [{ label: "관리비", value: t.maintenance.toLocaleString() + "만원" }] : []),
-                { label: "납부일", value: `매월 ${t.pay_day}일` },
+                { label: "납부일", value: payDayLabel },
                 { label: "계약 시작", value: t.start_date || "—" },
                 { label: "계약 종료", value: t.contract_end ? `${t.contract_end}${daysLeft !== null ? (daysLeft >= 0 ? ` (D-${daysLeft})` : ` (만료 ${Math.abs(daysLeft)}일 경과)`) : ""}` : "—" },
               ].map((row, i, arr) => (
@@ -131,8 +137,9 @@ export default function TenantPortalPage() {
         )}
 
         {tab === "payments" && (() => {
+          const dueCount = history.filter(h => !h.upcoming).length; // 납부일 전인 이번 달은 납부율·미납 건수에서 제외
           const paidCount = history.filter(h => h.p?.status === "paid").length;
-          const rate = history.length > 0 ? Math.round((paidCount / history.length) * 100) : 0;
+          const rate = dueCount > 0 ? Math.round((paidCount / dueCount) * 100) : 0;
           const nowD = new Date();
           const curMonthPay = payments.find(p => p.year === nowD.getFullYear() && p.month === nowD.getMonth() + 1);
           const curPaid = curMonthPay?.status === "paid";
@@ -149,7 +156,7 @@ export default function TenantPortalPage() {
                       <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 4 }}>🧾 {nowD.getMonth() + 1}월 청구서</p>
                       <p className="num" style={{ fontSize: 22, fontWeight: 900, color: "var(--text)", margin: 0 }}>{totalDue.toLocaleString()}만원</p>
                       <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "3px 0 0" }}>
-                        월세 {(t.rent || 0).toLocaleString()}만원{(t.maintenance || 0) > 0 && ` + 관리비 ${t.maintenance.toLocaleString()}만원`} · 납부일 매월 {t.pay_day}일
+                        월세 {(t.rent || 0).toLocaleString()}만원{(t.maintenance || 0) > 0 && ` + 관리비 ${t.maintenance.toLocaleString()}만원`} · 납부일 {payDayLabel}
                       </p>
                     </div>
                     <span className={`chip ${curPaid ? "chip-success" : "chip-warn"}`} style={{ fontSize: 12 }}>
@@ -167,7 +174,7 @@ export default function TenantPortalPage() {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <span className="chip chip-success" style={{ fontSize: 11 }}>{paidCount}건 납부</span>
-                    {history.length - paidCount > 0 && <span className="chip chip-danger" style={{ fontSize: 11, marginLeft: 4 }}>{history.length - paidCount}건 미납</span>}
+                    {dueCount - paidCount > 0 && <span className="chip chip-danger" style={{ fontSize: 11, marginLeft: 4 }}>{dueCount - paidCount}건 미납</span>}
                   </div>
                 </div>
               )}
@@ -193,7 +200,7 @@ export default function TenantPortalPage() {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span className="num" style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>{(row.p?.amount || t.rent || 0).toLocaleString()}만원</span>
-                        <span className={`chip ${paid ? "chip-success" : partial ? "chip-warn" : "chip-danger"}`} style={{ fontSize: 10 }}>{paid ? "✓ 납부" : partial ? `부분납부 · 잔액 ${Math.max(0, (t.rent || 0) - (Number(row.p.amount) || 0)).toLocaleString()}만원` : "미납"}</span>
+                        <span className={`chip ${paid ? "chip-success" : partial ? "chip-warn" : row.upcoming ? "chip-info" : "chip-danger"}`} style={{ fontSize: 10 }}>{paid ? "✓ 납부" : row.upcoming ? "납부 예정" : partial ? `부분납부 · 잔액 ${Math.max(0, (t.rent || 0) - (Number(row.p.amount) || 0)).toLocaleString()}만원` : "미납"}</span>
                       </div>
                     </div>
                   );

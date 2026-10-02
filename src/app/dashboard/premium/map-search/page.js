@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "../../../../context/AppContext";
 import PlanGate from "../../../../components/PlanGate";
@@ -222,7 +222,7 @@ function MapSearchContent() {
     return { results, monthArr };
   };
 
-  const search = useCallback(async () => {
+  const runSearch = async (region, type) => {
     setLoading(true);
     setError("");
     setData(null);
@@ -285,20 +285,20 @@ function MapSearchContent() {
           if (mode === "rent") {
             common._deposit = parseInt(String(it.deposit || "0").replace(/,/g, ""), 10) || 0;
             common._monthly = parseInt(String(it.monthlyRent || "0").replace(/,/g, ""), 10) || 0;
-            common._area = parseFloat(it.excluUseAr || it.exclusiveUseArea || "0") || 0;
+            common._area = parseFloat(it.excluUseAr || it.totalFloorAr || it.exclusiveUseArea || "0") || 0;
           } else {
             // 매매
             common._dealAmount = parseInt(String(it.dealAmount || "0").replace(/,/g, "").replace(/\s/g, ""), 10) || 0;
             // 토지는 landAr, 상업용은 bldgArea / plottageAr, 그 외 excluUseAr
             if (type === "land_trade") {
-              common._area = parseFloat(it.landAr || "0") || 0;
+              common._area = parseFloat(it.dealArea || it.landAr || "0") || 0;
               common._jimok = it.jimok || "";
               common._name = it.jimok || "토지";
             } else if (type === "nrg_trade") {
               common._area = parseFloat(it.bldgArea || it.buildingAr || it.plottageAr || "0") || 0;
               common._name = it.bldgNm || it.buildingNm || (it.buildingType ? `${it.buildingType}` : "상업·업무용");
             } else {
-              common._area = parseFloat(it.excluUseAr || "0") || 0;
+              common._area = parseFloat(it.excluUseAr || it.totalFloorAr || "0") || 0;
             }
           }
           allItems.push(common);
@@ -331,7 +331,7 @@ function MapSearchContent() {
           const j = items.filter(i => i._monthly === 0);
           return { label: `${ym.slice(2, 4)}.${ym.slice(4, 6)}`, total: items.length, jeonse: j.length, wolse: m.length, avgMonthly: m.length > 0 ? Math.round(m.reduce((s, i) => s + i._monthly, 0) / m.length) : 0 };
         });
-        setData({ mode, items: allItems, monthly: monthlyItems, jeonse: jeonseItems, avgMonthly, avgMonthlyDeposit, avgJeonseDeposit, avgArea, jeonseRatio, byMonth, total: allItems.length, expandedToMonths: expanded, lagWarning });
+        setData({ months: monthArr.length, mode, items: allItems, monthly: monthlyItems, jeonse: jeonseItems, avgMonthly, avgMonthlyDeposit, avgJeonseDeposit, avgArea, jeonseRatio, byMonth, total: allItems.length, expandedToMonths: expanded, lagWarning });
       } else {
         const amounts = allItems.map(i => i._dealAmount).filter(a => a > 0);
         const avgDeal = amounts.length > 0 ? Math.round(amounts.reduce((s, a) => s + a, 0) / amounts.length) : 0;
@@ -356,14 +356,16 @@ function MapSearchContent() {
             avgDeal: amts.length > 0 ? Math.round(amts.reduce((s, a) => s + a, 0) / amts.length) : 0,
           };
         });
-        setData({ mode, items: allItems, avgDeal, minDeal, maxDeal, medianDeal, avgArea, avgPerPyeong, byMonth, total: allItems.length, expandedToMonths: expanded, lagWarning });
+        setData({ months: monthArr.length, mode, items: allItems, avgDeal, minDeal, maxDeal, medianDeal, avgArea, avgPerPyeong, byMonth, total: allItems.length, expandedToMonths: expanded, lagWarning });
       }
     } catch (e) {
       setError("분석 중 오류: " + (e.message || ""));
     } finally {
       setLoading(false);
     }
-  }, [region, type]);
+  };
+  // 추천 조합 버튼은 setState 직후에 부르므로 새 지역·유형을 인자로 넘긴다 (조회 버튼의 클릭 이벤트 인자는 무시)
+  const search = (r, t) => runSearch(typeof r === "string" ? r : region, typeof t === "string" ? t : type);
 
   // 내 물건과 비교 (임대 모드: 월세 기준)
   const comparison = useMemo(() => {
@@ -449,7 +451,7 @@ function MapSearchContent() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
               {data.suggestions.map((s, i) => (
                 <button key={i}
-                  onClick={() => { setRegion(s.region); setType(s.type); setData(null); setTimeout(() => search(), 10); }}
+                  onClick={() => { setRegion(s.region); setType(s.type); search(s.region, s.type); }}
                   style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${C.indigo}30`, background: C.indigo + "08", textAlign: "left", cursor: "pointer" }}
                   onMouseEnter={e => { e.currentTarget.style.background = C.indigo + "12"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = C.indigo + "08"; }}>
@@ -504,14 +506,14 @@ function MapSearchContent() {
           {/* KPI 그리드 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10, marginBottom: 20 }}>
             {(data.mode === "rent" ? [
-              { l: "실거래 총 건수", v: data.total.toLocaleString() + "건", c: C.navy, sub: "최근 3개월" },
+              { l: "실거래 총 건수", v: data.total.toLocaleString() + "건", c: C.navy, sub: `최근 ${data.months || 3}개월` },
               { l: "평균 월세", v: formatMan(data.avgMonthly) + "원", c: C.emerald, sub: `${data.monthly.length}건 기준` },
               { l: "평균 월세 보증금", v: formatMan(data.avgMonthlyDeposit) + "원", c: C.indigo, sub: "월세 평균" },
               { l: "평균 전세 보증금", v: formatMan(data.avgJeonseDeposit) + "원", c: C.purple, sub: `${data.jeonse.length}건` },
               { l: "평균 전용면적", v: data.avgArea ? data.avgArea + "㎡" : "-", c: C.navy, sub: "㎡ 기준" },
               { l: "전세 비중", v: data.jeonseRatio + "%", c: data.jeonseRatio > 50 ? C.purple : C.emerald, sub: "전세/월세 중" },
             ] : [
-              { l: "실거래 총 건수", v: data.total.toLocaleString() + "건", c: C.navy, sub: "최근 3개월" },
+              { l: "실거래 총 건수", v: data.total.toLocaleString() + "건", c: C.navy, sub: `최근 ${data.months || 3}개월` },
               { l: "평균 거래가", v: formatMan(data.avgDeal) + "원", c: C.emerald, sub: "산술 평균" },
               { l: "중앙값 거래가", v: formatMan(data.medianDeal) + "원", c: C.indigo, sub: "극단값 배제" },
               { l: "최저 거래가", v: formatMan(data.minDeal) + "원", c: C.navy, sub: "3개월 최저" },

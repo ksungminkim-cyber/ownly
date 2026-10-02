@@ -27,7 +27,7 @@ export async function GET(req, { params }) {
     );
     const { data } = await admin
       .from("community_posts")
-      .select("title, category, nickname, views, like_count, content")
+      .select("title, category, author_name, anonymous, likes, content")
       .eq("id", id)
       .single();
     post = data;
@@ -35,7 +35,7 @@ export async function GET(req, { params }) {
 
   const title = post?.title || "임대인 커뮤니티";
   const category = post?.category || "일상";
-  const nickname = post?.nickname || "익명";
+  const nickname = post?.anonymous ? "익명" : (post?.author_name || "익명");
   const cat = CATEGORY_COLORS[category] || CATEGORY_COLORS.일상;
   const excerpt = (post?.content || "임대 관리에 필요한 모든 것").replace(/\s+/g, " ").slice(0, 80);
   const truncatedTitle = title.length > 60 ? title.slice(0, 60) + "..." : title;
@@ -142,7 +142,7 @@ export async function GET(req, { params }) {
             <span style={{ fontSize: 20, fontWeight: 700 }}>{nickname}</span>
           </div>
           <div style={{ display: "flex", gap: 20, fontSize: 18, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>
-            <span>❤️ {post?.like_count || 0}</span>
+            <span>❤️ {post?.likes || 0}</span>
           </div>
         </div>
       </div>
