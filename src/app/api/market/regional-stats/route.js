@@ -14,7 +14,7 @@ export const revalidate = 86400; // 24h
 const MOLIT_BASE = "http://apis.data.go.kr/1613000/";
 const MOLIT_ENDPOINTS = {
   apt_rent:   "RTMSDataSvcAptRent/getRTMSDataSvcAptRent",
-  apt_trade:  "RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
+  apt_trade:  "RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade",
   offi_rent:  "RTMSDataSvcOffiRent/getRTMSDataSvcOffiRent",
   offi_trade: "RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade",
   villa_rent: "RTMSDataSvcRHRent/getRTMSDataSvcRHRent",
