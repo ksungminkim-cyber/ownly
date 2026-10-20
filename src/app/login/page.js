@@ -5,7 +5,7 @@ import { Spinner, AuthInput } from "../../components/shared";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";  // ⚠️ 반드시 global 클라이언트 사용 (PKCE code_verifier 공유)
 import { generateNickname } from "../../lib/nickname";
-import { track } from "../../lib/track";
+import { track, trackSignupSourceOnce } from "../../lib/track";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -87,6 +87,7 @@ export default function AuthPage() {
         // Supabase 에서 이메일 인증을 끄면 세션이 바로 발급된다 — 그때는 메일 안내 없이 바로 이동
         if (signUpData?.session) {
           track("login", { method: "signup" });
+          trackSignupSourceOnce(signUpData.session.user?.id); // 도구 페이지(next)로 돌아가면 대시보드를 안 거쳐 유입 경로가 안 남으므로 여기서 1회 기록
           let dest = "/dashboard";
           try { const n = localStorage.getItem("ownly_next"); if (n && /^\/(?![/\\])/.test(n)) dest = n; localStorage.removeItem("ownly_next"); } catch {}
           router.push(dest);

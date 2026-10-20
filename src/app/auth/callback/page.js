@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { generateNickname } from "../../../lib/nickname";
-import { track } from "../../../lib/track";
+import { track, trackSignupSourceOnce } from "../../../lib/track";
 
 export default function AuthCallbackPage() {
   const [status, setStatus] = useState("인증 처리 중...");
@@ -102,6 +102,7 @@ export default function AuthCallbackPage() {
 
         if (cancelled) return;
         track("login", { method: "callback" }); // 소셜 로그인·이메일 인증 완료
+        trackSignupSourceOnce(user?.id); // next 로 도구 페이지에 복귀하면 대시보드를 안 거치므로 유입 경로를 여기서 1회 기록
         setStatus("✅ 인증 완료! 대시보드로 이동합니다...");
         // 무료 도구 등에서 넘어온 경우 원래 가려던 페이지로 복귀 (login 페이지가 보관)
         let dest = "/dashboard";
