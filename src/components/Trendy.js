@@ -182,3 +182,34 @@ export function HoverLift({ as: Tag = "div", className = "", lift = -4, children
     </MotionTag>
   );
 }
+
+/**
+ * 스크롤 등장 — IntersectionObserver 로 .reveal-on 요소에 .is-in 을 붙인다.
+ * JS 가 없거나 늦게 뜨면 html.js-reveal 이 없어 그냥 보인다 (랜딩 첫 화면 투명 사고 방지).
+ * <RevealObserver /> 를 페이지 어디든 한 번만 두면 된다.
+ */
+export function RevealObserver({ selector = ".reveal-on", rootMargin = "0px 0px -8% 0px" }) {
+  useEffect(() => {
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
+    const root = document.documentElement;
+    root.classList.add("js-reveal");
+    const els = Array.from(document.querySelectorAll(selector));
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.classList.add("is-in");
+            io.unobserve(e.target);
+          }
+        }
+      },
+      { rootMargin, threshold: 0.08 },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => {
+      io.disconnect();
+      root.classList.remove("js-reveal");
+    };
+  }, [selector, rootMargin]);
+  return null;
+}

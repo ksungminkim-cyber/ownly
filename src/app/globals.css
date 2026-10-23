@@ -554,12 +554,6 @@ input { color-scheme: light; }
   transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease);
 }
 .stat:hover { transform: translateY(-2px); box-shadow: var(--elev-2); }
-.stat::after {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; background: var(--grad-accent); opacity: 0;
-  transition: opacity var(--t-med) var(--ease);
-}
-.stat:hover::after { opacity: 1; }
 .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
 .stat-value { font-size: 26px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
 .stat-sub   { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
@@ -793,3 +787,27 @@ input { color-scheme: light; }
   pointer-events: none;
 }
 .glow-ring:hover::before { opacity: 1; }
+
+/* ─── 2026-10 editorial refresh: 큰 숫자·순위 바·지도·스크롤 등장 ─── */
+.display-num { font-family: "DM Serif Display", "Pretendard", serif; font-weight: 400; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+.stat.interactive { cursor: pointer; }
+.hairline { border-top: 1px solid var(--border2); }
+.rank-row { display: grid; grid-template-columns: 20px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--surface3); }
+.rank-row:last-child { border-bottom: none; }
+.rank-bar { height: 5px; border-radius: 3px; background: var(--surface3); overflow: hidden; margin-top: 6px; }
+.rank-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--text); transform-origin: left; animation: rank-grow .7s var(--ease) both; }
+@keyframes rank-grow { from { transform: scaleX(0); } }
+@keyframes ring-in { from { stroke-dashoffset: 213.6; } }
+.ring-fill { animation: ring-in .9s var(--ease) both; }
+.map-shell { position: relative; border-radius: var(--radius-md); overflow: hidden; background: var(--surface3); min-height: 320px; }
+.map-shell .map-canvas { width: 100%; height: 100%; filter: saturate(0.28) contrast(1.03); }
+.map-legend { position: absolute; left: 12px; top: 12px; z-index: 5; display: flex; gap: 12px; padding: 7px 12px; border-radius: 999px; background: var(--glass-bg); border: 1px solid var(--border); backdrop-filter: blur(8px); font-size: 11px; font-weight: 700; color: var(--text); pointer-events: none; }
+.map-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.region-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background var(--t-fast) var(--ease); }
+.region-row:hover, .region-row.is-hot { background: var(--surface2); }
+html.js-reveal .reveal-on { opacity: 0; transform: translateY(18px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+html.js-reveal .reveal-on.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { html.js-reveal .reveal-on { opacity: 1; transform: none; transition: none; } .rank-bar > i, .ring-fill { animation: none; } }
+
+/* Recharts 3 ResponsiveContainer 는 안쪽 div 를 width:0 으로 두고 자식에 px 폭을 준다 — 모바일 전역 `* { max-width:100% }` 가 이를 0 으로 눌러 모든 차트가 사라지던 문제 */
+.recharts-wrapper, .recharts-surface { max-width: none !important; }
