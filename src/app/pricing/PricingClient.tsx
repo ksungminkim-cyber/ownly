@@ -38,7 +38,11 @@ const FAQ = [
   },
   {
     q: "플러스는 무엇이 달라지나요?",
-    a: `물건·세입자 무제한, 내용증명 정식 발급 무제한, 카카오 알림톡 월 ${plus.limits.kakaoMonthly}건, AI 임대료 분석 월 ${plus.limits.aiPricing}회, 세금 시뮬레이터·수익 분석·공실 관리·주변 매물 조회·PDF 내보내기까지 전부 열립니다. 월 ${plus.price.toLocaleString()}원 하나로 추가 요금은 없습니다.`,
+    a: `미납·만료가 생겼을 때 필요한 도구가 열립니다. 내용증명 정식 발급 무제한(워터마크 없음·발송 기록), 카카오 알림톡 독촉·안내 월 ${plus.limits.kakaoMonthly}건, 세입자 자동 알림톡(납부일 전날·미납)에 더해 물건·세입자 무제한, AI 임대료 분석 월 ${plus.limits.aiPricing}회, 세금 시뮬레이터·수익 분석·공실 관리·주변 매물 조회·PDF 내보내기까지 전부 열립니다. 월 ${plus.price.toLocaleString()}원 하나로 추가 요금은 없습니다.`,
+  },
+  {
+    q: "무료 플랜에서 내용증명은 어디까지 쓸 수 있나요?",
+    a: `작성과 미리보기는 무료 도구(/tools/certified)에서 가입 없이 무제한이고, 워터마크가 들어간 미리보기 인쇄는 무료 가입 후 가능합니다. 워터마크 없는 정식 발급과 발송 이력·등기번호 기록은 플러스(월 ${plus.price.toLocaleString()}원)에서 제한 없이 쓸 수 있습니다.`,
   },
   {
     q: "결제는 어떻게 하나요?",
@@ -175,7 +179,7 @@ export default function PricingClient() {
             <div key={row.key} style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1fr", borderBottom: i < PLAN_COMPARE.length - 1 ? "1px solid var(--border-color, #f0ede8)" : "none" }}>
               <div style={{ padding: "11px 18px", fontSize: "13px", fontWeight: 600, wordBreak: "keep-all" }}>{row.label}</div>
               {[PLANS.free, plus].map((p) => {
-                const v = fmtLimit((p.limits as Record<string, number | boolean>)[row.key], row.unit);
+                const v = fmtLimit((p.limits as Record<string, number | boolean>)[row.key], row.unit, row.zero);
                 return (
                   <div key={p.id} style={{ padding: "11px 4px", textAlign: "center", fontSize: "13px", wordBreak: "keep-all" }}>
                     {v === true ? <span style={{ color: "#22c55e", fontWeight: 800 }}>✓</span>

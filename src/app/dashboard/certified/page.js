@@ -146,7 +146,7 @@ function CertifiedContent() {
           setEditTarget(null);
           setForm({ ...initForm(), ...fields });
           setShowModal(true);
-          toast("무료 도구에서 작성한 내용을 불러왔어요 — 저장하면 워터마크 없는 정식 PDF를 출력할 수 있습니다");
+          toast("무료 도구에서 작성한 내용을 불러왔어요");
         });
       }
     }
@@ -293,7 +293,9 @@ function CertifiedContent() {
             총 {history.length}건 저장
             {!hasMonthLimit
               ? <> · <span className="chip chip-success" style={{ fontSize:11 }}>플러스 · 발급 무제한</span></>
-              : <> · 이번 달 <b style={{ color: monthUsed >= monthLimit ? C.rose : "#1a2744" }}>{Math.min(monthUsed, monthLimit)}/{monthLimit}건</b>
+              : <> · {monthLimit === 0
+                    ? <b style={{ color:"#1a2744" }}>정식 발급은 플러스 구독</b>
+                    : <>이번 달 <b style={{ color: monthUsed >= monthLimit ? C.rose : "#1a2744" }}>{Math.min(monthUsed, monthLimit)}/{monthLimit}건</b></>}
                   {credits > 0 && <> · 보너스 발급권 <b style={{ color:"#1a2744" }}>{credits}장</b></>}
                   {paidPlan !== PAID_PLAN_ID && <button onClick={goPlus} style={{ marginLeft:8, padding:"2px 9px", borderRadius:6, border:`1px solid ${C.indigo}40`, background:"transparent", color:C.indigo, fontSize:11, fontWeight:700, cursor:"pointer" }}>무제한으로 →</button>}
                 </>}
@@ -304,13 +306,13 @@ function CertifiedContent() {
         </button>
       </div>
 
-      {/* 월 한도 소진 — 플러스 구독 안내 (카카오페이 정기결제) */}
+      {/* 정식 발급 한도(무료 0건 · 기존 가입자 월 한도) 소진 — 플러스 구독 안내 (카카오페이 정기결제) */}
       {showUpsell && (
         <Modal open={showUpsell} onClose={() => setShowUpsell(false)}>
           <div style={{ padding:"4px 0" }}>
-            <h2 style={{ fontSize:18, fontWeight:800, color:"#1a2744", marginBottom:6 }}>이번 달 {monthLimit}건을 모두 사용했어요</h2>
+            <h2 style={{ fontSize:18, fontWeight:800, color:"#1a2744", marginBottom:6 }}>{monthLimit === 0 ? "정식 발급은 플러스 구독에서 가능합니다" : `이번 달 ${monthLimit}건을 모두 사용했어요`}</h2>
             <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:14 }}>
-              플러스로 구독하면 내용증명을 <b style={{ color:"#1a2744" }}>제한 없이</b> 발급하고, 카카오 알림톡 월 {plus.limits.kakaoMonthly}건·AI 분석 월 {plus.limits.aiPricing}회에 물건·세입자 무제한까지 전부 열립니다.
+              플러스로 구독하면 워터마크 없는 내용증명을 <b style={{ color:"#1a2744" }}>제한 없이</b> 발급하고 발송 이력을 남길 수 있습니다. 카카오 알림톡 독촉 월 {plus.limits.kakaoMonthly}건·세입자 자동 알림톡·AI 분석 월 {plus.limits.aiPricing}회에 물건·세입자 무제한까지 전부 열립니다.
             </p>
             <div style={{ background:"#f8f7f4", borderRadius:12, padding:"12px 14px", marginBottom:14, fontSize:12, color:"#6a6a7a", lineHeight:1.8 }}>
               <div><b style={{ color:"#1a2744", fontSize:15 }}>월 {plus.price.toLocaleString()}원</b> · 카카오페이 정기결제 · 언제든 해지</div>
@@ -318,7 +320,7 @@ function CertifiedContent() {
             </div>
             <div style={{ display:"flex", gap:10 }}>
               <button onClick={() => setShowUpsell(false)}
-                style={{ flex:1, padding:"12px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>다음 달에</button>
+                style={{ flex:1, padding:"12px", borderRadius:11, background:"transparent", border:"1px solid #ebe9e3", color:"#8a8a9a", fontWeight:600, fontSize:13, cursor:"pointer" }}>{monthLimit === 0 ? "나중에" : "다음 달에"}</button>
               <button onClick={goPlus}
                 style={{ flex:2, padding:"12px", borderRadius:11, background:`linear-gradient(135deg,${C.navy},${C.purple})`, border:"none", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>플러스로 무제한 발급 →</button>
             </div>

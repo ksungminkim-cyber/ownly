@@ -30,6 +30,7 @@
 | `pwa_installed` | 브라우저 appinstalled 이벤트 (실제 설치 완료) | — |
 | `pwa_home_added_manual` | iOS 등 수동 안내 후 "추가했어요" 표시 | — |
 | `upsell_click` | 플러스 구독 CTA 클릭 (대시보드 바 · 내용증명 한도 소진 모달) | `from`: dashboard_bar·certified |
+| `auto_alimtalk_on` | 세입자 자동 알림톡을 "한 번에 켜기"로 켬 (플러스 전용 유도 배너) | `from`: dashboard·checkout |
 | `checklist_done` | 시작 체크리스트 3/3 완료 | |
 
 **유입 경로 캡처**: `src/components/AttributionCapture.js`(루트 레이아웃)가 첫 방문 URL의 `utm_*`·착지 경로를 localStorage(`ownly_attr`)에 1회 저장하고, 가입 후 첫 대시보드 진입에서 `signup_source`로 전송합니다. **광고 링크에는 반드시 utm_source·utm_campaign을 붙이세요** (예: `https://www.ownly.kr/tools/certified?utm_source=naver&utm_medium=cpc&utm_campaign=certified_sep`).

@@ -5,6 +5,7 @@ export const PAY_MAP = { paid: { label: "납부완료", c: "#0fa573", bg: "rgba(
 export const COLORS = ["#1a2744", "#e8960a", "#e8445a", "#1e7fcb", "#5b4fcf", "#0fa573", "#2d4270"];
 
 // ─── 요금제 (2026-09-10 단순화: 무료 / 플러스 · 2026-09-28 월 9,900원 → 4,900원 인하) ─────────────
+// 2026-10-27: 플러스를 "미납·만료 대응" 구독으로 재포장. 무료의 내용증명 정식 발급은 0건(작성·미리보기만) — 결제 이유를 만들기 위함.
 // 유료 플랜은 플러스 하나뿐입니다. 한도·가격·기능 문구는 여기서만 정의하고, 요금제 화면(대시보드·공개)·서버 한도 판정
 // (api/kakao/send · api/ai-pricing · AppContext)·안내 문구가 전부 PLANS 를 읽습니다. 숫자를 바꿀 땐 이 파일만 고치면 됩니다.
 export const PAID_PLAN_ID = "plus";
@@ -19,7 +20,7 @@ export const PLANS = {
     tagline: "혼자 관리하는 임대인의 기본 도구",
     limits: {
       properties: 3, tenants: 5,
-      reports: true, tax: false, certified: 1, vacancy: false, export: false,
+      reports: true, tax: false, certified: 0, vacancy: false, export: false,
       roi: false, vacancyLoss: false, leaseCheck: false, mapSearch: false,
       aiPricing: 3, kakaoAlert: false, kakaoMonthly: 0, globalReports: false, profitAnalysis: false,
     },
@@ -27,7 +28,7 @@ export const PLANS = {
       { t: "물건 최대 3개 · 세입자 최대 5명", ok: true },
       { t: "수금 현황 · 계약 · 캘린더 관리", ok: true },
       { t: "수익 리포트 기본", ok: true },
-      { t: "내용증명 정식 발급 월 1건 (미리보기 무제한)", ok: true },
+      { t: "내용증명 미리보기·초안 작성 (정식 발급은 플러스)", ok: true },
       { t: "AI 임대료 분석 월 3회", ok: true },
       { t: "카카오 알림톡 발송", ok: false },
       { t: "세금 시뮬레이터 · 수익 분석 · 공실 관리", ok: false },
@@ -41,8 +42,8 @@ export const PLANS = {
     priceLabel: "4,900원/월",
     color: "#4f46e5",
     emoji: "📊",
-    tagline: "임대 관리에 필요한 전부, 월 4,900원",
-    badge: "전체 기능",
+    tagline: "미납·만료가 생겼을 때, 월 4,900원",
+    badge: "미납 대응",
     limits: {
       properties: Infinity, tenants: Infinity,
       reports: true, tax: true, certified: Infinity, vacancy: true, export: true,
@@ -50,9 +51,10 @@ export const PLANS = {
       aiPricing: 60, kakaoAlert: true, kakaoMonthly: 100, globalReports: true, profitAnalysis: true,
     },
     features: [
+      { t: "내용증명 정식 발급 무제한 (워터마크 없음 · 발송 기록)", ok: true },
+      { t: "카카오 알림톡 독촉·안내 월 100건", ok: true },
+      { t: "세입자 자동 알림톡 (납부일 전날 · 미납)", ok: true },
       { t: "물건 · 세입자 무제한", ok: true },
-      { t: "내용증명 정식 발급 무제한", ok: true },
-      { t: "카카오 알림톡 월 100건 (세입자 독촉·안내)", ok: true },
       { t: "AI 임대료 분석 월 60회", ok: true },
       { t: "세금 시뮬레이터 · 수익 분석 · 세금계산서", ok: true },
       { t: "공실 관리 · 수익률 · 공실 손실 계산기 · 임대차 3법", ok: true },
@@ -65,7 +67,7 @@ export const PLANS = {
 export const PLAN_COMPARE = [
   { label: "물건 수", key: "properties", unit: "개" },
   { label: "세입자 수", key: "tenants", unit: "명" },
-  { label: "내용증명 정식 발급 (워터마크 없음)", key: "certified", unit: "건/월" },
+  { label: "내용증명 정식 발급 (워터마크 없음)", key: "certified", unit: "건/월", zero: "미리보기만" },
   { label: "카카오 알림톡 (세입자 독촉·안내)", key: "kakaoMonthly", unit: "건/월" },
   { label: "AI 임대료 분석 (국토부 실거래 기반)", key: "aiPricing", unit: "회/월" },
   { label: "수익 리포트", key: "reports" },
@@ -78,9 +80,10 @@ export const PLAN_COMPARE = [
   { label: "주변 매물 조회", key: "mapSearch" },
   { label: "PDF 내보내기", key: "export" },
 ];
-export function fmtLimit(v, unit = "") {
+export function fmtLimit(v, unit = "", zero = "") {
   if (v === Infinity) return "무제한";
   if (v === true) return true;
+  if (v === 0 && zero) return zero; // 한도 0 이지만 "미리보기만"처럼 설명이 필요한 행
   if (!v) return false;
   return `${v}${unit}`;
 }
@@ -95,7 +98,7 @@ export const LEGACY_FREE_UNTIL_LABEL = "2026년 12월 31일";
 export const LEGACY_LIMITS = { certified: 3, kakaoMonthly: 30, aiPricing: 30 };
 
 // 랜딩·정책·커뮤니티·요금제 등 공개 화면의 "무료" 한 줄 문구 — 한 곳에서만 관리해 화면마다 다르게 말하지 않는다.
-export const FREE_TAGLINE = `무료로 시작 · 카드 등록 불필요 · 전체 기능은 월 ${PLANS.plus.price.toLocaleString()}원`;
+export const FREE_TAGLINE = `무료로 시작 · 카드 등록 불필요 · 미납·만료 대응은 월 ${PLANS.plus.price.toLocaleString()}원`;
 // 무료 도구 → 가입 딥링크용 localStorage 키 (도구 페이지가 저장, 대시보드가 소비)
 export const CERTIFIED_DRAFT_KEY = "ownly_certified_draft";   // /tools/certified 초안
 export const PREFILL_ADDR_KEY = "ownly_prefill_addr";         // /diagnose 에서 입력한 주소

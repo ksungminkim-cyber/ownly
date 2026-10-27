@@ -15,6 +15,7 @@ import PolicyWidget from "../../components/PolicyWidget";
 import TrialBanner from "../../components/TrialBanner";
 import OnboardingHero, { SampleBanner } from "../../components/OnboardingHero";
 import SetupChecklist from "../../components/SetupChecklist";
+import AutoAlimtalkNudge from "../../components/AutoAlimtalkNudge";
 import { toast } from "../../components/shared";
 import { useApp } from "../../context/AppContext";
 import { trackDaily, trackSignupSourceOnce } from "../../lib/track";
@@ -208,6 +209,7 @@ export default function DashboardPage() {
         <SampleBanner />
         <TrialBanner />
         <SetupChecklist />
+        {tenants.length > 0 && <AutoAlimtalkNudge from="dashboard" />}
         {tenants.length > 0 && <IncomeStoryWidget tenants={tenants} payments={payments} onNavigate={(p) => router.push(p)} />}
         {tenants.length > 0 && (unpaid > 0 || expiring > 0 || openRepairs > 0) && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
@@ -498,8 +500,8 @@ export default function DashboardPage() {
                     style={{ marginTop: 12, borderRadius: 14, padding: "14px 16px", cursor: "pointer", background: "#1a2744", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}
                   >
                     <div>
-                      <p style={{ fontSize: 13.5, fontWeight: 800, color: "#fff", marginBottom: 2 }}>잠긴 도구 전부 열기</p>
-                      <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>플러스 월 {PLANS.plus.price.toLocaleString()}원 · 언제든 해지</p>
+                      <p style={{ fontSize: 13.5, fontWeight: 800, color: "#fff", marginBottom: 2 }}>미납 대응 도구 열기 · 월 {PLANS.plus.price.toLocaleString()}원</p>
+                      <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>내용증명 정식 발급 · 알림톡 독촉 · 언제든 해지</p>
                     </div>
                     <ArrowRight size={18} color="rgba(255,255,255,0.85)" />
                   </div>

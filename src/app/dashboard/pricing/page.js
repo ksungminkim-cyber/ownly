@@ -14,6 +14,7 @@ const FAQS = [
   { q: "결제는 어떻게 이루어지나요?", a: `카카오페이 정기결제입니다. 카카오톡 간편결제로 한 번 등록하면 매월 같은 날짜에 ${plus.price.toLocaleString()}원이 자동 청구됩니다. 카드번호는 온리에 저장되지 않습니다.` },
   { q: "무료 플랜은 계속 무료인가요?", a: `네. 물건 ${PLANS.free.limits.properties}개·세입자 ${PLANS.free.limits.tenants}명까지는 기간 제한 없이 무료이고 카드 등록도 필요 없습니다.` },
   { q: "무료 플랜에서 물건 수가 한도를 넘으면?", a: "이미 등록한 물건과 데이터는 그대로 유지되고, 새 물건만 추가할 수 없게 됩니다. 플러스로 전환하면 바로 이어서 등록할 수 있습니다." },
+  { q: "무료 플랜에서 내용증명은 어디까지 쓸 수 있나요?", a: `작성과 미리보기는 무료 도구(/tools/certified)에서 가입 없이 무제한이고, 워터마크가 들어간 미리보기 인쇄는 무료 가입 후 가능합니다. 워터마크 없는 정식 발급과 발송 이력·등기번호 기록은 플러스(월 ${plus.price.toLocaleString()}원)에서 제한 없이 쓸 수 있습니다.` },
   { q: "2026년 9월 10일 이전에 가입했는데 어떻게 되나요?", a: `그 전에 가입한 계정은 안내드린 대로 ${LEGACY_FREE_UNTIL_LABEL}까지 플러스 기능을 무료로 쓰실 수 있습니다 (내용증명 월 ${LEGACY_LIMITS.certified}건·알림톡 월 ${LEGACY_LIMITS.kakaoMonthly}건·AI 분석 월 ${LEGACY_LIMITS.aiPricing}회 한도). 그 이후에는 무료 플랜으로 전환되며, 계속 쓰시려면 플러스를 구독하시면 됩니다.` },
   { q: "세금계산서 발행이 가능한가요?", a: "네. 법인·개인사업자 모두 결제 후 설정 → 결제 관리에서 요청하시면 발행해 드립니다." },
 ];
@@ -140,7 +141,7 @@ export default function PricingPage() {
             <div key={row.key} style={{ display: "grid", gridTemplateColumns: isMobile ? "1.4fr 1fr 1fr" : "1.8fr 1fr 1fr", borderBottom: i < PLAN_COMPARE.length - 1 ? "1px solid var(--border)" : "none", background: i % 2 === 0 ? "var(--surface)" : "var(--surface2)" }}>
               <div style={{ padding: isMobile ? "10px 12px" : "12px 20px", fontSize: isMobile ? 11.5 : 13, color: "var(--text)", fontWeight: 600, lineHeight: 1.35, wordBreak: "keep-all" }}>{row.label}</div>
               {planList.map((p) => {
-                const v = fmtLimit(p.limits[row.key], row.unit);
+                const v = fmtLimit(p.limits[row.key], row.unit, row.zero);
                 return (
                   <div key={p.id} style={{ padding: isMobile ? "10px 4px" : "12px 4px", textAlign: "center", fontSize: isMobile ? 11.5 : 13, wordBreak: "keep-all" }}>
                     {v === true ? <span style={{ color: "#0fa573", fontWeight: 800 }}>✓</span>

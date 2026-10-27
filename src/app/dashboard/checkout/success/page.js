@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PLANS } from "../../../../lib/constants";
 import { supabase } from "../../../../lib/supabase";
 import { useApp } from "../../../../context/AppContext";
+import AutoAlimtalkNudge from "../../../../components/AutoAlimtalkNudge";
 
 // 카카오페이 정기결제 success 콜백 페이지
 // 카카오 인증 완료 후 redirect: ?plan=plus&cycle=monthly&order=ownly_..._...&pg_token=xxxxx
@@ -95,6 +96,7 @@ export default function CheckoutSuccessPage() {
               </p>
             </div>
           )}
+          <AutoAlimtalkNudge variant="card" from="checkout" />
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <Link href="/dashboard" className="btn btn-fill">대시보드로</Link>
             <Link href="/dashboard/billing" className="btn btn-ghost">결제 내역</Link>
