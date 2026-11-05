@@ -80,7 +80,7 @@ export default function LegalPage({ title, subtitle, effectiveDate, sections }) 
           <div style={{ background: "rgba(26,39,68,0.04)", border: "1px solid rgba(26,39,68,0.1)", borderRadius: 14, padding: "20px 24px" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "#1a2744", marginBottom: 4 }}>📮 추가 문의</p>
             <p style={{ fontSize: 12, color: "#8a8a9a", lineHeight: 1.8 }}>
-              (주)맥클린 · 대표 김성민<br />
+              (주)맥클린 · 대표 김경민<br />
               이메일: <a href="mailto:inquiry@mclean21.com" style={{ color: "#1a2744", fontWeight: 600 }}>inquiry@mclean21.com</a><br />
               사업자등록번호: 137-81-52231
             </p>

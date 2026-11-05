@@ -298,7 +298,7 @@ export default function CheckoutPage() {
           <div style={{ marginTop: 24, padding: "18px 20px", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 12, fontSize: 11, color: "#6b7280", lineHeight: 1.8 }}>
             <p style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>판매자 정보</p>
             <p style={{ margin: 0 }}>
-              <b style={{ color: "#0f172a" }}>(주)맥클린</b> · 대표 김성민 · 사업자등록번호 137-81-52231 ·{" "}
+              <b style={{ color: "#0f172a" }}>(주)맥클린</b> · 대표 김경민 · 사업자등록번호 137-81-52231 ·{" "}
               <a href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=1378152231" target="_blank" rel="noopener noreferrer"
                 style={{ color: "#5b4fcf", textDecoration: "underline" }}>사업자정보확인</a>
             </p>

@@ -158,7 +158,7 @@ export default function SiteFooter({ hasFixedBar = false }) {
             minWidth: 0,
           }}>
             <span>
-              (주)맥클린 · 대표 김성민 · 사업자등록번호 <span style={{ whiteSpace: "nowrap" }}>137-81-52231</span>
+              (주)맥클린 · 대표 김경민 · 사업자등록번호 <span style={{ whiteSpace: "nowrap" }}>137-81-52231</span>
               {" · "}
               <a
                 href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=1378152231"

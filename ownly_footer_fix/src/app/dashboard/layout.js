@@ -39,7 +39,7 @@ function DashboardFooter() {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0 20px", fontSize: 11, color: "#9a9aaa", lineHeight: 2 }}>
         <span>상호명: (주)맥클린</span>
-        <span>대표: 김성민</span>
+        <span>대표: 김경민</span>
         <span>사업자등록번호: 137-81-52231</span>
         <span>통신판매업신고: 제2026-경기김포-2785호</span>
         <span>이메일: inquiry@mclean21.com</span>
