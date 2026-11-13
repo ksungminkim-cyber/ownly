@@ -86,9 +86,37 @@ function stageOf({ tenants, samples, ev, paying }) {
 export async function GET(req) {
   const { admin, error } = await adminFrom(req);
   if (error) return error;
-  const userId = new URL(req.url).searchParams.get("userId");
+  const sp = new URL(req.url).searchParams;
+  const userId = sp.get("userId");
 
   try {
+    // ── 광고 클릭 (최근 30일) — track.js trackAdLanding 이 남긴 tool_ad_landing + 같은 기간 광고 유입 가입 ──
+    if (sp.get("ads")) {
+      const since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const [clicks, signups] = await Promise.all([
+        fetchAll(() => admin.from("events").select("props, created_at").eq("event", "tool_ad_landing").gte("created_at", since).order("created_at", { ascending: false })),
+        fetchAll(() => admin.from("events").select("props, created_at").eq("event", "signup_source").gte("created_at", since)),
+      ]);
+      const key = (ad, kw) => `${ad}|${kw || ""}`;
+      const rows = {};
+      for (const c of clicks) {
+        const p = c.props || {};
+        const r = (rows[key(p.ad, p.kw)] ||= { ad: p.ad || "", kw: p.kw || "", bid_kw: p.bid_kw || "", clicks: 0, signups: 0, landings: {}, last: c.created_at });
+        r.clicks++;
+        if (p.landing) r.landings[p.landing] = (r.landings[p.landing] || 0) + 1;
+      }
+      for (const s of signups) {
+        const p = s.props || {};
+        if (!p.ad) continue;
+        const r = (rows[key(p.ad, p.ad_kw)] ||= { ad: p.ad, kw: p.ad_kw || "", bid_kw: "", clicks: 0, signups: 0, landings: {}, last: s.created_at });
+        r.signups++;
+      }
+      const list = Object.values(rows)
+        .map((r) => ({ ...r, landing: Object.entries(r.landings).sort((a, b) => b[1] - a[1])[0]?.[0] || "", landings: undefined }))
+        .sort((a, b) => b.clicks - a.clicks || b.signups - a.signups);
+      return NextResponse.json({ rows: list, total: clicks.length, last: clicks[0]?.created_at || null });
+    }
+
     // ── 한 유저 상세 ──
     if (userId) {
       if (!/^[0-9a-f-]{36}$/i.test(userId)) return NextResponse.json({ error: "userId 형식 오류" }, { status: 400 });

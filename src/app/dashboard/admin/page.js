@@ -7,7 +7,7 @@ import { useApp } from "../../../context/AppContext";
 import { toast } from "../../../components/shared";
 
 import { ADMIN_EMAILS } from "../../../lib/constants";
-import UserSheet from "./UserSheet";
+import UserSheet, { AdClicks } from "./UserSheet";
 
 // 구독 조회·변경은 관리자 API 로 — subscriptions 는 RLS 로 본인 행만 읽히고 클라이언트 update 는 0행 갱신으로 사라진다
 async function adminApi(method, body) {
@@ -441,7 +441,7 @@ function AdminContent({ currentUser }) {
       )}
 
       {/* 퍼널 탭 — events 테이블 집계 (RPC get_admin_funnel, 20260908_growth_loop.sql) */}
-      {tab === "funnel" && <FunnelPanel />}
+      {tab === "funnel" && <><AdClicks /><FunnelPanel /></>}
 
       {/* SQL 가이드 탭 */}
       {tab === "sql" && (
@@ -513,7 +513,7 @@ function AdminContent({ currentUser }) {
 const EVENT_LABELS = {
   login: "로그인", dashboard_view: "대시보드 방문(일 1회)", property_added: "물건 등록", sample_seeded: "샘플 체험",
   sample_removed: "샘플 삭제", signup_source: "가입 유입경로 기록", onboard_addr_check: "온보딩 주소 조회", onboard_view: "온보딩 노출", onboard_dwell: "온보딩 체류(30초·2분)", onboard_addr_focus: "온보딩 주소 입력 시작", onboard_option: "온보딩 선택지 클릭", email_return: "메일 링크로 재방문", client_error: "화면 오류",
-  tool_view: "무료 도구 조회", tool_cta_click: "무료 도구 → 가입 클릭", certified_issued: "내용증명 정식 발급",
+  tool_view: "무료 도구 조회", tool_cta_click: "무료 도구 → 가입 클릭", tool_ad_landing: "광고 클릭 유입", certified_issued: "내용증명 정식 발급",
   portal_link_copied: "세입자 포털 링크 복사", sms_parse_used: "입금 문자 파싱 사용", upsell_click: "플러스 구독 CTA 클릭",
   interest_registered: "관심 등록 (구 이벤트)", checklist_done: "시작 체크리스트 완료", checkout_view: "결제 페이지 진입", pay_click: "결제 버튼 클릭",
 };

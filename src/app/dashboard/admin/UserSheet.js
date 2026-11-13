@@ -16,6 +16,72 @@ async function api(qs = "") {
   return out;
 }
 
+/**
+ * 퍼널 탭 상단 — 최근 30일 광고 클릭(가입 전 방문 포함)과 그 광고로 가입한 수.
+ * 광고 플랫폼이 붙여 주는 값(네이버 자동 추적 URL·구글 gclid 등)이 들어와야 채워지므로,
+ * 여기가 비어 있으면 광고가 꺼져 있거나 자동 추적 설정이 적용되지 않은 것이다.
+ */
+export function AdClicks() {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const d = await api("?ads=1");
+        if (!cancelled) setData(d);
+      } catch (e) {
+        if (!cancelled) setErr(e.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  const AD = { google: "구글 광고", naver: "네이버 광고", meta: "메타 광고", kakao: "카카오 광고" };
+  const cell = { padding: "8px 12px", fontSize: 12.5, borderBottom: "1px solid var(--surface3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+  const head = { ...cell, fontSize: 11.5, fontWeight: 700, color: "var(--text-muted)", background: "var(--surface2)", borderBottom: "1px solid var(--border)", textAlign: "left" };
+  return (
+    <section className="surface-card" style={{ padding: "16px 18px", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+        <h3 style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", margin: 0 }}>
+          광고 클릭 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>최근 30일 · 브라우저당 하루 1회</span>
+        </h3>
+        {data && <span className="num" style={{ fontSize: 12.5, color: "var(--text-muted)" }}>총 {data.total}건{data.last ? ` · 마지막 ${new Date(data.last).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : ""}</span>}
+      </div>
+      {err ? (
+        <p style={{ fontSize: 12.5, color: "#e8445a", margin: 0 }}>불러오기 실패: {err}</p>
+      ) : !data ? (
+        <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: 0 }}>불러오는 중...</p>
+      ) : data.rows.length === 0 ? (
+        <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: 0, lineHeight: 1.7 }}>
+          아직 기록된 광고 클릭이 없습니다. 광고를 눌러 들어온 방문이 생기면 검색어별로 여기에 쌓입니다 (2026-11-13부터 수집).
+        </p>
+      ) : (
+        <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 10 }}>
+          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 560 }}>
+            <thead>
+              <tr>
+                {["광고", "검색어", "입찰 키워드", "착지 페이지", "클릭", "가입"].map((h, i) => <th key={h} style={{ ...head, textAlign: i >= 4 ? "right" : "left" }}>{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((r, i) => (
+                <tr key={i}>
+                  <td style={{ ...cell, fontWeight: 700 }}>{AD[r.ad] || r.ad}</td>
+                  <td style={cell}>{r.kw || <span style={{ color: "var(--text-faint)" }}>—</span>}</td>
+                  <td style={{ ...cell, color: "var(--text-muted)" }}>{r.bid_kw || "—"}</td>
+                  <td style={{ ...cell, color: "var(--text-muted)" }}>{r.landing || "—"}</td>
+                  <td style={{ ...cell, textAlign: "right", fontWeight: 800 }} className="num">{r.clicks}</td>
+                  <td style={{ ...cell, textAlign: "right", color: r.signups ? "#0b8a5f" : "var(--text-faint)", fontWeight: r.signups ? 800 : 400 }} className="num">{r.signups || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 const STAGES = [
   { k: "signup_only", label: "가입만", c: "#8a8a9a", bg: "#f0efe9" },
   { k: "visited", label: "방문만", c: "#5a6478", bg: "#e9edf3" },

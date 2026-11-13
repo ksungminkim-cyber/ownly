@@ -99,11 +99,31 @@ function adInfo(p) {
   return { ad, ad_kw: kw, ad_group: (p.get("n_ad_group") || "").slice(0, 40) };
 }
 
+// 광고 클릭으로 들어온 방문을 가입 여부와 상관없이 1건 남긴다 (브라우저·광고 플랫폼당 하루 1회).
+// 가입 전 방문자는 익명이라 RLS 가 이름이 tool_ 로 시작하는 이벤트만 받는다 — 그래서 이름이 tool_ad_landing 이다.
+// 관리자 패널 퍼널 탭의 "광고 클릭" 표가 이 이벤트를 읽는다 (광고 클릭 수 → 가입 수 비교, 자동 추적 URL 동작 확인).
+function trackAdLanding(ad, p) {
+  try {
+    const key = `ownly_evt_ad_${ad.ad}`;
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(key) === today) return;
+    localStorage.setItem(key, today);
+  } catch {}
+  track("tool_ad_landing", {
+    ad: ad.ad,
+    kw: ad.ad_kw,
+    bid_kw: (p.get("n_keyword") || "").slice(0, 60), // 입찰 키워드 (kw 는 실제 검색어)
+    rank: (p.get("n_rank") || "").slice(0, 4),
+    landing: window.location.pathname,
+  });
+}
+
 export function captureAttribution() {
   try {
     if (typeof window === "undefined") return;
     const p = new URLSearchParams(window.location.search);
     const ad = adInfo(p);
+    if (ad) trackAdLanding(ad, p);
     const saved = localStorage.getItem(ATTR_KEY);
     if (saved) {
       // 첫 방문 기록은 유지하되, 나중에 광고를 눌러 다시 들어온 경우 광고 정보만 보탠다

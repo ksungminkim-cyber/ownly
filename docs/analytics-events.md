@@ -31,6 +31,7 @@
 | `pwa_home_added_manual` | iOS 등 수동 안내 후 "추가했어요" 표시 | — |
 | `upsell_click` | 플러스 구독 CTA 클릭 (대시보드 바 · 내용증명 한도 소진 모달) | `from`: dashboard_bar·certified |
 | `auto_alimtalk_on` | 세입자 자동 알림톡을 "한 번에 켜기"로 켬 (플러스 전용 유도 배너) | `from`: dashboard·checkout |
+| `tool_ad_landing` | 광고 클릭으로 들어온 방문 (**익명 가능**, 브라우저·광고 플랫폼당 하루 1회) — 익명 insert 정책이 `tool_` 접두사만 받아서 이 이름. 관리자 퍼널 탭 "광고 클릭" 표가 읽는다 | `ad`: google·naver·meta·kakao, `kw`(검색어), `bid_kw`(입찰 키워드), `rank`, `landing` |
 | `onboard_check_result` | 첫 화면 주소 확인 결과 (2026-11-13) — 지역 인식 실패·시세 없음이 등록 포기로 이어지는지 확인 | `ok`, `market`, `source`: kakao·kakao-trim·kakao-place·fallback |
 | `onboard_prefill` | 계약서 생성기에서 작성한 계약을 대시보드 첫 화면이 이어받음 | `from`: contract |
 | `tool_action` (추가 action) | `started`: 계약서 작성 시작 · `print`: 인쇄 · `to_property`: 계약을 물건으로 등록 클릭 · `gate_social`: 잠금 카드에서 카카오·구글 원탭 가입 | `tool`, `action`, `provider` |
