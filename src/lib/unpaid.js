@@ -21,10 +21,17 @@ export function dueCycle(t, now = new Date()) {
   const raw = t.pay_day ?? t.payment_day ?? 5;
   const lastDay = new Date(year, month, 0).getDate();
   const eff = effectivePayDay(raw, year, month);
-  if (eff < lastDay) return today > eff ? { year, month } : null;
+  const created = t.created_at ? new Date(t.created_at) : null;
+  if (eff < lastDay) {
+    if (today <= eff) return null;
+    // 납부일이 지난 뒤에 등록한 물건은 그 회차를 미납으로 보지 않는다 — 등록 전 납부는 온리가 알 수 없는데,
+    // 예전엔 첫 물건을 등록하자마자 대시보드·배지·메일이 "미납"으로 떠서 첫 화면이 거짓 경고였다 (2026-11-13). 샘플은 미납 예시를 보여줘야 하므로 예외.
+    const isSample = String(t.addr || t.address || "").includes("[샘플]");
+    if (!isSample && created && created > new Date(year, month - 1, eff, 23, 59, 59)) return null;
+    return { year, month };
+  }
   const py = month === 1 ? year - 1 : year, pm = month === 1 ? 12 : month - 1;
   // 지난달 말 이후에 등록된 물건은 지난달 몫을 미납으로 보지 않는다
-  const created = t.created_at ? new Date(t.created_at) : null;
   if (created && created > new Date(year, month - 1, 1)) return null;
   return { year: py, month: pm };
 }

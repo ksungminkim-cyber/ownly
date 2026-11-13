@@ -17,6 +17,13 @@ export default function SiteFooter({ hasFixedBar = false }) {
     return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
   const communityHref = isLoggedIn ? "/dashboard/community" : "/community";
+  const capStyle = { fontSize: 11, fontWeight: 800, color: "#8a8a9a", margin: "0 0 7px" };
+  const cardStyle = {
+    display: "flex", alignItems: "center", gap: 10, height: "100%", boxSizing: "border-box",
+    background: "#fff", border: "1px solid #e2e0d8", borderRadius: 10,
+    padding: "10px 14px", textDecoration: "none",
+    transition: "border-color .2s ease, box-shadow .2s ease, transform .15s ease",
+  };
   return (
     <footer style={{
       width: "100%",
@@ -87,10 +94,11 @@ export default function SiteFooter({ hasFixedBar = false }) {
         </div>
 
         {/* 패밀리 서비스 — 임대인 라이프사이클 크로스 링크 (카드형) */}
-        <div className="footer-family" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px 12px", marginBottom: 14 }}>
-          <span className="footer-family-label" style={{ fontSize: 11, fontWeight: 800, color: "#8a8a9a", whiteSpace: "nowrap", marginRight: 2 }}>
-            함께 쓰는{" "}<br className="footer-family-br" />임대인 도구
-          </span>
+        {/* 세 카드가 같은 폭으로 좌우 끝(로고 ~ 카카오톡 버튼)에 맞춰 선다 — 예전엔 왼쪽에만 몰려 윗줄과 어긋나 보였다 */}
+        <div className="footer-family" style={{ display: "flex", alignItems: "stretch", gap: 12, marginBottom: 14 }}>
+          <div style={{ flex: "2 1 0", minWidth: 0 }}>
+          <p style={capStyle}>함께 쓰는 임대인 도구</p>
+          <div className="footer-family-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
           {[
             {
               href: "https://beyond.mclean21.com",
@@ -119,21 +127,39 @@ export default function SiteFooter({ hasFixedBar = false }) {
           ].map(s => (
             <a key={s.name} href={s.href} target="_blank" rel="noopener noreferrer"
               style={{
-                display: "inline-flex", alignItems: "center", gap: 10,
-                background: "#fff", border: "1px solid #e2e0d8", borderRadius: 10,
-                padding: "9px 14px", textDecoration: "none",
-                transition: "border-color .2s ease, box-shadow .2s ease, transform .15s ease",
+                ...cardStyle,
               }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = s.accent; e.currentTarget.style.boxShadow = "0 6px 16px rgba(26,39,68,0.10)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e0d8"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}>
               {s.mark}
-              <span style={{ lineHeight: 1.35 }}>
+              <span style={{ lineHeight: 1.35, minWidth: 0 }}>
                 <b style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: "#1a2744" }}>{s.name}</b>
                 <span style={{ fontSize: 11, color: "#8a8a9a" }}>{s.desc}</span>
               </span>
-              <span aria-hidden="true" style={{ fontSize: 12, color: s.accent, fontWeight: 700, marginLeft: 2 }}>↗</span>
+              <span aria-hidden="true" style={{ fontSize: 12, color: s.accent, fontWeight: 700, marginLeft: "auto", paddingLeft: 8 }}>↗</span>
             </a>
           ))}
+          </div>
+          </div>
+
+          {/* 광고·제휴 문의 — 메일로 바로 받는다 */}
+          <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column" }}>
+            <p style={capStyle}>광고·제휴 문의</p>
+            <a href={`mailto:inquiry@mclean21.com?subject=${encodeURIComponent("[온리] 광고·제휴 문의")}`}
+              style={{ ...cardStyle, flex: 1 }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#1a2744"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(26,39,68,0.10)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e0d8"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" style={{ flexShrink: 0 }}>
+                <rect x="1.5" y="3.5" width="15" height="11" rx="1.5" fill="none" stroke="#1a2744" strokeWidth="1.6" />
+                <path d="M2.5 5 L9 10 L15.5 5" fill="none" stroke="#1a2744" strokeWidth="1.6" strokeLinejoin="round" />
+              </svg>
+              <span style={{ lineHeight: 1.35, minWidth: 0 }}>
+                <b style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: "#1a2744" }}>inquiry@mclean21.com</b>
+                <span style={{ fontSize: 11, color: "#8a8a9a" }}>임대인 대상 광고 · 서비스 제휴 · 콘텐츠 협업</span>
+              </span>
+              <span aria-hidden="true" style={{ fontSize: 12, color: "#1a2744", fontWeight: 700, marginLeft: "auto", paddingLeft: 8 }}>→</span>
+            </a>
+          </div>
         </div>
 
         {/* 구분선 */}
@@ -182,10 +208,8 @@ export default function SiteFooter({ hasFixedBar = false }) {
           .footer-tagline { display: none; }
           .footer-top { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
           .footer-nav { justify-content: flex-start !important; gap: 6px 14px !important; width: 100%; }
-          .footer-family { align-items: stretch !important; }
-          .footer-family-label { width: 100%; margin-right: 0 !important; }
-          .footer-family-br { display: none; }
-          .footer-family a { flex: 1 1 100%; }
+          .footer-family { flex-direction: column !important; }
+          .footer-family-grid { grid-template-columns: 1fr !important; }
           .footer-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
           .footer-biz { font-size: 10.5px; flex-direction: column !important; gap: 2px !important; }
         }

@@ -1,6 +1,6 @@
 export const metadata = {
   title: "임대차계약서 무료 작성 — 월세·전세 계약서 양식 자동 완성 | 온리",
-  description: "주택·상가 임대차계약서를 회원가입 없이 무료로 작성하세요. 표준 조항·추천 특약사항 자동 포함, 작성 즉시 인쇄 가능. 전월세신고제 안내까지.",
+  description: "주택·상가 임대차계약서를 회원가입 없이 무료로 작성하고 미리 볼 수 있습니다. 표준 조항·추천 특약사항 자동 포함, 인쇄는 무료 가입 후. 전월세신고제 안내까지.",
   alternates: { canonical: "https://www.ownly.kr/tools/contract" },
   openGraph: {
     title: "무료 임대차계약서 생성기",

@@ -31,9 +31,12 @@
 | `pwa_home_added_manual` | iOS 등 수동 안내 후 "추가했어요" 표시 | — |
 | `upsell_click` | 플러스 구독 CTA 클릭 (대시보드 바 · 내용증명 한도 소진 모달) | `from`: dashboard_bar·certified |
 | `auto_alimtalk_on` | 세입자 자동 알림톡을 "한 번에 켜기"로 켬 (플러스 전용 유도 배너) | `from`: dashboard·checkout |
+| `onboard_check_result` | 첫 화면 주소 확인 결과 (2026-11-13) — 지역 인식 실패·시세 없음이 등록 포기로 이어지는지 확인 | `ok`, `market`, `source`: kakao·kakao-trim·kakao-place·fallback |
+| `onboard_prefill` | 계약서 생성기에서 작성한 계약을 대시보드 첫 화면이 이어받음 | `from`: contract |
+| `tool_action` (추가 action) | `started`: 계약서 작성 시작 · `print`: 인쇄 · `to_property`: 계약을 물건으로 등록 클릭 · `gate_social`: 잠금 카드에서 카카오·구글 원탭 가입 | `tool`, `action`, `provider` |
 | `checklist_done` | 시작 체크리스트 3/3 완료 | |
 
-**유입 경로 캡처**: `src/components/AttributionCapture.js`(루트 레이아웃)가 첫 방문 URL의 `utm_*`·착지 경로를 localStorage(`ownly_attr`)에 1회 저장하고, 가입 후 첫 대시보드 진입에서 `signup_source`로 전송합니다. **광고 링크에는 반드시 utm_source·utm_campaign을 붙이세요** (예: `https://www.ownly.kr/tools/certified?utm_source=naver&utm_medium=cpc&utm_campaign=certified_sep`).
+**유입 경로 캡처**: `src/components/AttributionCapture.js`(루트 레이아웃)가 첫 방문 URL의 `utm_*`·착지 경로를 localStorage(`ownly_attr`)에 1회 저장하고, 가입 후 첫 대시보드 진입에서 `signup_source`로 전송합니다. **광고 링크에는 반드시 utm_source·utm_campaign을 붙이세요** (예: `https://www.ownly.kr/tools/certified?utm_source=naver&utm_medium=cpc&utm_campaign=certified_sep`). 2026-11-13부터 광고 플랫폼이 자동으로 붙이는 값(구글 `gclid`, 네이버 검색광고 `n_media`·`n_query`·`NaPm`, 메타 `fbclid`)을 감지해 `ad`(google·naver·meta·kakao)·`ad_kw`(검색어)로 함께 기록하므로, utm 을 안 붙인 광고도 관리자 유저 시트의 "유입" 열에 "네이버 광고 · 검색어"로 구분됩니다.
 
 **관리자 화면**: `/dashboard/admin` → 📈 퍼널 탭에서 주간 활성·유입경로별 활성화율·도구별 전환·이벤트 총계를 바로 봅니다 (RPC `get_admin_funnel`, `20260908_growth_loop.sql` 실행 필요).
 

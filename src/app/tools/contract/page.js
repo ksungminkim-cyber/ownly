@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import SiteFooter from "../../../components/SiteFooter";
-import { trackTool, trackToolCta } from "../../../lib/track";
+import { trackTool, trackToolCta, trackToolAction } from "../../../lib/track";
+import { PREFILL_PROPERTY_KEY } from "../../../lib/constants";
 import SignupGate from "../../../components/SignupGate";
 
 const SIGNUP_HREF = `/login?mode=signup&next=${encodeURIComponent("/dashboard")}`;
@@ -63,9 +64,30 @@ export default function ContractToolPage() {
       if (Array.isArray(draft.terms)) setSelectedTerms(draft.terms);
     });
   }, []);
+  // 대시보드 첫 화면이 이어받아 "주소·월세·세입자"가 채워진 채로 등록 버튼만 누르면 되게 한다
+  const savePrefill = () => {
+    if (!form.propertyAddr.trim()) return;
+    try { localStorage.setItem(PREFILL_PROPERTY_KEY, JSON.stringify({ addr: form.propertyAddr.trim(), rent: form.rent, deposit: form.deposit, name: form.tenantName.trim() })); } catch {}
+  };
   const saveDraft = () => {
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, terms: selectedTerms })); } catch {}
+    savePrefill();
   };
+  const registerProperty = () => {
+    savePrefill();
+    trackToolAction("contract", "to_property");
+    window.location.href = "/dashboard";
+  };
+  // 실제로 작성을 시작한 방문자 수 (페이지 조회와 구분) — 브라우저당 1회
+  const started = Boolean(form.propertyAddr.trim() || form.tenantName.trim() || form.landlordName.trim());
+  useEffect(() => {
+    if (!started) return;
+    try {
+      if (sessionStorage.getItem("ownly_contract_started")) return;
+      sessionStorage.setItem("ownly_contract_started", "1");
+    } catch {}
+    trackToolAction("contract", "started");
+  }, [started]);
 
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
   const isCommercial = form.propertyType === "상가";
@@ -177,8 +199,11 @@ export default function ContractToolPage() {
               items={["작성한 내용 그대로 인쇄·PDF 저장 (가입 후 이 화면으로 돌아와 이어서)", "계약을 물건으로 등록해 월세 수금·만료 알림 관리"]}
               onSignup={saveDraft}
             >
-              <button onClick={() => window.print()} className="btn btn-fill" style={{ width: "100%" }}>
-                🖨️ 미리보기 인쇄 (워터마크 포함)
+              <button onClick={() => { trackToolAction("contract", "print"); window.print(); }} className="btn btn-fill" style={{ width: "100%" }}>
+                미리보기 인쇄 (워터마크 포함)
+              </button>
+              <button onClick={registerProperty} disabled={!form.propertyAddr.trim()} className="btn btn-soft" style={{ width: "100%", marginTop: 8, opacity: form.propertyAddr.trim() ? 1 : 0.5 }}>
+                이 계약을 내 물건으로 등록 — 납부일·만료 알림 받기 →
               </button>
             </SignupGate>
             <p style={{ fontSize: 11, color: "#a0a0b0", textAlign: "center", margin: 0 }}>입력 내용은 서버에 저장되지 않습니다 — 브라우저에서만 처리됩니다</p>
@@ -285,7 +310,7 @@ export default function ContractToolPage() {
                 세입자에게는 납부 이력 포털과 납부확인서가 제공됩니다.
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Link href={SIGNUP_HREF} onClick={onSignupCta} className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료 가입하고 관리 시작 →</Link>
+                <Link href={SIGNUP_HREF} onClick={() => { savePrefill(); onSignupCta(); }} className="btn" style={{ background: "#fff", color: NAVY, fontWeight: 800, textDecoration: "none" }}>무료 가입하고 관리 시작 →</Link>
                 <Link href="/tools/certified" className="btn btn-ghost" style={{ color: "rgba(255,255,255,0.85)", borderColor: "rgba(255,255,255,0.3)", textDecoration: "none" }}>내용증명 생성기</Link>
               </div>
             </div>

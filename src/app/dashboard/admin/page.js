@@ -7,6 +7,7 @@ import { useApp } from "../../../context/AppContext";
 import { toast } from "../../../components/shared";
 
 import { ADMIN_EMAILS } from "../../../lib/constants";
+import UserSheet from "./UserSheet";
 
 // 구독 조회·변경은 관리자 API 로 — subscriptions 는 RLS 로 본인 행만 읽히고 클라이언트 update 는 0행 갱신으로 사라진다
 async function adminApi(method, body) {
@@ -34,25 +35,11 @@ const STATUS_META = {
   trial:     { label: "체험",   color: "#5b4fcf", bg: "#eeeaff" },
 };
 
-const PROVIDER_META = {
-  email:  { label: "이메일", icon: "📧", color: "#8a8a9a", bg: "#f0efe9" },
-  google: { label: "Google", icon: "🔴", color: "#ea4335", bg: "#fdeaea" },
-  kakao:  { label: "카카오", icon: "🟡", color: "#b8860b", bg: "#fff6d0" },
-  naver:  { label: "네이버", icon: "🟢", color: "#1ec800", bg: "#e6f9e0" },
-  github: { label: "GitHub", icon: "⚫", color: "#1a1a2e", bg: "#e8e6e0" },
-};
-
 export default function AdminPage() {
   const { user } = useApp();
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(false);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-    setAuthorized(ADMIN_EMAILS.includes(user.email));
-    setChecking(false);
-  }, [user]);
+  const checking = !user;
+  const authorized = !!user && ADMIN_EMAILS.includes(user.email);
 
   if (checking) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", fontFamily: "'Pretendard','DM Sans',sans-serif" }}>
@@ -77,11 +64,11 @@ function AdminContent({ currentUser }) {
   const [users,     setUsers]     = useState([]);
   const [subs,      setSubs]      = useState([]);
   const [billing,   setBilling]   = useState([]);
-  const [loading,   setLoading]   = useState(true);
+  const [, setLoading] = useState(true);
   const [saving,    setSaving]    = useState(null);
   const [editModal, setEditModal] = useState(null);
   const [tab,       setTab]       = useState("users");
-  const [search,    setSearch]    = useState("");
+  const [sheetKey, setSheetKey] = useState(0); // 플랜 변경 후 시트 다시 불러오기
   const [rpcReady,  setRpcReady]  = useState(true);
 
   const SQL_GUIDES = [
@@ -201,6 +188,7 @@ function AdminContent({ currentUser }) {
       await adminApi("POST", { userId, plan, status });
       toast("변경 완료: " + PLAN_META[plan].label + " / " + STATUS_META[status].label);
       setEditModal(null);
+      setSheetKey((k) => k + 1);
       await loadData();
     } catch (err) {
       toast("변경 실패: " + err.message, "error");
@@ -222,17 +210,6 @@ function AdminContent({ currentUser }) {
     }
   };
 
-  const filtered = users.filter(u =>
-    !search ||
-    u.id.includes(search) ||
-    (u.email || "").toLowerCase().includes(search.toLowerCase()) ||
-    (u.provider || "").toLowerCase().includes(search.toLowerCase()) ||
-    (PROVIDER_META[u.provider]?.label || "").toLowerCase().includes(search.toLowerCase()) ||
-    (u.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
-    (u.nickname || "").toLowerCase().includes(search.toLowerCase()) ||
-    (u.phone || "").includes(search) ||
-    u.plan.includes(search)
-  );
 
   // 이번 주·달 신규 가입 수
   const now = new Date();
@@ -269,29 +246,18 @@ function AdminContent({ currentUser }) {
   const activeSubs = subs.filter(s => s.status === "active").length;
   const arpu = activeSubs > 0 ? Math.round(currentMRR / activeSubs) : 0;
 
-  // 상대 시간 표시 헬퍼
-  const relTime = (iso) => {
-    if (!iso) return "—";
-    const diff = (now - new Date(iso)) / 1000;
-    if (diff < 60) return "방금";
-    if (diff < 3600) return Math.floor(diff / 60) + "분 전";
-    if (diff < 86400) return Math.floor(diff / 3600) + "시간 전";
-    if (diff < 604800) return Math.floor(diff / 86400) + "일 전";
-    return new Date(iso).toLocaleDateString("ko-KR");
-  };
-
   return (
-    <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif", padding: "28px 32px", maxWidth: 1100 }}>
+    <div style={{ fontFamily: "'Pretendard','DM Sans',sans-serif", padding: "22px 28px", maxWidth: 1400 }}>
 
       {/* 헤더 */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
         <div>
           <p style={{ fontSize: 10, fontWeight: 800, color: "#8a8a9a", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 4 }}>ADMIN</p>
           <h1 style={{ fontSize: 24, fontWeight: 900, color: "#1a2744", letterSpacing: "-.4px" }}>관리자 패널</h1>
-          <p style={{ fontSize: 12, color: "#8a8a9a", marginTop: 3 }}>유저 플랜 관리 · 구독 상태 제어 · 테스트</p>
+          <p style={{ fontSize: 12, color: "#8a8a9a", marginTop: 3 }}>가입 이후 단계 · 등록 물건 · 플랜 관리</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={loadData} style={{ padding: "8px 16px", borderRadius: 10, background: "#f0efe9", border: "1px solid #ebe9e3", color: "#1a2744", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>🔄 새로고침</button>
+          <button onClick={loadData} style={{ padding: "8px 16px", borderRadius: 10, background: "#f0efe9", border: "1px solid #ebe9e3", color: "#1a2744", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>지표 새로고침</button>
           <button onClick={() => router.push("/dashboard")} style={{ padding: "8px 16px", borderRadius: 10, background: "#1a2744", color: "#fff", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>대시보드 →</button>
         </div>
       </div>
@@ -307,6 +273,18 @@ function AdminContent({ currentUser }) {
         </div>
       )}
 
+      {/* 탭 */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+        {[{ k: "users", l: "유저·물건" }, { k: "funnel", l: "퍼널" }, { k: "metrics", l: "지표·매출" }, { k: "sql", l: "SQL 가이드" }].map(t => (
+          <button key={t.k} onClick={() => setTab(t.k)} className={"chip" + (tab === t.k ? " is-active" : "")} style={{ fontSize: 13, padding: "7px 14px" }}>
+            {t.l}
+          </button>
+        ))}
+      </div>
+
+      {/* 지표·매출 탭 — KPI·분포·MRR (유저 시트가 첫 화면에 바로 보이도록 탭으로 옮김) */}
+      {tab === "metrics" && (
+        <>
       {/* 헤로 KPI (4개 핵심 지표) */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 12, marginBottom: 14 }}>
         {[
@@ -435,112 +413,18 @@ function AdminContent({ currentUser }) {
         )}
       </div>
 
-      {/* 탭 */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-        {[{ k: "users", l: "👥 유저 관리" }, { k: "funnel", l: "📈 퍼널" }, { k: "sql", l: "🛠️ SQL 가이드" }].map(t => (
-          <button key={t.k} onClick={() => setTab(t.k)}
-            style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid " + (tab === t.k ? "#1a2744" : "#ebe9e3"), background: tab === t.k ? "#1a2744" : "transparent", color: tab === t.k ? "#fff" : "#8a8a9a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-            {t.l}
-          </button>
-        ))}
-      </div>
+        </>
+      )}
 
-      {/* 유저 관리 탭 */}
+      {/* 유저 관리 탭 — 스크롤 시트 (UserSheet.js) */}
       {tab === "users" && (
         <>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="이메일 · 이름 · 닉네임 · 전화 · UID · 플랜으로 검색..."
-            style={{ width: "100%", padding: "10px 14px", fontSize: 13, color: "#1a2744", background: "#fff", border: "1px solid #ebe9e3", borderRadius: 10, outline: "none", boxSizing: "border-box", marginBottom: 14 }} />
-
-          {loading ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#8a8a9a" }}>로딩 중...</div>
-          ) : (
-            <div style={{ background: "#fff", border: "1px solid #ebe9e3", borderRadius: 16, overflow: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
-                <thead>
-                  <tr style={{ background: "#f8f7f4", borderBottom: "2px solid #ebe9e3" }}>
-                    {["유저", "가입", "이메일", "전화", "가입일", "마지막 접속", "보유", "플랜", "구독 상태", "만료일", "액션"].map(h => (
-                      <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontSize: 10, color: "#8a8a9a", fontWeight: 800, textTransform: "uppercase", letterSpacing: ".5px", whiteSpace: "nowrap" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(u => {
-                    const pm = PLAN_META[u.plan] || PLAN_META.free;
-                    const sm = STATUS_META[u.status] || STATUS_META.inactive;
-                    const isMe = u.id === currentUser?.id;
-                    const displayName = u.full_name || u.nickname || "—";
-                    return (
-                      <tr key={u.id} style={{ borderBottom: "1px solid #f0efe9", background: isMe ? "rgba(15,165,115,0.03)" : "transparent" }}>
-                        <td style={{ padding: "10px 14px", fontSize: 12 }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                            <span style={{ fontWeight: 700, color: "#1a2744" }}>
-                              {displayName}{isMe && <span style={{ fontSize: 9, fontWeight: 800, color: "#0fa573", marginLeft: 5 }}>나</span>}
-                            </span>
-                            <span style={{ fontSize: 9, fontFamily: "monospace", color: "#a0a0b0" }}>{u.id.slice(0, 8)}...</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                          {(() => { const pv = PROVIDER_META[u.provider] || PROVIDER_META.email; return (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: pv.color, background: pv.bg, padding: "3px 9px", borderRadius: 20, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                              <span>{pv.icon}</span>{pv.label}
-                            </span>
-                          ); })()}
-                        </td>
-                        <td style={{ padding: "10px 14px", fontSize: 12, color: u.email ? "#1a2744" : "#c0c0cc" }}>
-                          {u.email || <span style={{ color: "#e8960a", fontSize: 11 }}>⚠️ RPC 필요</span>}
-                        </td>
-                        <td style={{ padding: "10px 14px", fontSize: 11, color: u.phone ? "#1a2744" : "#c0c0cc", fontFamily: "monospace" }}>
-                          {u.phone || "—"}
-                        </td>
-                        <td style={{ padding: "10px 14px", fontSize: 11, color: "#8a8a9a", whiteSpace: "nowrap" }}>
-                          {u.created_at ? (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                              <span style={{ color: "#1a2744", fontWeight: 600 }}>{new Date(u.created_at).toLocaleDateString("ko-KR")}</span>
-                              <span style={{ fontSize: 10 }}>{relTime(u.created_at)}</span>
-                            </div>
-                          ) : "—"}
-                        </td>
-                        <td style={{ padding: "10px 14px", fontSize: 11, color: "#8a8a9a", whiteSpace: "nowrap" }}>
-                          {relTime(u.last_sign_in_at)}
-                        </td>
-                        <td style={{ padding: "10px 14px", fontSize: 11, color: "#1a2744", whiteSpace: "nowrap" }}>
-                          {u.tenant_count != null ? (
-                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                              <span>🚪 {u.tenant_count}</span>
-                              {u.building_count > 0 && <span style={{ color: "#5b4fcf" }}>🏢 {u.building_count}</span>}
-                            </div>
-                          ) : <span style={{ color: "#c0c0cc" }}>—</span>}
-                        </td>
-                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: pm.color, background: pm.bg, padding: "3px 9px", borderRadius: 20 }}>{pm.label}</span>
-                        </td>
-                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                          {u.has_subscription
-                            ? <span style={{ fontSize: 11, fontWeight: 700, color: sm.color, background: sm.bg, padding: "3px 9px", borderRadius: 20 }}>{sm.label}</span>
-                            : <span style={{ fontSize: 11, color: "#c0c0cc" }}>—</span>}
-                        </td>
-                        <td style={{ padding: "10px 14px", fontSize: 11, color: u.current_period_end ? "#e8445a" : "#0fa573", whiteSpace: "nowrap" }}>
-                          {u.current_period_end ? new Date(u.current_period_end).toLocaleDateString("ko-KR") : "무제한"}
-                        </td>
-                        <td style={{ padding: "10px 14px" }}>
-                          <button onClick={() => setEditModal({ userId: u.id, email: u.email, plan: u.plan, status: u.status })}
-                            disabled={saving === u.id}
-                            style={{ padding: "6px 12px", borderRadius: 8, background: "#1a2744", color: "#fff", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                            ✏️
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <UserSheet currentUserId={currentUser?.id} reloadKey={sheetKey}
+            onEdit={(u) => setEditModal({ userId: u.id, email: u.email, plan: u.plan, status: u.status })} />
 
           {/* 빠른 변경 */}
           <div style={{ marginTop: 22, background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(15,165,115,0.04))", border: "1px solid #e0ede8", borderRadius: 16, padding: "20px 24px" }}>
-            <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>⚡ 내 계정 빠른 플랜 변경 (테스트용)</p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: "#1a2744", marginBottom: 4 }}>내 계정 빠른 플랜 변경 (테스트용)</p>
             <p style={{ fontSize: 11, color: "#8a8a9a", marginBottom: 14 }}>현재: <strong>{currentUser?.email}</strong> · 적용 후 F5 새로고침</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {Object.entries(PLAN_META).map(([planId, meta]) => (

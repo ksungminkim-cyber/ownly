@@ -53,6 +53,71 @@ function extractRegionNames(address) {
   return { sidoName, sigunguName, dongName };
 }
 
+// ── 카카오 로컬 API 헬퍼 ──
+const KAKAO = "https://dapi.kakao.com/v2/local";
+async function kakaoGet(path, key) {
+  const res = await fetch(KAKAO + path, { headers: { Authorization: `KakaoAK ${key}` } });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+function fromAddressDoc(doc, source) {
+  // 법정동코드(b_code)는 지번 주소(doc.address)에만 있다 — road_address 에서 읽으면 도로명 주소는 항상 빈 코드가 된다
+  const bcode = doc?.address?.b_code || "";
+  if (!doc || !bcode) return null;
+  const addr = doc.road_address || doc.address;
+  return {
+    bcode,
+    sigunguCode: bcode.slice(0, 5),
+    sidoName:    addr?.region_1depth_name || "",
+    sigunguName: addr?.region_2depth_name || "",
+    dongName:    addr?.region_3depth_name || addr?.region_3depth_h_name || "",
+    fullAddress: doc.address_name,
+    x: doc.x, y: doc.y,
+    source,
+  };
+}
+
+async function searchAddress(q, key) {
+  const data = await kakaoGet(`/search/address.json?query=${encodeURIComponent(q)}&page=1&size=1`, key);
+  return data?.documents?.[0] || null;
+}
+
+// 임대인이 실제로 치는 입력은 정식 주소가 아닌 경우가 많다 ("잠실 엘스 101동", "합정동 123", "범어동 삼성아파트").
+// 주소 검색이 비면 ① 뒤 토큰(동·호·번지)을 떼어 가며 다시 찾고 ② 그래도 없으면 장소(키워드) 검색으로
+// 단지·건물 좌표를 얻어 법정동 코드로 바꾼다. 2026-11 실측: 현실 입력 24건 중 8건이 여기서 실패하고 있었다.
+async function resolveLoose(address, key) {
+  const tokens = address.trim().split(/s+/);
+  for (let n = tokens.length - 1; n >= 1 && n >= tokens.length - 3; n--) {
+    const doc = await searchAddress(tokens.slice(0, n).join(" "), key);
+    const hit = fromAddressDoc(doc, "kakao-trim");
+    if (hit) return hit;
+  }
+  // 장소 검색 — 동·호수 표기는 떼고 찾는다
+  const kw = address.replace(/d+s*(동|호|층)(?=s|$)/g, " ").replace(/s+/g, " ").trim();
+  for (const q of kw && kw !== address ? [address, kw] : [address]) {
+    const data = await kakaoGet(`/search/keyword.json?query=${encodeURIComponent(q)}&page=1&size=1`, key);
+    const place = data?.documents?.[0];
+    if (!place?.x || !place?.y) continue;
+    const reg = await kakaoGet(`/geo/coord2regioncode.json?x=${place.x}&y=${place.y}`, key);
+    const b = (reg?.documents || []).find((d) => d.region_type === "B");
+    if (b?.code) {
+      return {
+        bcode: b.code,
+        sigunguCode: b.code.slice(0, 5),
+        sidoName: b.region_1depth_name || "",
+        sigunguName: b.region_2depth_name || "",
+        dongName: b.region_3depth_name || "",
+        fullAddress: place.road_address_name || place.address_name || address,
+        placeName: place.place_name || "",
+        x: place.x, y: place.y,
+        source: "kakao-place",
+      };
+    }
+  }
+  return null;
+}
+
 export async function POST(req) {
   try {
     const { address } = await req.json();
@@ -63,27 +128,8 @@ export async function POST(req) {
 
     if (kakaoKey) {
       try {
-        const res = await fetch(
-          `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}&page=1&size=1`,
-          { headers: { "Authorization": `KakaoAK ${kakaoKey}` } }
-        );
-        const data = await res.json();
-        const doc = data?.documents?.[0];
-        // 법정동코드(b_code)는 지번 주소(doc.address)에만 있다 — road_address 에서 읽으면 도로명 주소는 항상 빈 코드가 된다
-        const bcode = doc?.address?.b_code || "";
-        if (doc && bcode) {
-          const addr = doc.road_address || doc.address;
-          return Response.json({
-            bcode,
-            sigunguCode: bcode.slice(0, 5),
-            sidoName:    addr?.region_1depth_name || "",
-            sigunguName: addr?.region_2depth_name || "",
-            dongName:    addr?.region_3depth_name || addr?.region_3depth_h_name || "",
-            fullAddress: doc.address_name,
-            x: doc.x, y: doc.y,
-            source: "kakao",
-          });
-        }
+        const exact = fromAddressDoc(await searchAddress(address, kakaoKey), "kakao");
+        if (exact) return Response.json(exact);
       } catch (e) {
         console.warn("카카오 API 실패, fallback 사용:", e.message);
       }
@@ -92,6 +138,15 @@ export async function POST(req) {
     // Fallback: 주소 문자열에서 시군구 추출
     const fallback = extractSigunguFromAddress(address);
     const regions  = extractRegionNames(address);
+    // 문자열에 시군구가 없으면 느슨한 검색(토큰 줄이기 → 장소 검색)을 먼저 시도
+    if (kakaoKey) {
+      try {
+        const loose = await resolveLoose(address, kakaoKey);
+        if (loose) return Response.json(loose);
+      } catch (e) {
+        console.warn("카카오 느슨한 검색 실패:", e.message);
+      }
+    }
     if (fallback) {
       return Response.json({
         bcode: fallback.sigunguCode + "00000",

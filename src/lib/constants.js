@@ -102,6 +102,7 @@ export const FREE_TAGLINE = `무료로 시작 · 카드 등록 불필요 · 미�
 // 무료 도구 → 가입 딥링크용 localStorage 키 (도구 페이지가 저장, 대시보드가 소비)
 export const CERTIFIED_DRAFT_KEY = "ownly_certified_draft";   // /tools/certified 초안
 export const PREFILL_ADDR_KEY = "ownly_prefill_addr";         // /diagnose 에서 입력한 주소
+export const PREFILL_PROPERTY_KEY = "ownly_prefill_property"; // /tools/contract 에서 작성한 계약 { addr, rent, deposit, name } — 대시보드 첫 화면이 이어받아 한 번에 등록
 
 export const REVENUE = [
   { m: "10월", income: 625, expense: 42 },

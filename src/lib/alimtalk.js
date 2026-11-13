@@ -173,6 +173,8 @@ export function autoAlimtalkTargets({ tenants, payments, logs, settings, now = D
     if (settings?.unpaid) {
       const last = lastPassedDue(t.pay_day || 5, now);
       if (last.overdue < 1 || last.overdue > AUTO_UNPAID_MAX_OVERDUE) continue;
+      // 납부일이 지난 뒤에 등록한 물건은 그 회차 납부 여부를 온리가 알 수 없다 — 세입자에게 잘못된 미납 안내가 가지 않게 건너뛴다 (dueAt = 납부일 00:00 KST)
+      if (t.created_at && Date.parse(t.created_at) > last.dueAt + 86400000) continue;
       const p = paidOf(t.id, last.year, last.month);
       if (p?.status === "paid") continue;
       const sent = sentSince(t.id, "auto_unpaid", last.dueAt).sort((a, b) => Date.parse(b.sent_at) - Date.parse(a.sent_at));

@@ -1,5 +1,6 @@
 "use client";
 import { CountUp } from "./Trendy";
+import { getUnpaidTenantIds } from "../lib/unpaid";
 
 // 대시보드 첫 블록 — 이번 달 수금을 한 숫자와 수금률 링으로 보여준다.
 // 그라데이션 박스·이모지 없이 흰 바탕에 큰 숫자(세리프)와 가는 선만 쓴다.
@@ -43,7 +44,9 @@ export default function IncomeStoryWidget({ tenants = [], payments = [], onNavig
         ? { text: "순조롭게 들어오고 있습니다", color: "#0fa573" }
         : daysToCollect > 0
           ? { text: `${daysToCollect}건이 납부일 전입니다`, color: "var(--text-muted)" }
-          : { text: "미납 확인이 필요합니다", color: "#e8445a" };
+          : getUnpaidTenantIds(tenants, payments).size > 0
+            ? { text: "미납 확인이 필요합니다", color: "#e8445a" }
+            : { text: "받은 월세를 수금 현황에 기록하면 여기에 채워집니다", color: "var(--text-muted)" }; // 방금 등록한 물건 — 미납이 아니라 아직 기록 전
 
   const ringColor = pct >= 100 ? "#0fa573" : "#1a2744";
 

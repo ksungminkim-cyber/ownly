@@ -85,11 +85,34 @@ export function trackToolAction(tool, action, props = {}) {
  * utm_* 파라미터와 첫 착지 경로를 localStorage 에 보관했다가
  * 가입 후 첫 대시보드 진입 시 signup_source 이벤트로 1회 전송한다.
  */
+// 광고 플랫폼이 클릭 URL 에 자동으로 붙이는 값 — utm 을 안 붙인 광고도 "광고 유입"으로 구분된다.
+// 구글: gclid·gbraid·wbraid / 네이버 검색광고: n_media·n_query·n_keyword·NaPm / 메타: fbclid / 카카오: kclid
+function adInfo(p) {
+  let ad = "";
+  if (p.get("gclid") || p.get("gbraid") || p.get("wbraid")) ad = "google";
+  else if (p.get("n_media") || p.get("n_query") || p.get("n_keyword") || p.get("NaPm")) ad = "naver";
+  else if (p.get("fbclid")) ad = "meta";
+  else if (p.get("kclid")) ad = "kakao";
+  if (!ad) return null;
+  // 검색어는 사용자가 친 말 그대로라 길이만 제한해 보관 (클릭 ID 자체는 저장하지 않는다)
+  const kw = (p.get("n_query") || p.get("n_keyword") || p.get("utm_term") || "").slice(0, 60);
+  return { ad, ad_kw: kw, ad_group: (p.get("n_ad_group") || "").slice(0, 40) };
+}
+
 export function captureAttribution() {
   try {
     if (typeof window === "undefined") return;
-    if (localStorage.getItem(ATTR_KEY)) return;
     const p = new URLSearchParams(window.location.search);
+    const ad = adInfo(p);
+    const saved = localStorage.getItem(ATTR_KEY);
+    if (saved) {
+      // 첫 방문 기록은 유지하되, 나중에 광고를 눌러 다시 들어온 경우 광고 정보만 보탠다
+      if (ad) {
+        const prev = JSON.parse(saved);
+        if (!prev.ad) localStorage.setItem(ATTR_KEY, JSON.stringify({ ...prev, ...ad, ad_landing: window.location.pathname }));
+      }
+      return;
+    }
     const attr = {
       utm_source: p.get("utm_source") || "",
       utm_medium: p.get("utm_medium") || "",
@@ -99,6 +122,7 @@ export function captureAttribution() {
       landing: window.location.pathname,
       referrer: (document.referrer || "").slice(0, 200),
       at: new Date().toISOString(),
+      ...(ad || {}),
     };
     // utm 이 없고 referrer 가 자기 사이트면 의미 없는 기록 — 그래도 landing 은 남긴다
     localStorage.setItem(ATTR_KEY, JSON.stringify(attr));

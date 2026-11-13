@@ -6,7 +6,7 @@ import { toast } from "./shared";
 import { seedSampleData, removeSampleData, isSampleTenant } from "../lib/sampleData";
 import { track } from "../lib/track";
 import { isRegulatedAddr } from "../lib/policies";
-import { PREFILL_ADDR_KEY } from "../lib/constants";
+import { PREFILL_ADDR_KEY, PREFILL_PROPERTY_KEY } from "../lib/constants";
 
 const COLORS = ["#6366f1", "#0fa573", "#e8960a", "#0d9488", "#5b4fcf"];
 
@@ -33,6 +33,8 @@ export default function OnboardingHero() {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const resultRef = useRef(null);
+  const amountRef = useRef(null);
 
   // ── 주소 자동완성 (도로명주소 공개 API) ──
   const searchJuso = async (q) => {
@@ -63,7 +65,7 @@ export default function OnboardingHero() {
     setShowDrop(false);
     setChecking(true);
     track("onboard_addr_check");
-    let market = null, sigunguName = null, failed = false;
+    let market = null, sigunguName = null, failed = false, place = "", source = "";
     try {
       const geoRes = await fetch("/api/geocode", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -72,6 +74,9 @@ export default function OnboardingHero() {
       const geo = await geoRes.json();
       if (geo?.sigunguCode) {
         sigunguName = geo.sigunguName || null;
+        source = geo.source || "";
+        // 단지·건물 이름으로 찾았거나 주소를 줄여서 찾은 경우, 어디로 인식했는지 보여줘 사용자가 확인할 수 있게 한다
+        place = [geo.placeName, [geo.sidoName, geo.sigunguName, geo.dongName].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
         const mRes = await fetch("/api/market/sigungu", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ lawdCd: geo.sigunguCode }),
@@ -82,7 +87,16 @@ export default function OnboardingHero() {
         failed = true;
       }
     } catch { failed = true; }
-    setChecked({ market, sigunguName, regulated: isRegulatedAddr(target), failed });
+    setChecked({ market, sigunguName, regulated: isRegulatedAddr(target), failed, place });
+    // 인식 실패·시세 없음이 등록 포기로 이어지는지 보기 위한 계측 (2026-11-13)
+    track("onboard_check_result", { ok: !failed, market: !!market, source });
+    // 결과 아래 금액 칸이 화면 밖(특히 모바일)에 있으면 "눌렀는데 아무 일도 없다"로 보여 같은 버튼을 반복해 누른다
+    setTimeout(() => {
+      try {
+        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        amountRef.current?.focus({ preventScroll: true });
+      } catch {}
+    }, 80);
     setChecking(false);
   };
 
@@ -137,11 +151,25 @@ export default function OnboardingHero() {
   useEffect(() => {
     let prefill = null;
     try { prefill = localStorage.getItem(PREFILL_ADDR_KEY); if (prefill) localStorage.removeItem(PREFILL_ADDR_KEY); } catch {}
+    // 계약서 생성기에서 작성한 계약(주소·월세·보증금·세입자 이름)이 있으면 그대로 채워 버튼 한 번으로 등록되게 한다 (1회 소비)
+    let prop = null;
+    try {
+      prop = JSON.parse(localStorage.getItem(PREFILL_PROPERTY_KEY) || "null");
+      if (prop) localStorage.removeItem(PREFILL_PROPERTY_KEY);
+    } catch {}
+    if (prop?.addr) prefill = String(prop.addr);
     if (!prefill) return;
     let cancelled = false;
     Promise.resolve().then(() => {
       if (cancelled) return;
       setAddr(prefill);
+      if (prop) {
+        const r = String(prop.rent || "").replace(/[^0-9]/g, ""), d = String(prop.deposit || "").replace(/[^0-9]/g, "");
+        if (Number(r) > 0) { setLease("월세"); setRent(r); }
+        else if (Number(d) > 0) { setLease("전세"); setDeposit(d); }
+        if (prop.name) setName(String(prop.name).slice(0, 30));
+        track("onboard_prefill", { from: "contract" });
+      }
       checkAddress(prefill);
     });
     return () => { cancelled = true; };
@@ -165,11 +193,11 @@ export default function OnboardingHero() {
   const m = checked?.market;
 
   return (
-    <div className="card-in" style={{ position: "relative", overflow: "visible", background: "linear-gradient(135deg,rgba(26,39,68,0.04),rgba(91,79,207,0.05))", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "26px 22px", marginBottom: 20 }}>
+    <div className="card-in" style={{ position: "relative", overflow: "visible", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "26px 22px", marginBottom: 20 }}>
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: 19, fontWeight: 900, color: "var(--text)", marginBottom: 5 }}>주소만 입력하세요 — 나머지는 온리가 지켜봅니다</p>
+        <p style={{ fontSize: 19, fontWeight: 900, color: "var(--text)", marginBottom: 5 }}>주소와 월세, 두 칸이면 등록이 끝납니다</p>
         <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
-          주변 실거래 시세와 규제지역 여부를 바로 보여드리고, 등록하면 미납·계약 만료·부동산 대책 영향을 대신 챙겨드립니다.
+          주소를 넣으면 주변 실거래 시세를 먼저 보여드립니다. 아파트·건물 이름이나 동 이름만 적어도 됩니다. 등록하면 미납·계약 만료를 온리가 대신 챙깁니다.
         </p>
       </div>
 
@@ -196,18 +224,23 @@ export default function OnboardingHero() {
           )}
         </div>
         <button onClick={() => checkAddress()} disabled={checking} className="btn btn-fill" style={{ flexShrink: 0, opacity: checking ? 0.7 : 1 }}>
-          {checking ? "확인 중..." : "시세 확인하고 등록하기 →"}
+          {checking ? "확인 중..." : checked ? "다시 확인" : "다음 →"}
         </button>
       </div>
 
       {/* ② 즉시 가치: 시세 + 정책 */}
       {checked && (
-        <div className="card-in" style={{ marginTop: 14 }}>
-          <div style={{ background: "#fff", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px" }}>
+        <div ref={resultRef} className="card-in" style={{ marginTop: 14, scrollMarginTop: 80 }}>
+          <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 18px" }}>
+            {checked.place && !checked.failed && (
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>
+                인식한 위치 <b style={{ color: "var(--text)" }}>{checked.place}</b>
+              </p>
+            )}
             {m ? (
               <>
                 <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10 }}>
-                  📊 {checked.sigunguName || "이 지역"} 최근 3개월 실거래 (국토부)
+                  {checked.sigunguName || "이 지역"} 최근 3개월 실거래 (국토부)
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 12 }}>
                   {[
@@ -226,7 +259,7 @@ export default function OnboardingHero() {
             ) : (
               <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
                 {checked.failed
-                  ? "주소에서 지역을 인식하지 못했습니다 — 시·군·구가 들어간 주소로 다시 시도해보세요. 그래도 등록은 바로 가능합니다."
+                  ? "입력하신 주소 그대로 등록됩니다. 주변 시세는 지역을 찾지 못해 이번에는 건너뜁니다 (구·동 이름을 넣으면 시세도 함께 보입니다)."
                   : "이 지역의 최근 3개월 실거래 데이터가 부족합니다. 등록해두시면 시세·정책 변화가 잡히는 대로 알려드립니다."}
               </p>
             )}
@@ -245,8 +278,8 @@ export default function OnboardingHero() {
                 ))}
               </div>
               {lease === "월세"
-                ? <input value={rent} onChange={(e) => setRent(e.target.value.replace(/[^0-9]/g, ""))} placeholder="월세 (만원) *" inputMode="numeric" style={{ ...inputStyle, flex: "1 1 110px", width: "auto" }} />
-                : <input value={deposit} onChange={(e) => setDeposit(e.target.value.replace(/[^0-9]/g, ""))} placeholder="전세 보증금 (만원) *" inputMode="numeric" style={{ ...inputStyle, flex: "1 1 130px", width: "auto" }} />}
+                ? <input value={rent} onChange={(e) => setRent(e.target.value.replace(/[^0-9]/g, ""))} placeholder="월세 (만원) *" inputMode="numeric" ref={amountRef} onKeyDown={(e) => { if (e.key === "Enter") saveProperty(); }} style={{ ...inputStyle, flex: "1 1 110px", width: "auto" }} />
+                : <input value={deposit} onChange={(e) => setDeposit(e.target.value.replace(/[^0-9]/g, ""))} placeholder="전세 보증금 (만원) *" inputMode="numeric" ref={amountRef} onKeyDown={(e) => { if (e.key === "Enter") saveProperty(); }} style={{ ...inputStyle, flex: "1 1 130px", width: "auto" }} />}
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="세입자 이름 (선택)" style={{ ...inputStyle, flex: "1 1 130px", width: "auto" }} />
               <button onClick={saveProperty} disabled={saving} className="btn btn-fill" style={{ flexShrink: 0, opacity: saving ? 0.7 : 1 }}>
                 {saving ? "저장 중..." : "이 주소로 물건 등록 →"}
