@@ -1,7 +1,7 @@
 // 관리자 전용 — 유저 시트용 데이터.
 // GET            : 전체 유저 + 유저별 활동 요약(단계·방문일·유입 경로) + 등록 물건 요약, 전체 물건 목록
 // GET ?userId=…  : 한 유저의 등록 물건 상세 + 이벤트 타임라인 + 발송된 알림
-// 세입자 개인정보(이름·전화)는 관리자 화면에도 그대로 내보내지 않는다 — 이름은 첫 글자만, 전화는 등록 여부만.
+// 세입자 이름·전화도 그대로 내려준다 (운영자 결정 2026-11-13) — 이 라우트는 ADMIN_EMAILS 로그인 토큰이 있어야만 응답한다.
 // 로그인 토큰의 이메일이 ADMIN_EMAILS 에 있을 때만 service role 로 처리한다 (api/admin/subscriptions 와 같은 방식).
 
 export const dynamic = "force-dynamic";
@@ -20,11 +20,7 @@ async function adminFrom(req) {
 }
 
 const isSample = (t) => String(t.address || "").includes("[샘플]");
-const maskName = (n) => {
-  const s = String(n || "").trim();
-  if (!s || s === "미등록") return "";
-  return s[0] + "○".repeat(Math.min(Math.max(s.length - 1, 1), 3));
-};
+const tenantName = (n) => { const v = String(n || "").trim(); return v === "미등록" ? "" : v; };
 const host = (u) => {
   try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; }
 };
@@ -67,8 +63,8 @@ function propertyRow(t, paidCount) {
     contract_end: t.contract_end || null,
     start_date: t.start_date || null,
     created_at: t.created_at || null,
-    tenant: maskName(t.name),
-    has_phone: !!String(t.phone || "").replace(/[^0-9]/g, ""),
+    tenant: tenantName(t.name),
+    tenant_phone: String(t.phone || "").trim(),
     purchase_price: Number(t.purchase_price) || 0,
     sample: isSample(t),
     paid_count: paidCount || 0,

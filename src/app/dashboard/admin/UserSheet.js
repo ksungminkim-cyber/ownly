@@ -91,7 +91,8 @@ const PROP_COLS = [
   { k: "pay_day", label: "납부일", w: 66, num: true, sort: (p) => p.pay_day || 0 },
   { k: "end", label: "만료", w: 128, sort: (p) => p.contract_end || "" },
   { k: "status", label: "상태", w: 72, sort: (p) => p.status },
-  { k: "tenant", label: "세입자", w: 96, sort: (p) => p.tenant },
+  { k: "tenant", label: "세입자", w: 110, sort: (p) => p.tenant },
+  { k: "tenant_phone", label: "세입자 전화", w: 124, sort: (p) => p.tenant_phone },
   { k: "created", label: "등록일", w: 88, sort: (p) => p.created_at || "" },
 ];
 
@@ -171,8 +172,8 @@ export default function UserSheet({ currentUserId, onEdit, reloadKey = 0 }) {
   }, [scoped, stage, sort]);
   const prows = useMemo(() => {
     const s = q.trim().toLowerCase();
-    const col = PROP_COLS.find((c) => c.k === psort.k) || PROP_COLS[9];
-    const list = properties.filter((p) => (showSample || !p.sample) && (!s || [p.address, p.owner, p.type, p.status].some((v) => String(v || "").toLowerCase().includes(s))));
+    const col = PROP_COLS.find((c) => c.k === psort.k) || PROP_COLS[PROP_COLS.length - 1];
+    const list = properties.filter((p) => (showSample || !p.sample) && (!s || [p.address, p.owner, p.type, p.status, p.tenant, p.tenant_phone].some((v) => String(v || "").toLowerCase().includes(s))));
     return [...list].sort((a, b) => {
       const x = col.sort(a), y = col.sort(b);
       return (x > y ? 1 : x < y ? -1 : 0) * psort.dir;
@@ -213,7 +214,7 @@ export default function UserSheet({ currentUserId, onEdit, reloadKey = 0 }) {
         </div>
         <div style={{ position: "relative", flex: "1 1 220px", minWidth: 180 }}>
           <Search size={14} color="#a3a1a0" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={view === "users" ? "이메일·이름·전화·유입 경로·UID 검색" : "주소·소유자·유형 검색"}
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={view === "users" ? "이메일·이름·전화·유입 경로·UID 검색" : "주소·소유자·세입자·전화 검색"}
             style={{ width: "100%", padding: "9px 12px 9px 32px", fontSize: 13, color: "var(--text)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, outline: "none", boxSizing: "border-box" }} />
         </div>
         {view === "users" ? (
@@ -328,7 +329,7 @@ export default function UserSheet({ currentUserId, onEdit, reloadKey = 0 }) {
         )}
       </div>
       <p style={{ fontSize: 11.5, color: "var(--text-faint)", margin: "8px 2px 0" }}>
-        {view === "users" ? `${rows.length}명 표시 · 행을 누르면 등록 물건과 활동 기록이 열립니다 (↑↓ 이동, Esc 닫기)` : `${prows.length}건 표시 · 세입자 이름은 첫 글자만 보입니다 · 행을 누르면 소유자 상세가 열립니다`}
+        {view === "users" ? `${rows.length}명 표시 · 행을 누르면 등록 물건과 활동 기록이 열립니다 (↑↓ 이동, Esc 닫기)` : `${prows.length}건 표시 · 행을 누르면 소유자 상세가 열립니다`}
       </p>
 
       {selUser && <UserDrawer u={selUser} detail={detail?.id === sel ? detail : null} now={now} onClose={close} onEdit={() => onEdit?.(selUser)} />}
@@ -360,7 +361,8 @@ function PropertyRow({ p, onOpen, active }) {
       <td style={{ ...td, textAlign: "right", color: "var(--text-muted)" }} className="num">{p.pay_day ? (Number(p.pay_day) === 99 ? "말일" : p.pay_day + "일") : "—"}</td>
       <td style={td}><EndCell iso={p.contract_end} /></td>
       <td style={{ ...td, color: p.status === "공실" ? "#c2334a" : "var(--text)" }}>{p.status || "—"}</td>
-      <td style={{ ...td, color: "var(--text-muted)" }}>{p.tenant || "—"}</td>
+      <td style={td} title={p.tenant}>{p.tenant || <span style={{ color: "var(--text-faint)" }}>—</span>}</td>
+      <td style={{ ...td, color: "var(--text-muted)" }} className="num">{p.tenant_phone || "—"}</td>
       <td style={{ ...td, color: "var(--text-muted)" }} className="num">{ymd(p.created_at)}</td>
     </tr>
   );
@@ -463,7 +465,7 @@ function UserDrawer({ u, detail, now, onClose, onEdit }) {
                     <Fact label="납부일">{p.pay_day ? (Number(p.pay_day) === 99 ? "말일" : `${p.pay_day}일`) : "—"}</Fact>
                     <Fact label="만료"><EndCell iso={p.contract_end} /></Fact>
                     <Fact label="세입자">{p.tenant || "미입력"}</Fact>
-                    <Fact label="세입자 전화">{p.has_phone ? "등록됨" : "없음"}</Fact>
+                    <Fact label="세입자 전화">{p.tenant_phone || "없음"}</Fact>
                     <Fact label="수금 기록">{p.paid_count ? `${p.paid_count}건` : "없음"}</Fact>
                     <Fact label="등록일">{ymd(p.created_at)}</Fact>
                   </div>
