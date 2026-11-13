@@ -87,14 +87,14 @@ async function searchAddress(q, key) {
 // 주소 검색이 비면 ① 뒤 토큰(동·호·번지)을 떼어 가며 다시 찾고 ② 그래도 없으면 장소(키워드) 검색으로
 // 단지·건물 좌표를 얻어 법정동 코드로 바꾼다. 2026-11 실측: 현실 입력 24건 중 8건이 여기서 실패하고 있었다.
 async function resolveLoose(address, key) {
-  const tokens = address.trim().split(/s+/);
+  const tokens = address.trim().split(/\s+/);
   for (let n = tokens.length - 1; n >= 1 && n >= tokens.length - 3; n--) {
     const doc = await searchAddress(tokens.slice(0, n).join(" "), key);
     const hit = fromAddressDoc(doc, "kakao-trim");
     if (hit) return hit;
   }
   // 장소 검색 — 동·호수 표기는 떼고 찾는다
-  const kw = address.replace(/d+s*(동|호|층)(?=s|$)/g, " ").replace(/s+/g, " ").trim();
+  const kw = address.replace(/\d+\s*(동|호|층)(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
   for (const q of kw && kw !== address ? [address, kw] : [address]) {
     const data = await kakaoGet(`/search/keyword.json?query=${encodeURIComponent(q)}&page=1&size=1`, key);
     const place = data?.documents?.[0];
