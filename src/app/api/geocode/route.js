@@ -88,34 +88,44 @@ async function searchAddress(q, key) {
 // 단지·건물 좌표를 얻어 법정동 코드로 바꾼다. 2026-11 실측: 현실 입력 24건 중 8건이 여기서 실패하고 있었다.
 async function resolveLoose(address, key) {
   const tokens = address.trim().split(/\s+/);
-  for (let n = tokens.length - 1; n >= 1 && n >= tokens.length - 3; n--) {
-    const doc = await searchAddress(tokens.slice(0, n).join(" "), key);
-    const hit = fromAddressDoc(doc, "kakao-trim");
-    if (hit) return hit;
-  }
-  // 장소 검색 — 동·호수 표기는 떼고 찾는다
-  const kw = address.replace(/\d+\s*(동|호|층)(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
-  for (const q of kw && kw !== address ? [address, kw] : [address]) {
-    const data = await kakaoGet(`/search/keyword.json?query=${encodeURIComponent(q)}&page=1&size=1`, key);
-    const place = data?.documents?.[0];
-    if (!place?.x || !place?.y) continue;
-    const reg = await kakaoGet(`/geo/coord2regioncode.json?x=${place.x}&y=${place.y}`, key);
-    const b = (reg?.documents || []).find((d) => d.region_type === "B");
-    if (b?.code) {
-      return {
-        bcode: b.code,
-        sigunguCode: b.code.slice(0, 5),
-        sidoName: b.region_1depth_name || "",
-        sigunguName: b.region_2depth_name || "",
-        dongName: b.region_3depth_name || "",
-        fullAddress: place.road_address_name || place.address_name || address,
-        placeName: place.place_name || "",
-        x: place.x, y: place.y,
-        source: "kakao-place",
-      };
+  // 동·호·층·번지 숫자를 뗀 낱말들
+  const kw = address.replace(/\d+\s*(동|호|층)(?=\s|$)/g, " ").replace(/(^|\s)[\d-]+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
+  const lastWord = kw.split(" ").pop() || "";
+  // 마지막 낱말이 행정구역·도로명이 아니면(엘스·헬리오시티·삼성아파트·오피스텔) 단지·건물 이름으로 보고 장소 검색을 먼저 한다.
+  // 동 이름만 잘라 주소 검색하면 같은 이름의 다른 지역 동(예: 범어동 → 영천시)으로 잡힐 수 있다.
+  const placeFirst = !!lastWord && !/(시|군|구|동|읍|면|리|가|로|길)$/.test(lastWord);
+
+  const byTrim = async () => {
+    for (let n = tokens.length - 1; n >= 1 && n >= tokens.length - 3; n--) {
+      const hit = fromAddressDoc(await searchAddress(tokens.slice(0, n).join(" "), key), "kakao-trim");
+      if (hit) return hit;
     }
-  }
-  return null;
+    return null;
+  };
+  const byPlace = async () => {
+    for (const q of kw && kw !== address ? [kw, address] : [address]) {
+      const data = await kakaoGet(`/search/keyword.json?query=${encodeURIComponent(q)}&page=1&size=1`, key);
+      const place = data?.documents?.[0];
+      if (!place?.x || !place?.y) continue;
+      const reg = await kakaoGet(`/geo/coord2regioncode.json?x=${place.x}&y=${place.y}`, key);
+      const r = (reg?.documents || []).find((d) => d.region_type === "B");
+      if (r?.code) {
+        return {
+          bcode: r.code,
+          sigunguCode: r.code.slice(0, 5),
+          sidoName: r.region_1depth_name || "",
+          sigunguName: r.region_2depth_name || "",
+          dongName: r.region_3depth_name || "",
+          fullAddress: place.road_address_name || place.address_name || address,
+          placeName: place.place_name || "",
+          x: place.x, y: place.y,
+          source: "kakao-place",
+        };
+      }
+    }
+    return null;
+  };
+  return placeFirst ? (await byPlace()) || (await byTrim()) : (await byTrim()) || (await byPlace());
 }
 
 export async function POST(req) {
